@@ -1,5 +1,19 @@
 {
+  "name": "Chase Bliss Firmware Interface Program",
+  "version": "1.0.0",
+  "description": "A program to interface with Chase Bliss Audio pedals",
+  "main": "index.html",
+  "scripts": {
+    "dev": "live-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chasebliss/chase-bliss-firmware-interface"
+  },
+  "author": "Jacob Fowles website@chasebliss.com (http://chasebliss.com)",
+  "license": "MIT",
   "dependencies": {
-    "@vercel/analytics": "^1.2.2"
-  }
+    "prettier": "^3.2.5"
+  },
+  "private": false
 }

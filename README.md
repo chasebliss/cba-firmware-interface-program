@@ -1,31 +1,43 @@
-# Programmer
 
-WebUSB programmer for Daisy (and other DFU-compatible chips/boards).
+# Chase Bliss Firmware Interface Program
 
-Largely based on the webdfu page set up for STM32F103 boards made by devanlai:
-https://github.com/devanlai/webdfu -- https://devanlai.github.io/webdfu
+This web-based firmware programmer allows users to update and manage firmware on Chase Bliss Audio devices, offering compatibility with various DFU (Device Firmware Update)-capable chips and boards. 
+## Usage
 
-## Use
+The firmware programmer enables users to flash their devices with either user-uploaded binary files or select from a range of pre-compiled firmware options.
 
-The programmer can flash user-uploaded binary files or select from a pre-compiled list.
+To access the programmer, visit:
 
-To use the programmer, go to this page:
+[https://firmware.chasebliss.com](https://firmware.chasebliss.com)
 
-[https://electro-smith.github.io/Programmer/](https://electro-smith.github.io/Programmer/)
+Please follow the instructions provided on the webpage to update your device.
 
-and follow the on-page instructions.
+## Local Testing and Development
 
-## Local Test
+For local development or testing within your network, follow these steps to set up the programmer:
 
-To set this app up on a local network, you can use the util/ folder resources.
+### Requirements
 
-a run.sh script is included in the root level of the repo. 
+- Ensure Node.js is installed on your computer. Download it from [Node.js official website](https://nodejs.org/).
 
-However, it is recommended that you run this script from one level outside of the Programmer folder so that the URL patterns are the same as when deployed on electro-smith.github.io
+### Setting Up `live-server` for Local Testing
 
-The run script will start the server at `https://localhost:9001/`
+1. **Install `live-server`**:
+  - Open your terminal or command prompt.
+  - Navigate to the project directory where the programmer is located.
+  - Execute the following command to install `live-server` globally, allowing its use across projects:
 
-With the server started you can access the local version of the programmer at:
+```bash
+npm install -g live-server
+```
 
-[https://localhost:9001/Programmer](https://localhost:9001/Programmer)
+2. **Run the Interface Locally**:
+  - In your terminal, navigate to the root directory of the repository.
+  - Start `live-server` with this command:
 
+```bash
+live-server 
+```
+
+3. **Accessing the Local Version**:
+  - With the server running, visit [https://localhost:8080](https://localhost:8080) to use the interface locally.
