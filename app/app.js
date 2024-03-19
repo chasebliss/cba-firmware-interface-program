@@ -17,6 +17,7 @@ var data = {
   accordionOpen: false,
   showWinDriverInstructions: false,
   updateButtonDisabled: false,
+  showHoverDiv: false,
 };
 
 var ex_buffer;
@@ -89,7 +90,7 @@ var app = new Vue({
 
         <div class="w-1/3 flex justify-end ">
           <div class="flex  items-center  text-center relative gap-x-2">
-            <p class="font-bold">Install:</p>
+            <p class="font-bold">Instructions:</p>
             <div class="flex justify-center items-end gap-x-2">
               <svg
                 @mouseover="hoveredSVG = 'svg1'"
@@ -260,7 +261,7 @@ var app = new Vue({
 
       <div class="flex flex-col items-center">
         <div>
-          <h1 class="h1 shadow">Chase Bliss Firmware Interface Program.</h1>
+          <h1 class="h1 shadow">Bliss Programmer.</h1>
         </div>
         <div class="relative flex justify-center">
           <img
@@ -285,7 +286,7 @@ var app = new Vue({
           <!--            <progress id="progress" value="71680" max="129112"></progress>-->
           <!--          </div>-->
         </div>
-        <div class="flex pb-2 justify-center w-96 relative ">
+        <div class="flex pb-2 items-center justify-center w-96 relative ">
           <div
             class="accordion-parent w-96 py-3 px-3 border-black border-2 cursor-pointer flex justify-between items-center"
             @click="toggleAccordion"
@@ -330,6 +331,43 @@ var app = new Vue({
               </div>
             </div>
           </transition>
+          <!--          <div class="relative">-->
+          <!--            <svg-->
+          <!--              viewBox="0 0 32 32"-->
+          <!--              class="ml-2 w-8 h-8"-->
+          <!--              @mouseover="showHoverDiv = true"-->
+          <!--              @mouseleave="showHoverDiv = false"-->
+          <!--            >-->
+          <!--              <rect x="15" y="14" width="2" height="8" />-->
+          <!--              <rect x="15" y="10" width="2" height="2" />-->
+          <!--              <circle-->
+          <!--                fill="none"-->
+          <!--                stroke="#000000"-->
+          <!--                stroke-width="2"-->
+          <!--                stroke-miterlimit="10"-->
+          <!--                cx="16"-->
+          <!--                cy="16"-->
+          <!--                r="12"-->
+          <!--              />-->
+          <!--            </svg>-->
+
+          <!--            &lt;!&ndash; Conditional div &ndash;&gt;-->
+          <!--            <div-->
+          <!--              v-show="showHoverDiv"-->
+          <!--              class="changelog absolute z-10 bg-white shadow-md p-4 bottom-10 z-50 -left-40 w-96 border-2 border-black"-->
+          <!--            >-->
+          <!--              <p>-->
+          <!--                * Includes three new amp models built from the ground up using a-->
+          <!--                detailed physical modelling based simulation of the original-->
+          <!--                circuity.-->
+          <!--              </p>-->
+          <!--              <p>-->
+          <!--                * Includes six new IRs meticulously designed by Tone Factor that-->
+          <!--                were captured with vintage and era specific amps, matching the-->
+          <!--                ACS1's amp models.-->
+          <!--              </p>-->
+          <!--            </div>-->
+          <!--          </div>-->
         </div>
         <p>
           <button
@@ -471,7 +509,8 @@ var app = new Vue({
     },
     platformFirmwares: function () {
       return this.firmwares.filter(
-        (firmware) => firmware.platform === this.sel_platform,
+        (firmware) =>
+          firmware.platform === this.sel_platform && firmware.active,
       );
     },
   },
