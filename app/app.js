@@ -18,6 +18,7 @@ var data = {
   showWinDriverInstructions: false,
   updateButtonDisabled: false,
   showHoverDiv: false,
+  isUpdateButtonVisible: true,
 };
 
 var ex_buffer;
@@ -133,7 +134,7 @@ var app = new Vue({
                   pedal may be damaged by uploading incorrect firmware.
                 </p>
                 <ol class="list-inside space-y-3 pt-4 text-sm">
-                  <li>Select your pedal from the dropdown menu.</li>
+                  <li>Select your pedal and version from the dropdown menu.</li>
                   <li>
                     <strong>*</strong>Connect your pedal using the provided USB
                     cable.
@@ -168,7 +169,7 @@ var app = new Vue({
                   <li>
                     Install the Windows driver (first time only, see below).
                   </li>
-                  <li>Select your pedal from the dropdown menu.</li>
+                  <li>Select your pedal and version from the dropdown menu.</li>
                   <li>
                     <strong>*</strong>Connect your pedal using the provided USB
                     cable.
@@ -187,10 +188,10 @@ var app = new Vue({
                   <strong>*</strong>Steps 3 and 4 must be performed in this
                   order.
                 </p>
-                <div>
+                <div class="">
                   <button
                     @click="toggleWinDriverInstructions"
-                    class="font-bold p-0 mt-6 cursor-pointer border-none flex justify-between"
+                    class="w-full font-bold p-0 mt-6 cursor-pointer border-none flex"
                   >
                     Windows Driver Install
                     <svg
@@ -271,22 +272,24 @@ var app = new Vue({
             class="py-2 z-20 transition-opacity duration-300"
             :style="{ opacity: overlayVisible ? '2' : '1' }"
           />
+        </div>
+        <div
+          class="flex pb-2 items-center justify-center w-96 relative flex-col "
+        >
           <transition name="fade">
             <div
               v-show="overlayVisible"
-              class="info flex-col absolute left-1/2 transform -translate-x-1/2  h-full flex justify-center items-center"
+              class="info flex-col absolute bottom-12 h-full flex justify-center items-center pb-2"
               id="downloadLog"
             />
           </transition>
           <!--          <div-->
           <!--            id="downloadLog"-->
-          <!--            class="info flex-col absolute  left-1/2 transform -translate-x-1/2  h-full flex justify-center items-center"-->
+          <!--            class="info flex-col absolute bottom-12 h-full flex justify-center items-center pb-2"-->
           <!--          >-->
-          <!--            <p>Installing firmware...</p>-->
           <!--            <progress id="progress" value="71680" max="129112"></progress>-->
+          <!--            <p class="bg-white relative z-50 install-btn">Preparing......</p>-->
           <!--          </div>-->
-        </div>
-        <div class="flex pb-2 items-center justify-center w-96 relative ">
           <div
             class="accordion-parent w-96 py-3 px-3 border-black border-2 cursor-pointer flex justify-between items-center"
             @click="toggleAccordion"
@@ -386,6 +389,7 @@ var app = new Vue({
           :class="['mt-4 paper', {'text-green-500 border-green-500 button-shadow': !no_device && sel_firmware, 'button-no-shadow opacity-40 cursor-not-allowed text-black border-black': no_device || !sel_firmware}]"
           :disabled="no_device || !sel_firmware || updateButtonDisabled"
           @click="showOverlay"
+          v-if="isUpdateButtonVisible"
         >
           Update
         </button>
@@ -561,6 +565,7 @@ var app = new Vue({
     },
     showOverlay() {
       this.updateButtonDisabled = true;
+      this.isUpdateButtonVisible = false; // Hide the update button
       this.overlayVisible = true;
 
       setTimeout(() => {

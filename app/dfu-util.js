@@ -2,6 +2,7 @@ var firmwareFile = null;
 var blinkFirmwareFile = null;
 var bootloaderFirmwareFile = null;
 var device = null;
+
 (function () {
   "use strict";
 
@@ -211,10 +212,10 @@ var device = null;
     let infoContainer = document.createElement("div");
     infoContainer.className = "info";
     // Apply the pulse animation class conditionally
-    if (msg === "Preparing firmware...") {
+    if (msg === "Preparing..." || msg === "Installing...") {
       infoContainer.classList.add("pulse-animation");
     }
-    if (msg === "Installation successful, your device has been disconnected.") {
+    if (msg === "Successful") {
       infoContainer.classList.add("progress-success");
     }
     let infoText = document.createElement("p");
@@ -239,7 +240,7 @@ var device = null;
       progressBar.max = total; // Ensure the max is updated if needed
     } else {
       // If for some reason the progress bar doesn't exist, create it with visibility.
-      logInfo("Preparing firmware...", done, total, false);
+      logInfo("Preparing...", done, total, false);
     }
   }
 
@@ -710,9 +711,7 @@ var device = null;
           )
           .then(
             () => {
-              logInfo(
-                "Installation successful, your device has been disconnected.",
-              );
+              logInfo("Successful");
               setLogContext(null);
               if (!manifestationTolerant) {
                 device.waitDisconnected(5000).then(
@@ -758,9 +757,7 @@ var device = null;
           .do_download(transferSize, blinkFirmwareFile, manifestationTolerant)
           .then(
             () => {
-              logInfo(
-                "Installation successful, your device has been disconnected.",
-              );
+              logInfo("Successful");
               setLogContext(null);
               if (!manifestationTolerant) {
                 device.waitDisconnected(5000).then(
@@ -806,9 +803,7 @@ var device = null;
           .do_download(transferSize, firmwareFile, manifestationTolerant)
           .then(
             () => {
-              logInfo(
-                "Installation successful, your device has been disconnected.",
-              );
+              logInfo("Successful");
               setLogContext(null);
               if (!manifestationTolerant) {
                 device.waitDisconnected(5000).then(

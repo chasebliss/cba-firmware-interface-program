@@ -234,7 +234,7 @@ var dfuse = {};
     if (!this.memoryInfo || !this.memoryInfo.segments) {
       throw "No memory map available";
     }
-    this.logInfo("Preparing firmware...", 0, 0, false, true);
+    this.logInfo("Preparing...", 0, 0, false, true);
 
     let bytes_sent = 0;
     let expected_size = data.byteLength;
@@ -252,14 +252,7 @@ var dfuse = {};
     }
     await this.erase(startAddress, expected_size);
 
-    this.logInfo(
-      "Installing firmware...",
-      0,
-      0,
-      true,
-      false,
-      app.sel_firmware.bgColor,
-    );
+    this.logInfo("Installing...", 0, 0, true, true, app.sel_firmware.bgColor);
 
     let address = startAddress;
     while (bytes_sent < expected_size) {
