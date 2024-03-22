@@ -136,8 +136,8 @@ var app = new Vue({
                 <ol class="list-inside space-y-3 pt-4 text-sm">
                   <li>Select your pedal and version from the dropdown menu.</li>
                   <li>
-                    <strong>*</strong>Connect your pedal using the provided USB
-                    cable.
+                    <strong>*</strong>Connect your pedal using a data transfer
+                    micro USB cable.
                   </li>
                   <li>
                     <strong>*</strong>Connect appropriate pedal power supply
@@ -162,7 +162,7 @@ var app = new Vue({
               >
                 <p class="font-bold pb-2 text-xl">Windows:</p>
                 <p class="italic font-bold text-sm">
-                  <span class="bg-red-400 text-white px-2">Note:</span> Your
+                  <span class="bg-red-400 text-white px-2">Note:</span>Your
                   pedal may be damaged by uploading incorrect firmware.
                 </p>
                 <ol class="list-inside space-y-3 pt-4 text-sm">
@@ -171,8 +171,8 @@ var app = new Vue({
                   </li>
                   <li>Select your pedal and version from the dropdown menu.</li>
                   <li>
-                    <strong>*</strong>Connect your pedal using the provided USB
-                    cable.
+                    <strong>*</strong>Connect your pedal using a data transfer
+                    micro USB cable.
                   </li>
                   <li>
                     <strong>*</strong>Connect appropriate pedal power supply
@@ -191,6 +191,8 @@ var app = new Vue({
                 <div class="">
                   <button
                     @click="toggleWinDriverInstructions"
+                    c
+                    d
                     class="w-full font-bold p-0 mt-6 cursor-pointer border-none flex"
                   >
                     Windows Driver Install
@@ -539,21 +541,16 @@ var app = new Vue({
       `;
 
       if (styleElement.styleSheet) {
-        styleElement.styleSheet.cssText = cssRules; // Support for IE
+        styleElement.styleSheet.cssText = cssRules;
       } else {
         styleElement.appendChild(document.createTextNode(cssRules));
       }
 
-      // Remove the existing custom style for progress if it exists to prevent duplicates
       const existingStyle = document.getElementById("dynamic-progress-style");
       if (existingStyle) {
         existingStyle.parentNode.removeChild(existingStyle);
       }
-
-      // Add an ID to the style element to make it easier to find and remove later if needed
       styleElement.id = "dynamic-progress-style";
-
-      // Append the new style element to the <head> of the document
       document.head.appendChild(styleElement);
     },
     hoverEnter(event, bgColor) {
@@ -561,11 +558,11 @@ var app = new Vue({
     },
 
     hoverLeave(event) {
-      event.target.style.backgroundColor = ""; // Reset to default or you can set it to another color
+      event.target.style.backgroundColor = "";
     },
     showOverlay() {
       this.updateButtonDisabled = true;
-      this.isUpdateButtonVisible = false; // Hide the update button
+      this.isUpdateButtonVisible = false;
       this.overlayVisible = true;
 
       setTimeout(() => {
@@ -608,7 +605,7 @@ var app = new Vue({
     },
     importfirmwares() {
       var self = this;
-      var src_url = getRootUrl().split("?")[0].concat("data/sources.json"); //need to strip out query string
+      var src_url = getRootUrl().split("?")[0].concat("data/sources.json");
       var raw = new XMLHttpRequest();
       raw.open("GET", src_url, true);
       raw.responseType = "text";
@@ -668,7 +665,6 @@ var app = new Vue({
       }
     },
     overlayVisible(newVal) {
-      // When the overlay becomes visible, update the progress bar color if sel_firmware.bgColor is available
       if (newVal && this.sel_firmware && this.sel_firmware.bgColor) {
         this.updateProgressColor(this.sel_firmware.bgColor);
       }

@@ -58,20 +58,6 @@ body {
   padding: 0 7vw;
   font-family: "Poppins", sans-serif !important;
   background-color: #fefbf6;
-  /*background-image: linear-gradient(#f1e8dc 1px, transparent 1px),*/
-  /*  linear-gradient(90deg, #f1e8dc 1px, transparent 1px),*/
-  /*  linear-gradient(#f1e8dc 0.5px, transparent 0.5px),*/
-  /*  linear-gradient(90deg, #f1e8dc 0.5px, #fefbf6 0.5px);*/
-  /*background-size:*/
-  /*  80px 80px,*/
-  /*  80px 80px,*/
-  /*  16px 16px,*/
-  /*  16px 16px;*/
-  /*background-position:*/
-  /*  -1px -1px,*/
-  /*  -1px -1px,*/
-  /*  -0.5px -0.5px,*/
-  /*  -0.5px -0.5px;*/
 }
 
 .app_body {
