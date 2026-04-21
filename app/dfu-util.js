@@ -799,8 +799,18 @@ var device = null;
         } catch (error) {
           device.logWarning("Failed to clear status");
         }
-        await device
-          .do_download(transferSize, firmwareFile, manifestationTolerant)
+        const flashPromise = Array.isArray(firmwareFile)
+          ? device.do_download_multi(
+              transferSize,
+              firmwareFile,
+              manifestationTolerant,
+            )
+          : device.do_download(
+              transferSize,
+              firmwareFile,
+              manifestationTolerant,
+            );
+        await flashPromise
           .then(
             () => {
               logInfo("Successful");

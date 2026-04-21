@@ -10,6 +10,7 @@ var data = {
   sel_firmware: null,
   firmwareFile: null,
   hoveredSVG: null,
+  hoverCloseTimeout: null,
   blinkFirmwareFile: null,
   bootloaderFirmwareFile: null,
   displayImportedFile: false,
@@ -29,19 +30,92 @@ function getRootUrl() {
 }
 
 async function readServerFirmwareFile(path, dispReadme = true) {
-  return new Promise((resolve) => {
-    var buffer;
-    var raw = new XMLHttpRequest();
-    var fname = path;
+  const response = await fetch(path);
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch firmware (${response.status} ${response.statusText}): ${path}`,
+    );
+  }
+  if (isHexPath(path)) {
+    const text = await response.text();
+    return parseIntelHex(text);
+  }
+  return response.arrayBuffer();
+}
 
-    raw.open("GET", fname, true);
-    raw.responseType = "arraybuffer";
-    raw.onreadystatechange = function () {
-      if (this.readyState === 4 && this.status === 200) {
-        resolve(this.response);
-      }
-    };
-    raw.send(null);
+function isHexPath(pathOrName) {
+  return /\.hex(\?|#|$)/i.test(pathOrName);
+}
+
+// Parses Intel HEX text into an array of { address, buffer } segments.
+// Records are grouped into segments by address; runs separated by a gap
+// larger than HEX_SEGMENT_GAP are split into separate segments. Gaps
+// smaller than that threshold are coalesced with 0xFF padding. This
+// keeps the flashed footprint small when firmware straddles two
+// far-apart memory regions (e.g. internal flash and QSPI).
+const HEX_SEGMENT_GAP = 1024 * 1024; // 1 MB
+function parseIntelHex(text) {
+  const records = [];
+  let upperAddr = 0;
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line === "" || line[0] !== ":") continue;
+    if (line.length < 11) {
+      throw new Error(`Hex line ${i + 1} too short: ${line}`);
+    }
+    const byteCount = parseInt(line.substr(1, 2), 16);
+    const offset = parseInt(line.substr(3, 4), 16);
+    const recordType = parseInt(line.substr(7, 2), 16);
+    const dataStart = 9;
+    const dataEnd = dataStart + byteCount * 2;
+    if (line.length < dataEnd + 2) {
+      throw new Error(`Hex line ${i + 1} truncated`);
+    }
+    const data = new Uint8Array(byteCount);
+    for (let j = 0; j < byteCount; j++) {
+      data[j] = parseInt(line.substr(dataStart + j * 2, 2), 16);
+    }
+    if (recordType === 0x00) {
+      records.push({
+        address: ((upperAddr << 16) | offset) >>> 0,
+        bytes: data,
+      });
+    } else if (recordType === 0x01) {
+      break;
+    } else if (recordType === 0x04) {
+      upperAddr = (data[0] << 8) | data[1];
+    } else if (recordType === 0x02) {
+      upperAddr = (((data[0] << 8) | data[1]) << 4) >>> 16;
+    }
+    // record types 0x03 and 0x05 (start addresses) are informational for DFU
+  }
+
+  if (records.length === 0) {
+    throw new Error("Hex file contained no data records");
+  }
+
+  records.sort((a, b) => a.address - b.address);
+
+  const groups = [];
+  let group = null;
+  for (const rec of records) {
+    const end = rec.address + rec.bytes.length;
+    if (!group || rec.address - group.end >= HEX_SEGMENT_GAP) {
+      group = { start: rec.address, end, records: [rec] };
+      groups.push(group);
+    } else {
+      group.end = Math.max(group.end, end);
+      group.records.push(rec);
+    }
+  }
+
+  return groups.map((g) => {
+    const buf = new Uint8Array(g.end - g.start).fill(0xff);
+    for (const r of g.records) {
+      buf.set(r.bytes, r.address - g.start);
+    }
+    return { address: g.start, buffer: buf.buffer };
   });
 }
 
@@ -94,8 +168,8 @@ var app = new Vue({
             <p class="font-bold">Instructions:</p>
             <div class="flex justify-center items-end gap-x-2">
               <svg
-                @mouseover="hoveredSVG = 'svg1'"
-                @mouseleave="hoveredSVG = null"
+                @mouseover="setHoveredSVG('svg1')"
+                @mouseleave="clearHoveredSVG()"
                 fill="#000000"
                 viewBox="-3.5 -2 24 24"
                 xmlns="http://www.w3.org/2000/svg"
@@ -107,8 +181,8 @@ var app = new Vue({
                 />
               </svg>
               <svg
-                @mouseover="hoveredSVG = 'svg2'"
-                @mouseleave="hoveredSVG = null"
+                @mouseover="setHoveredSVG('svg2')"
+                @mouseleave="clearHoveredSVG()"
                 fill="#000000"
                 viewBox="0 0 14 14"
                 role="img"
@@ -124,8 +198,8 @@ var app = new Vue({
             <transition name="fade">
               <div
                 v-if="hoveredSVG === 'svg1'"
-                @mouseover="hoveredSVG = 'svg1'"
-                @mouseleave="hoveredSVG = null"
+                @mouseover="setHoveredSVG('svg1')"
+                @mouseleave="clearHoveredSVG()"
                 class="transition-opacity duration-500 absolute top-10 right-10  mac-instructions instructions shadow-2xl text-left"
               >
                 <p class="font-bold pb-2 text-xl">Mac:</p>
@@ -156,8 +230,8 @@ var app = new Vue({
               </div>
               <div
                 v-if="hoveredSVG === 'svg2'"
-                @mouseover="hoveredSVG = 'svg2'"
-                @mouseleave="hoveredSVG = null"
+                @mouseover="setHoveredSVG('svg2')"
+                @mouseleave="clearHoveredSVG()"
                 class="transition-opacity duration-500 absolute top-10 right-1 instructions shadow-2xl text-left"
               >
                 <p class="font-bold pb-2 text-xl">Windows:</p>
@@ -213,7 +287,7 @@ var app = new Vue({
                       v-if="showWinDriverInstructions"
                       class="space-y-3 text-sm win-driver mt-2"
                     >
-                      <video src="assets/zadig-install.mp4" controls />
+                      <video src="/assets/zadig-install.mp4" controls />
                       <li>
                         Download
                         <a
@@ -268,7 +342,7 @@ var app = new Vue({
         </div>
         <div class="relative flex justify-center">
           <img
-            src="assets/binaryV2.svg"
+            src="/assets/binaryV2.svg"
             alt="Binary Image"
             style="width: 650px"
             class="py-2 z-20 transition-opacity duration-300"
@@ -488,6 +562,7 @@ var app = new Vue({
             id="firmwareFile"
             v-model="firmwareFile"
             :state="Boolean(firmwareFile)"
+            accept=".bin,.hex"
             placeholder="Choose or drop a file..."
             drop-placeholder="Drop file here..."
           ></b-form-file>
@@ -553,6 +628,20 @@ var app = new Vue({
       styleElement.id = "dynamic-progress-style";
       document.head.appendChild(styleElement);
     },
+    setHoveredSVG(name) {
+      if (this.hoverCloseTimeout) {
+        clearTimeout(this.hoverCloseTimeout);
+        this.hoverCloseTimeout = null;
+      }
+      this.hoveredSVG = name;
+    },
+    clearHoveredSVG() {
+      if (this.hoverCloseTimeout) clearTimeout(this.hoverCloseTimeout);
+      this.hoverCloseTimeout = setTimeout(() => {
+        this.hoveredSVG = null;
+        this.hoverCloseTimeout = null;
+      }, 150);
+    },
     hoverEnter(event, bgColor) {
       event.target.style.backgroundColor = bgColor;
     },
@@ -603,49 +692,53 @@ var app = new Vue({
         window.location.href = "https://chasebliss.com";
       }
     },
-    importfirmwares() {
-      var self = this;
+    async importfirmwares() {
       var src_url = getRootUrl().split("?")[0].concat("data/sources.json");
-      var raw = new XMLHttpRequest();
-      raw.open("GET", src_url, true);
-      raw.responseType = "text";
-      raw.onreadystatechange = function () {
-        if (this.readyState === 4 && this.status === 200) {
-          var obj = this.response;
-          buffer = JSON.parse(obj);
-          buffer.forEach(function (ex_src) {
-            var ext_raw = new XMLHttpRequest();
-            ext_raw.open("GET", ex_src.data_url, true);
-            ext_raw.responseType = "text";
-            ext_raw.onreadystatechange = function () {
-              if (this.readyState === 4 && this.status === 200) {
-                var ext_obj = this.response;
-                ex_buffer = JSON.parse(ext_obj);
-                const unique_platforms = [
-                  ...new Set(ex_buffer.map((obj) => obj.platform)),
-                ];
-                ex_buffer.forEach(function (ex_dat) {
-                  ex_dat.source = ex_src;
-
-                  self.firmwares.sort(function (i1, i2) {
-                    return i1.name.toLowerCase() < i2.name.toLowerCase()
-                      ? -1
-                      : 1;
-                  });
-                  self.firmwares.push(ex_dat);
-                });
-                unique_platforms.forEach(function (u_plat) {
-                  if (!self.platforms.includes(u_plat)) {
-                    self.platforms.push(u_plat);
-                  }
-                });
-              }
-            };
-            ext_raw.send(null);
-          });
+      try {
+        const srcResp = await fetch(src_url);
+        if (!srcResp.ok) {
+          throw new Error(
+            `sources.json ${srcResp.status} ${srcResp.statusText}`,
+          );
         }
-      };
-      raw.send(null);
+        const sources = await srcResp.json();
+        await Promise.all(
+          sources.map(async (ex_src) => {
+            try {
+              const resp = await fetch(ex_src.data_url);
+              if (!resp.ok) {
+                throw new Error(
+                  `${resp.status} ${resp.statusText} — ${ex_src.data_url}`,
+                );
+              }
+              ex_buffer = await resp.json();
+              const unique_platforms = [
+                ...new Set(ex_buffer.map((obj) => obj.platform)),
+              ];
+              ex_buffer.forEach((ex_dat) => {
+                ex_dat.source = ex_src;
+                this.firmwares.sort((i1, i2) =>
+                  i1.name.toLowerCase() < i2.name.toLowerCase() ? -1 : 1,
+                );
+                this.firmwares.push(ex_dat);
+              });
+              unique_platforms.forEach((u_plat) => {
+                if (!this.platforms.includes(u_plat)) {
+                  this.platforms.push(u_plat);
+                }
+              });
+            } catch (err) {
+              console.error(
+                "Failed to load firmware source:",
+                ex_src.data_url,
+                err,
+              );
+            }
+          }),
+        );
+      } catch (err) {
+        console.error("Failed to load firmware sources:", err);
+      }
     },
     programChanged() {
       var self = this;
@@ -653,9 +746,13 @@ var app = new Vue({
       this.displaySelectedFile = true;
       var srcurl = self.sel_firmware.source.repo_url;
       var expath = srcurl.concat(self.sel_firmware.filepath);
-      readServerFirmwareFile(expath).then((buffer) => {
-        firmwareFile = buffer;
-      });
+      readServerFirmwareFile(expath)
+        .then((buffer) => {
+          firmwareFile = buffer;
+        })
+        .catch((err) => {
+          console.error("Failed to load firmware:", err);
+        });
     },
   },
   watch: {
@@ -680,11 +777,21 @@ var app = new Vue({
       };
       this.sel_firmware = new_firmware;
       let reader = new FileReader();
-      reader.onload = function () {
-        this.firmwareFile = reader.result;
-        firmwareFile = reader.result;
-      };
-      reader.readAsArrayBuffer(newfile);
+      if (isHexPath(newfile.name)) {
+        reader.onload = function () {
+          try {
+            firmwareFile = parseIntelHex(reader.result);
+          } catch (err) {
+            console.error("Failed to parse hex file:", err);
+          }
+        };
+        reader.readAsText(newfile);
+      } else {
+        reader.onload = function () {
+          firmwareFile = reader.result;
+        };
+        reader.readAsArrayBuffer(newfile);
+      }
     },
     firmwares() {
       var self = this;

@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Beta",
+    "data_url": "/beta/firmware/firmwares.json",
+    "repo_url": "/beta/firmware/",
+    "bootloader_url": "/data/dsy_bootloader_v5_4.bin"
+  }
+]

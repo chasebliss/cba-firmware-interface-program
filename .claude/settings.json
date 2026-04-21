@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(env)",
+      "Bash(curl -sI http://localhost:3000/beta/)",
+      "Bash(curl -s -X POST http://localhost:3000/beta/login -d \"password=test\" -i)",
+      "Bash(curl -s -X POST http://localhost:3000/beta/login -d \"password=test\" -o /dev/null -w \"status=%{http_code}\\\\n\")",
+      "mcp__chrome-devtools__evaluate_script",
+      "Bash(curl -s -X POST http://localhost:3000/beta/login -F \"password=test\" -o /dev/null -w \"status=%{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://localhost:3000/beta/login -d \"password=test\")",
+      "Bash(curl -sv -X POST http://localhost:3000/beta/login -d \"password=test\" -o /dev/null)",
+      "Bash(curl -sv -X POST http://localhost:3000/beta/login -d \"password=test\")",
+      "mcp__vercel__search_vercel_documentation",
+      "Bash(node -c api/beta-login.js)"
+    ]
+  }
+}

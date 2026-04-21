@@ -300,6 +300,88 @@ var dfuse = {};
     }
   };
 
+  // Flash an array of { address, buffer } segments. Each segment is erased
+  // and written at its own address; manifestation happens once at the end
+  // (using the first segment's address) so the device only resets after
+  // every region has been flashed.
+  dfuse.Device.prototype.do_download_multi = async function (
+    xfer_size,
+    segments,
+    manifestationTolerant,
+  ) {
+    if (!this.memoryInfo || !this.memoryInfo.segments) {
+      throw "No memory map available";
+    }
+    if (!Array.isArray(segments) || segments.length === 0) {
+      throw "No segments to flash";
+    }
+
+    this.logInfo("Preparing...", 0, 0, false, true);
+
+    const totalSize = segments.reduce(
+      (sum, seg) => sum + seg.buffer.byteLength,
+      0,
+    );
+    let totalBytesSent = 0;
+
+    for (const seg of segments) {
+      if (this.getSegment(seg.address) === null) {
+        this.logError(
+          `Segment address 0x${seg.address.toString(16)} outside of memory map bounds`,
+        );
+      }
+      await this.erase(seg.address, seg.buffer.byteLength);
+    }
+
+    this.logInfo("Installing...", 0, 0, true, true, app.sel_firmware.bgColor);
+
+    for (const seg of segments) {
+      const expected_size = seg.buffer.byteLength;
+      let bytes_sent = 0;
+      let address = seg.address;
+
+      while (bytes_sent < expected_size) {
+        const bytes_left = expected_size - bytes_sent;
+        const chunk_size = Math.min(bytes_left, xfer_size);
+
+        let bytes_written = 0;
+        let dfu_status;
+        try {
+          await this.dfuseCommand(dfuse.SET_ADDRESS, address, 4);
+          bytes_written = await this.download(
+            seg.buffer.slice(bytes_sent, bytes_sent + chunk_size),
+            2,
+          );
+          dfu_status = await this.poll_until_idle(dfu.dfuDNLOAD_IDLE);
+          address += chunk_size;
+        } catch (error) {
+          throw "Error during DfuSe download: " + error;
+        }
+
+        if (dfu_status.status != dfu.STATUS_OK) {
+          throw `DFU DOWNLOAD failed state=${dfu_status.state}, status=${dfu_status.status}`;
+        }
+
+        bytes_sent += bytes_written;
+        totalBytesSent += bytes_written;
+        this.logProgress(totalBytesSent, totalSize);
+      }
+    }
+
+    try {
+      await this.dfuseCommand(dfuse.SET_ADDRESS, segments[0].address, 4);
+      await this.download(new ArrayBuffer(), 0);
+    } catch (error) {
+      throw "Error during DfuSe manifestation: " + error;
+    }
+
+    try {
+      await this.poll_until((state) => state == dfu.dfuMANIFEST);
+    } catch (error) {
+      this.logError(error);
+    }
+  };
+
   dfuse.Device.prototype.do_upload = async function (xfer_size, max_size) {
     let startAddress = this.startAddress;
     if (isNaN(startAddress)) {

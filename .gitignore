@@ -4,3 +4,7 @@
 .vercel
 
 .idea
+
+node_modules/
+vite-version/
+.env*.local
