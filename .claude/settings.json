@@ -11,7 +11,15 @@
       "Bash(curl -sv -X POST http://localhost:3000/beta/login -d \"password=test\" -o /dev/null)",
       "Bash(curl -sv -X POST http://localhost:3000/beta/login -d \"password=test\")",
       "mcp__vercel__search_vercel_documentation",
-      "Bash(node -c api/beta-login.js)"
+      "Bash(node -c api/beta-login.js)",
+      "Bash(curl -sI \"https://cba-firmware-interface-program-e6ovs5l5o-chase-bliss-projects.vercel.app/beta/firmware/firmwares.json\")",
+      "Bash(curl -sI \"https://cba-firmware-interface-program-e6ovs5l5o-chase-bliss-projects.vercel.app/beta/firmware/combo_test.hex\")",
+      "Bash(curl -s \"https://cba-firmware-interface-program-e6ovs5l5o-chase-bliss-projects.vercel.app/beta/firmware/firmwares.json\")",
+      "mcp__vercel__list_deployments",
+      "mcp__vercel__get_access_to_vercel_url",
+      "mcp__vercel__web_fetch_vercel_url",
+      "Bash(curl -sI \"https://cba-firmware-interface-program-e6ovs5l5o-chase-bliss-projects.vercel.app/beta\")",
+      "Bash(curl -sI \"https://cba-firmware-interface-program-e6ovs5l5o-chase-bliss-projects.vercel.app/beta/\")"
     ]
   }
 }

@@ -506,7 +506,7 @@ var app = new Vue({
               name="transferSize"
               hidden="true"
               id="transferSize"
-              value="1024"
+              value="4096"
             />
           </p>
           <p><span id="status"></span></p>
