@@ -48,12 +48,10 @@ function isHexPath(pathOrName) {
 }
 
 // Parses Intel HEX text into an array of { address, buffer } segments.
-// Records are grouped into segments by address; runs separated by a gap
-// larger than HEX_SEGMENT_GAP are split into separate segments. Gaps
-// smaller than that threshold are coalesced with 0xFF padding. This
-// keeps the flashed footprint small when firmware straddles two
-// far-apart memory regions (e.g. internal flash and QSPI).
-const HEX_SEGMENT_GAP = 1024 * 1024; // 1 MB
+// Records split into a new segment at any address gap — matches dfu-util's
+// behavior and avoids writing huge 0xFF padding across firmware regions
+// that sit far apart (e.g. STM32H7 bank 1 at 0x08000000 and bank 2 at
+// 0x08100000). Truly adjacent records are still merged into one segment.
 function parseIntelHex(text) {
   const records = [];
   let upperAddr = 0;
@@ -101,7 +99,7 @@ function parseIntelHex(text) {
   let group = null;
   for (const rec of records) {
     const end = rec.address + rec.bytes.length;
-    if (!group || rec.address - group.end >= HEX_SEGMENT_GAP) {
+    if (!group || rec.address > group.end) {
       group = { start: rec.address, end, records: [rec] };
       groups.push(group);
     } else {
@@ -506,7 +504,7 @@ var app = new Vue({
               name="transferSize"
               hidden="true"
               id="transferSize"
-              value="4096"
+              value="1024"
             />
           </p>
           <p><span id="status"></span></p>

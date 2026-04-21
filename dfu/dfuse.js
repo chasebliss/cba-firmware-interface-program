@@ -324,16 +324,35 @@ var dfuse = {};
     );
     let totalBytesSent = 0;
 
+    // Erase only unique sector ranges so overlapping segments don't
+    // double-erase the same sector (STM32H7 sector erase is ~1-2s each).
+    const erasedSectorStarts = new Set();
     for (const seg of segments) {
       if (this.getSegment(seg.address) === null) {
         this.logError(
           `Segment address 0x${seg.address.toString(16)} outside of memory map bounds`,
         );
+        continue;
       }
-      await this.erase(seg.address, seg.buffer.byteLength);
+      const sectorStart = this.getSectorStart(seg.address);
+      const sectorEnd = this.getSectorEnd(
+        seg.address + seg.buffer.byteLength - 1,
+      );
+      let addr = sectorStart;
+      const memSegment = this.getSegment(seg.address);
+      const sectorStep = memSegment ? memSegment.sectorSize : 0x20000;
+      while (addr < sectorEnd) {
+        if (!erasedSectorStarts.has(addr)) {
+          erasedSectorStarts.add(addr);
+          await this.erase(addr, 1);
+        }
+        addr += sectorStep;
+      }
     }
 
-    this.logInfo("Installing...", 0, 0, true, true, app.sel_firmware.bgColor);
+    const bgColor =
+      (typeof app !== "undefined" && app.sel_firmware && app.sel_firmware.bgColor) || undefined;
+    this.logInfo("Installing...", 0, 0, true, true, bgColor);
 
     for (const seg of segments) {
       const expected_size = seg.buffer.byteLength;
