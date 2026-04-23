@@ -117,6 +117,7 @@ export default async function handler(req, res) {
       description: description || name,
       bgColor: bgColor || "#ba8e51",
       active: true,
+      uploadedAt: new Date().toISOString(),
     });
     const newContent = Buffer.from(
       JSON.stringify(entries, null, 2) + "\n",

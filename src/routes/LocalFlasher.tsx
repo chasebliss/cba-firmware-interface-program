@@ -30,6 +30,7 @@ interface ManifestEntry {
   filepath: string;
   bgColor?: string;
   description?: string;
+  uploadedAt?: string;
 }
 
 interface AdminFirmware {
@@ -38,6 +39,7 @@ interface AdminFirmware {
   target: "production" | "beta";
   bgColor: string;
   description: string;
+  uploadedAt: string | null;
 }
 
 export const LocalFlasher = () => {
@@ -95,11 +97,15 @@ export const LocalFlasher = () => {
     Record<string, "checking" | "live" | "pending">
   >({});
 
+  const refreshTokenRef = useRef(0);
   const loadCatalogues = async () => {
+    const token = ++refreshTokenRef.current;
     setCatalogueLoading(true);
     setCatalogueError(null);
     try {
-      const resp = await fetch("/api/admin/list-firmwares");
+      const resp = await fetch(`/api/admin/list-firmwares?t=${token}`, {
+        cache: "no-store",
+      });
       const data = (await resp.json().catch(() => ({}))) as {
         production?: ManifestEntry[];
         beta?: ManifestEntry[];
@@ -118,6 +124,7 @@ export const LocalFlasher = () => {
           target,
           bgColor: e.bgColor ?? GOLD,
           description: e.description ?? "",
+          uploadedAt: e.uploadedAt ?? null,
         }));
       const merged = [
         ...toAdmin(data.production, "production"),
@@ -133,6 +140,7 @@ export const LocalFlasher = () => {
   };
 
   const probeDeployStatus = async (entries: AdminFirmware[]) => {
+    const token = refreshTokenRef.current;
     setDeployStatus((prev) => {
       const next = { ...prev };
       for (const e of entries) {
@@ -143,7 +151,7 @@ export const LocalFlasher = () => {
     await Promise.all(
       entries.map(async (entry) => {
         const base = entry.target === "beta" ? "/beta/firmware/" : "/firmware/";
-        const url = `${base}${entry.filename}`;
+        const url = `${base}${entry.filename}?t=${token}`;
         try {
           const resp = await fetch(url, { method: "HEAD", cache: "no-store" });
           setDeployStatus((prev) => ({
@@ -507,7 +515,7 @@ export const LocalFlasher = () => {
     ? targetChanged
       ? `Copy to ${saveTarget}`
       : "Update firmware"
-    : "Save to repo";
+    : "Save firmware";
 
   const canConnect =
     payload !== null && connectStatus === "disconnected" && !flashing;
@@ -669,8 +677,15 @@ export const LocalFlasher = () => {
                   <div className="flex flex-wrap gap-2.5">
                     <CbaButton
                       disabled={!canConnect}
+                      variant={
+                        connectStatus === "connected" ? "success" : "default"
+                      }
                       onClick={handleConnect}
-                      style={{ width: 170 }}
+                      style={{
+                        width: 170,
+                        opacity:
+                          connectStatus === "connected" ? 1 : undefined,
+                      }}
                     >
                       {connectStatus === "connecting"
                         ? "Connecting…"
@@ -687,11 +702,6 @@ export const LocalFlasher = () => {
                       Update
                     </CbaButton>
                   </div>
-                  {connectStatus === "connected" && (
-                    <p className="mt-2.5 text-[12px] font-bold text-green">
-                      Device connected — ready to update.
-                    </p>
-                  )}
                   {connectError && (
                     <p className="mt-2.5 text-sm font-semibold text-red">
                       {connectError}
@@ -761,7 +771,7 @@ export const LocalFlasher = () => {
                 ? targetChanged
                   ? `Copy to ${saveTarget}`
                   : "Update firmware"
-                : "Save to repo"}
+                : "Save firmware"}
               {!isEditing && (
                 <span className="font-medium normal-case tracking-normal text-black/30">
                   {" "}
@@ -918,13 +928,14 @@ export const LocalFlasher = () => {
 
         <div className="pb-20 pl-9 pt-9">
           <div className="mb-5 flex items-center justify-between">
-            <SectionLabel className="mb-0">In-repo firmwares</SectionLabel>
+            <SectionLabel className="mb-0">Saved firmwares</SectionLabel>
             <button
               type="button"
               onClick={() => void loadCatalogues()}
-              className="cursor-pointer border-none bg-transparent p-0 text-[10px] font-bold uppercase tracking-[0.1em] text-black/35 underline underline-offset-[3px]"
+              disabled={catalogueLoading}
+              className="cursor-pointer border-none bg-transparent p-0 text-[10px] font-bold uppercase tracking-[0.1em] text-black/35 underline underline-offset-[3px] transition-opacity duration-150 hover:text-black/60 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Refresh
+              {catalogueLoading ? "Refreshing…" : "Refresh"}
             </button>
           </div>
 
@@ -1139,12 +1150,24 @@ export const LocalFlasher = () => {
                           >
                             {fw.name}
                           </span>
-                          <span
-                            title={fw.filename}
-                            className="truncate font-mono text-[11px] text-black/45"
-                          >
-                            {fw.filename}
-                          </span>
+                          <div className="flex items-baseline gap-2">
+                            <span
+                              title={fw.filename}
+                              className="truncate font-mono text-[11px] text-black/45"
+                            >
+                              {fw.filename}
+                            </span>
+                            {fw.uploadedAt && (
+                              <span
+                                title={new Date(
+                                  fw.uploadedAt,
+                                ).toLocaleString()}
+                                className="shrink-0 text-[10px] text-black/35"
+                              >
+                                · {formatRelativeTime(fw.uploadedAt)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-3.5 py-3 align-middle">
@@ -1179,13 +1202,32 @@ export const LocalFlasher = () => {
           </table>
 
           <p className="mt-3.5 text-[12px] leading-[1.6] text-black/30">
-            Changes committed via Save to repo are visible after the next Vercel
-            deploy.
+            Saved firmwares are visible after the next Vercel deploy.
           </p>
         </div>
       </div>
     </div>
   );
+};
+
+const formatRelativeTime = (iso: string): string => {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const diffMs = Date.now() - then;
+  const sec = Math.round(diffMs / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  const wk = Math.round(day / 7);
+  if (wk < 5) return `${wk}w ago`;
+  const mo = Math.round(day / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  const yr = Math.round(day / 365);
+  return `${yr}y ago`;
 };
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {

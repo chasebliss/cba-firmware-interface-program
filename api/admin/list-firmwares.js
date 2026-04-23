@@ -35,9 +35,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [production, beta] = await Promise.all([
+    const [productionRaw, betaRaw] = await Promise.all([
       fetchManifest(repo, "public/firmware/firmwares.json", branch, token),
       fetchManifest(repo, "public/beta/firmware/firmwares.json", branch, token),
+    ]);
+    // Fill in uploadedAt for entries missing it (older uploads pre-dating the
+    // field) by asking GitHub for the most recent commit that touched the
+    // corresponding binary. One extra API call per such entry; fine for small N.
+    const [production, beta] = await Promise.all([
+      backfillUploadedAt(productionRaw, "public/firmware", branch, token, repo),
+      backfillUploadedAt(
+        betaRaw,
+        "public/beta/firmware",
+        branch,
+        token,
+        repo,
+      ),
     ]);
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
@@ -47,6 +60,43 @@ export default async function handler(req, res) {
     res.statusCode = 502;
     res.setHeader("Content-Type", "application/json");
     return res.end(JSON.stringify({ error: `github: ${e.message}` }));
+  }
+}
+
+async function backfillUploadedAt(entries, prefix, branch, token, repo) {
+  return Promise.all(
+    entries.map(async (entry) => {
+      if (entry.uploadedAt) return entry;
+      const file = (entry.filepath || "").replace(/^\.\//, "");
+      if (!file) return entry;
+      const date = await fetchLastCommitDate(
+        repo,
+        `${prefix}/${file}`,
+        branch,
+        token,
+      );
+      return date ? { ...entry, uploadedAt: date } : entry;
+    }),
+  );
+}
+
+async function fetchLastCommitDate(repo, path, branch, token) {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${repo}/commits?path=${encodeURIPath(path)}&sha=${encodeURIComponent(branch)}&per_page=1`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.[0]?.commit?.author?.date ?? null;
+  } catch {
+    return null;
   }
 }
 
