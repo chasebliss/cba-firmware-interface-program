@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     );
   }
 
-  const { filename, contentBase64, target, name, description, bgColor } = body;
+  const { filename, contentBase64, target, name, description, bgColor, overwrite } = body;
   const err = validate({ filename, contentBase64, target, name });
   if (err) {
     res.statusCode = 400;
@@ -65,10 +65,10 @@ export default async function handler(req, res) {
   const entryFilepath = `./${filename}`;
 
   try {
-    // Fetch manifest first so we can reject duplicate filenames before touching
-    // the binary. Duplicate `filepath` entries create an aliasing bug: a later
-    // delete filters by filepath and would remove all matching entries plus
-    // the shared binary.
+    // Fetch manifest first so we can reject duplicate filenames (unless the
+    // client explicitly signalled this is an in-place update via
+    // `overwrite: true`). Duplicate `filepath` entries would otherwise alias
+    // on delete and blow away multiple manifest rows pointing to the same bin.
     const existingManifest = await githubGetFile(
       repo,
       manifestPath,
@@ -80,7 +80,10 @@ export default async function handler(req, res) {
           Buffer.from(existingManifest.content, "base64").toString("utf8"),
         )
       : [];
-    if (entries.some((e) => e.filepath === entryFilepath)) {
+    const existingIdx = entries.findIndex(
+      (e) => e.filepath === entryFilepath,
+    );
+    if (existingIdx !== -1 && !overwrite) {
       res.statusCode = 409;
       res.setHeader("Content-Type", "application/json");
       return res.end(
@@ -90,35 +93,47 @@ export default async function handler(req, res) {
       );
     }
 
-    // 1. Commit the firmware binary
+    // 1. Commit the firmware binary (re-puts are fine with existing sha).
     const existingFile = await githubGetFile(
       repo,
       filePath,
       branch,
       token,
     );
+    const commitVerb = existingIdx !== -1 ? "update" : "add";
     await githubPutFile(
       repo,
       filePath,
       contentBase64,
       branch,
       token,
-      `admin: add ${target} firmware ${name}`,
+      `admin: ${commitVerb} ${target} firmware ${name}`,
       existingFile?.sha,
     );
 
-    // 2. Append manifest entry, commit
-    const nextId = entries.reduce((m, e) => Math.max(m, e.id), -1) + 1;
-    entries.push({
-      id: nextId,
-      name,
-      platform: "models",
-      filepath: entryFilepath,
-      description: description || name,
-      bgColor: bgColor || "#ba8e51",
-      active: true,
-      uploadedAt: new Date().toISOString(),
-    });
+    // 2. Update existing manifest entry in place, or append a new one.
+    if (existingIdx !== -1) {
+      entries[existingIdx] = {
+        ...entries[existingIdx],
+        name,
+        description: description || name,
+        bgColor: bgColor || entries[existingIdx].bgColor || "#ba8e51",
+        // Preserve the original uploadedAt on update so "X ago" still reflects
+        // the initial upload, not the latest edit.
+      };
+    } else {
+      const nextId = entries.reduce((m, e) => Math.max(m, e.id), -1) + 1;
+      entries.push({
+        id: nextId,
+        name,
+        platform: "models",
+        filepath: entryFilepath,
+        description: description || name,
+        bgColor: bgColor || "#ba8e51",
+        active: true,
+        uploadedAt: new Date().toISOString(),
+      });
+    }
     const newContent = Buffer.from(
       JSON.stringify(entries, null, 2) + "\n",
     ).toString("base64");

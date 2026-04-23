@@ -180,6 +180,20 @@ export const LocalFlasher = () => {
     void loadCatalogues();
   }, []);
 
+  // Auto-re-probe pending rows every 10s — so when Vercel finishes a redeploy
+  // the red dots flip green without the admin having to click Refresh. Stops
+  // itself the moment nothing is pending.
+  useEffect(() => {
+    const pending = catalogue.filter(
+      (e) => deployStatus[`${e.target}:${e.filename}`] === "pending",
+    );
+    if (pending.length === 0) return;
+    const id = window.setInterval(() => {
+      void probeDeployStatus(pending);
+    }, 10_000);
+    return () => window.clearInterval(id);
+  }, [catalogue, deployStatus]);
+
   useEffect(() => {
     return () => {
       void deviceRef.current?.close();
@@ -419,6 +433,13 @@ export const LocalFlasher = () => {
     try {
       const buf = await file.arrayBuffer();
       const contentBase64 = arrayBufferToBase64(buf);
+      // Overwrite an existing entry only when we're editing in place — same
+      // target AND same filename. Copy-to-other-target (target changed) is a
+      // fresh insert into the destination, not an overwrite.
+      const overwrite =
+        editingEntry !== null &&
+        editingEntry.target === saveTarget &&
+        editingEntry.filename === file.name;
       const resp = await fetch("/api/admin/upload-firmware", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -429,6 +450,7 @@ export const LocalFlasher = () => {
           name: saveName.trim(),
           description: saveDescription.trim(),
           bgColor: saveBgColor,
+          overwrite,
         }),
       });
       const data = (await resp.json().catch(() => ({}))) as {
