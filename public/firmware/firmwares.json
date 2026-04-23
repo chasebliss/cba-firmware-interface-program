@@ -7,5 +7,14 @@
     "description": "test upload",
     "bgColor": "#ba8e51",
     "active": true
+  },
+  {
+    "id": 1,
+    "name": "sdfawefasdf",
+    "platform": "models",
+    "filepath": "./testCB_MOOD_MKII_1.1.bin",
+    "description": "45234423g",
+    "bgColor": "#9cddcd",
+    "active": true
   }
 ]

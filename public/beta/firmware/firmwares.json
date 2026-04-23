@@ -1,20 +1,20 @@
 [
   {
-    "id": 0,
-    "name": "COMBO TEST",
-    "platform": "models",
-    "filepath": "./combo_test.hex",
-    "description": "Preview build (combo_test.hex)",
-    "bgColor": "#ffcc00",
-    "active": true
-  },
-  {
     "id": 1,
     "name": "asdf234awefasdf",
     "platform": "models",
     "filepath": "./testCB_MOOD_MKII_1.1.bin",
     "description": "asdf234awefasdf",
     "bgColor": "#d576cd",
+    "active": true
+  },
+  {
+    "id": 2,
+    "name": "this is a good ones and a test",
+    "platform": "models",
+    "filepath": "./testasdfCB_MOOD_MKII_1.1.bin",
+    "description": "this is a good ones and a test",
+    "bgColor": "#ba8e51",
     "active": true
   }
 ]
