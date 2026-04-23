@@ -16,9 +16,22 @@ export const PRODUCTION_SOURCES: FirmwareSource[] = [
       "https://raw.githubusercontent.com/chasebliss/firmware/main/firmwares.json",
     repo_url: "https://raw.githubusercontent.com/chasebliss/firmware/main/",
   },
+  // Admin-uploaded production firmware lives in this repo under
+  // public/firmware/ — committed via the /admin upload form.
+  {
+    name: "Uploaded",
+    data_url: "/firmware/firmwares.json",
+    repo_url: "/firmware/",
+  },
 ];
 
-// TODO: swap to the internal/private beta firmware repo when one exists.
-// For now this reuses the public source; the /beta route surfaces inactive
-// entries (active: false) that the public route filters out.
-export const BETA_SOURCES: FirmwareSource[] = PRODUCTION_SOURCES;
+// Beta firmware ships with the app itself (public/beta/firmware/) — the /beta
+// route is password-gated by middleware, so these assets sit behind that
+// same gate without needing a separate private repo.
+export const BETA_SOURCES: FirmwareSource[] = [
+  {
+    name: "Beta",
+    data_url: "/beta/firmware/firmwares.json",
+    repo_url: "/beta/firmware/",
+  },
+];

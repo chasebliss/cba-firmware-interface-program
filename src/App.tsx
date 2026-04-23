@@ -29,11 +29,7 @@ const App = () => {
           <Route
             path="/beta"
             element={
-              <Programmer
-                sources={BETA_SOURCES}
-                showInactive
-                banner={<BetaBanner />}
-              />
+              <Programmer sources={BETA_SOURCES} banner={<BetaBanner />} />
             }
           />
           <Route path="/admin" element={<LocalFlasher />} />

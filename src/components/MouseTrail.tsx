@@ -57,15 +57,51 @@ export const MouseTrail = () => {
       const now = performance.now();
       trail = trail.filter((p) => now - p.birth < LIFETIME_MS);
 
+      // Snapshot the rects of every interactive element once per frame so
+      // trail points landing over a button can be skipped.
+      // Invisible-but-present elements (e.g. the instruction popovers, which
+      // live in the DOM with opacity-0 until hovered) would otherwise block
+      // the trail across the right side of the viewport even when hidden.
+      const blockRects: DOMRect[] = [];
+      const els = Array.from(document.querySelectorAll(INTERACTIVE_SELECTOR));
+      for (const el of els) {
+        const style = window.getComputedStyle(el);
+        if (
+          style.opacity === "0" ||
+          style.visibility === "hidden" ||
+          style.display === "none" ||
+          style.pointerEvents === "none"
+        ) {
+          continue;
+        }
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) blockRects.push(r);
+      }
+      const isBlocked = (x: number, y: number) => {
+        for (const r of blockRects) {
+          if (
+            x + FONT_SIZE >= r.left &&
+            x <= r.right &&
+            y + FONT_SIZE >= r.top &&
+            y <= r.bottom
+          ) {
+            return true;
+          }
+        }
+        return false;
+      };
+
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       ctx.fillStyle = COLOR;
       ctx.font = `700 ${FONT_SIZE}px ui-monospace, SFMono-Regular, Menlo, monospace`;
       ctx.textBaseline = "top";
       ctx.textAlign = "left";
       for (const p of trail) {
+        const px = p.x + GRID_SIZE;
+        if (isBlocked(px, p.y)) continue;
         const age = (now - p.birth) / LIFETIME_MS;
         ctx.globalAlpha = 1 - age;
-        ctx.fillText(p.char, p.x + GRID_SIZE, p.y);
+        ctx.fillText(p.char, px, p.y);
       }
       ctx.globalAlpha = 1;
 

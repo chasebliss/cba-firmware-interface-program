@@ -1,7 +1,7 @@
 {
   "rewrites": [
     { "source": "/beta", "destination": "/index.html" },
-    { "source": "/beta/:path*", "destination": "/index.html" },
+    { "source": "/beta/((?!firmware/).*)", "destination": "/index.html" },
     { "source": "/admin", "destination": "/index.html" },
     { "source": "/admin/:path*", "destination": "/index.html" }
   ]

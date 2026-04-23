@@ -17,7 +17,7 @@
 
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-cba: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-cba: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.08);
   --shadow-cba-xl: 0 25px 50px -12px rgb(0 0 0 / 0.18);
 
   --tracking-widest: 0.12em;

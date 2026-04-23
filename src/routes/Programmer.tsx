@@ -240,15 +240,14 @@ export const Programmer = ({
         <Nav />
         <main className="flex flex-col items-center pt-8">
           <HeadingBox>{title}</HeadingBox>
-          <BinaryHero />
-          {flashActive && flashStatus !== "preparing" && (
-            <FlashProgressBar
-              done={flashProgress.done}
-              total={flashProgress.total}
-              bgColor={selected?.bgColor ?? "#a17399"}
-              errored={flashStatus === "error"}
-            />
-          )}
+          <BinaryHero flashing={flashing} />
+          <FlashProgressBar
+            done={flashProgress.done}
+            total={flashProgress.total}
+            bgColor={selected?.bgColor ?? "#a17399"}
+            errored={flashStatus === "error"}
+            visible={flashActive && flashStatus !== "preparing"}
+          />
           <div className="mt-2 flex flex-col items-center gap-4">
             <PedalDropdown
               firmwares={catalogue}

@@ -16,6 +16,7 @@ interface FlashProgressBarProps {
   total: number;
   bgColor: string;
   errored: boolean;
+  visible?: boolean;
 }
 
 export const FlashProgressBar = ({
@@ -23,12 +24,18 @@ export const FlashProgressBar = ({
   total,
   bgColor,
   errored,
+  visible = true,
 }: FlashProgressBarProps) => {
   const ratio = total > 0 ? Math.min(1, done / total) : 0;
   const realPercent = Math.round(ratio * 100);
-  const display = useScrambledPercent(realPercent);
+  const display = useSmoothPercent(realPercent);
   return (
-    <div className="flex w-96 max-w-full items-center gap-3">
+    <div
+      className={`mb-2 flex w-96 max-w-full items-center gap-3 transition-opacity duration-200 ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+      aria-hidden={!visible}
+    >
       <div className="h-4 flex-1 bg-cream">
         <div
           className="h-full transition-[width] duration-300 ease-out"
@@ -45,23 +52,27 @@ export const FlashProgressBar = ({
   );
 };
 
-const useScrambledPercent = (real: number) => {
-  const [display, setDisplay] = useState<string>(`${real}`);
-  const prevRef = useRef(real);
+// Lerp the displayed percent toward the real value each frame. Feels like an
+// analog gauge instead of the stepped, discrete jumps you get from raw
+// progress events.
+const useSmoothPercent = (real: number) => {
+  const [display, setDisplay] = useState(real);
+  const currentRef = useRef(real);
   useEffect(() => {
-    if (prevRef.current === real) return;
-    prevRef.current = real;
-    let i = 0;
-    const id = setInterval(() => {
-      i++;
-      if (i > 3) {
-        setDisplay(`${real}`);
-        clearInterval(id);
-      } else {
-        setDisplay(`${Math.floor(Math.random() * 100)}`);
+    let rafId = 0;
+    const step = () => {
+      const delta = real - currentRef.current;
+      if (Math.abs(delta) < 0.3) {
+        currentRef.current = real;
+        setDisplay(real);
+        return;
       }
-    }, 25);
-    return () => clearInterval(id);
+      currentRef.current += delta * 0.18;
+      setDisplay(Math.round(currentRef.current));
+      rafId = requestAnimationFrame(step);
+    };
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
   }, [real]);
   return display;
 };
@@ -71,10 +82,7 @@ interface FlashStatusPillProps {
   message?: string;
 }
 
-export const FlashStatusPill = ({
-  status,
-  message,
-}: FlashStatusPillProps) => {
+export const FlashStatusPill = ({ status, message }: FlashStatusPillProps) => {
   const isPulsing = status === "preparing" || status === "installing";
 
   let label: string;
@@ -100,7 +108,7 @@ export const FlashStatusPill = ({
   return (
     <p
       key={status}
-      className={`min-w-[204px] border-2 bg-cream px-4 py-2 text-center text-base font-bold shadow-cba ${colorClasses} ${isPulsing ? "animate-cba-pulse" : ""} ${status === "error" ? "animate-cba-shake" : ""}`}
+      className={`flex h-[50px] w-[240px] items-center justify-center border-2 bg-cream px-3 py-2 text-center text-base font-bold shadow-cba ${colorClasses} ${isPulsing ? "animate-cba-pulse" : ""} ${status === "error" ? "animate-cba-shake" : ""}`}
     >
       {label}
     </p>

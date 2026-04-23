@@ -1,0 +1,11 @@
+[
+  {
+    "id": 0,
+    "name": "COMBO TEST",
+    "platform": "models",
+    "filepath": "./combo_test.hex",
+    "description": "Preview build (combo_test.hex)",
+    "bgColor": "#ffcc00",
+    "active": true
+  }
+]

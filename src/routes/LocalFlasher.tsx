@@ -54,6 +54,15 @@ export const LocalFlasher = () => {
   const [flashError, setFlashError] = useState<string | null>(null);
   const [burstTrigger, setBurstTrigger] = useState(0);
 
+  const [saveName, setSaveName] = useState("");
+  const [saveDescription, setSaveDescription] = useState("");
+  const [saveBgColor, setSaveBgColor] = useState("#ba8e51");
+  const [saveTarget, setSaveTarget] = useState<"production" | "beta">("beta");
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "success" | "error"
+  >("idle");
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
   useEffect(() => {
     return () => {
       void deviceRef.current?.close();
@@ -172,6 +181,54 @@ export const LocalFlasher = () => {
     }
   };
 
+  const handleSave = async () => {
+    if (!file) return;
+    setSaveStatus("saving");
+    setSaveMessage(null);
+    try {
+      const buf = await file.arrayBuffer();
+      const contentBase64 = arrayBufferToBase64(buf);
+      const resp = await fetch("/api/admin/upload-firmware", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          contentBase64,
+          target: saveTarget,
+          name: saveName.trim(),
+          description: saveDescription.trim(),
+          bgColor: saveBgColor,
+        }),
+      });
+      const data = (await resp.json().catch(() => ({}))) as {
+        error?: string;
+        commitUrl?: string;
+      };
+      if (!resp.ok) {
+        setSaveStatus("error");
+        setSaveMessage(data.error ?? `Upload failed (${resp.status})`);
+        return;
+      }
+      setSaveStatus("success");
+      setSaveMessage(
+        `Committed to ${saveTarget}. Visible after next Vercel deploy.`,
+      );
+    } catch (err) {
+      setSaveStatus("error");
+      setSaveMessage(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const flashing =
+    flashStatus === "preparing" || flashStatus === "installing";
+  const flashActive = flashStatus !== "idle";
+
+  const canSave =
+    file !== null &&
+    saveName.trim().length > 0 &&
+    saveStatus !== "saving" &&
+    !flashing;
+
   const canConnect =
     payload !== null &&
     connectStatus !== "connecting" &&
@@ -183,10 +240,6 @@ export const LocalFlasher = () => {
     flashStatus !== "preparing" &&
     flashStatus !== "installing";
 
-  const flashing =
-    flashStatus === "preparing" || flashStatus === "installing";
-  const flashActive = flashStatus !== "idle";
-
   return (
     <div className="flex min-h-screen flex-col">
       <SuccessBurst trigger={burstTrigger} />
@@ -194,18 +247,19 @@ export const LocalFlasher = () => {
         <Nav />
         <main className="flex flex-col items-center pt-8">
           <HeadingBox>Admin Flasher.</HeadingBox>
-          <BinaryHero />
-          {flashActive && flashStatus !== "preparing" && (
-            <FlashProgressBar
-              done={flashProgress.done}
-              total={flashProgress.total}
-              bgColor="#ba8e51"
-              errored={flashStatus === "error"}
-            />
-          )}
+          <BinaryHero flashing={flashing} />
+          <FlashProgressBar
+            done={flashProgress.done}
+            total={flashProgress.total}
+            bgColor="#ba8e51"
+            errored={flashStatus === "error"}
+            visible={flashActive && flashStatus !== "preparing"}
+          />
           <div className="mt-2 flex flex-col items-center gap-4">
-            <label className="flex cursor-pointer items-center gap-3 border-2 border-black bg-cream px-4 py-3 text-sm font-bold transition hover:shadow-cba">
-              <span>{file ? file.name : "Choose .bin or .hex file"}</span>
+            <label className="flex h-[50px] w-[240px] cursor-pointer items-center justify-center border-2 border-black bg-cream px-3 py-2 text-center text-base font-bold transition-shadow duration-300 ease-in-out hover:italic hover:shadow-cba">
+              <span className="truncate">
+                {file ? file.name : "Choose .bin or .hex file"}
+              </span>
               <input
                 type="file"
                 accept=".bin,.hex"
@@ -264,8 +318,89 @@ export const LocalFlasher = () => {
               </>
             )}
           </div>
+
+          {file && (
+            <div className="mt-10 w-[320px] max-w-full border-t-2 border-black pt-6">
+              <p className="pb-3 text-center text-sm font-bold uppercase tracking-widest">
+                Save to repo (optional)
+              </p>
+              <div className="flex flex-col gap-3">
+                <label className="flex flex-col gap-1 text-xs font-bold">
+                  Name
+                  <input
+                    type="text"
+                    value={saveName}
+                    onChange={(e) => setSaveName(e.target.value)}
+                    placeholder="e.g. MOOD MKII v1.2"
+                    className="border-2 border-black bg-cream px-3 py-2 text-base font-bold"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs font-bold">
+                  Description
+                  <input
+                    type="text"
+                    value={saveDescription}
+                    onChange={(e) => setSaveDescription(e.target.value)}
+                    placeholder="Optional"
+                    className="border-2 border-black bg-cream px-3 py-2 text-base font-bold"
+                  />
+                </label>
+                <label className="flex items-center gap-3 text-xs font-bold">
+                  Background color
+                  <input
+                    type="color"
+                    value={saveBgColor}
+                    onChange={(e) => setSaveBgColor(e.target.value)}
+                    className="h-8 w-14 cursor-pointer border-2 border-black"
+                  />
+                </label>
+                <fieldset className="flex gap-4 text-xs font-bold">
+                  <legend className="sr-only">Target</legend>
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      name="saveTarget"
+                      value="beta"
+                      checked={saveTarget === "beta"}
+                      onChange={() => setSaveTarget("beta")}
+                    />
+                    Beta
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      name="saveTarget"
+                      value="production"
+                      checked={saveTarget === "production"}
+                      onChange={() => setSaveTarget("production")}
+                    />
+                    Production
+                  </label>
+                </fieldset>
+                <CbaButton disabled={!canSave} onClick={handleSave}>
+                  {saveStatus === "saving" ? "Saving…" : "Save to repo"}
+                </CbaButton>
+                {saveMessage && (
+                  <p
+                    className={`text-center text-sm font-semibold ${saveStatus === "error" ? "text-red" : "text-green"}`}
+                  >
+                    {saveMessage}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>
   );
+};
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary);
 };

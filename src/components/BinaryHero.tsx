@@ -9,18 +9,62 @@ const TARGET_Y = 75;
 // Where digits spawn — just past the computer's right edge so they don't
 // ghost through it. Computer body ends around x≈110.
 const ENTRY_X = 118;
+const FLASH_RATE = 4;
 
-export const BinaryHero = () => {
+interface DigitConfig {
+  group: SVGGElement;
+  startX: number;
+  endX: number;
+  endY: number;
+  baseDuration: number;
+  baseDelay: number;
+}
+
+interface BinaryHeroProps {
+  flashing?: boolean;
+}
+
+export const BinaryHero = ({ flashing = false }: BinaryHeroProps) => {
   const objectRef = useRef<HTMLObjectElement>(null);
+  const configsRef = useRef<DigitConfig[]>([]);
+  const animationsRef = useRef<Animation[]>([]);
 
   useEffect(() => {
     const obj = objectRef.current;
     if (!obj) return;
 
-    const animations: Animation[] = [];
+    let cancelled = false;
     let initialized = false;
+    let interval = 0;
+
+    const startAnimations = (rate: number) => {
+      for (const a of animationsRef.current) a.cancel();
+      animationsRef.current = [];
+      for (const cfg of configsRef.current) {
+        const anim = cfg.group.animate(
+          [
+            { translate: `${cfg.startX}px 0`, opacity: 0, offset: 0 },
+            { opacity: 1, offset: 0.15 },
+            { opacity: 1, offset: 0.7 },
+            {
+              translate: `${cfg.endX}px ${cfg.endY}px`,
+              opacity: 0,
+              offset: 1,
+            },
+          ],
+          {
+            duration: cfg.baseDuration / rate,
+            delay: cfg.baseDelay / rate,
+            iterations: Infinity,
+            easing: "linear",
+          },
+        );
+        animationsRef.current.push(anim);
+      }
+    };
 
     const apply = () => {
+      if (cancelled) return true;
       if (initialized) return true;
       const doc = obj.contentDocument;
       if (!doc || !doc.documentElement) return false;
@@ -31,19 +75,17 @@ export const BinaryHero = () => {
 
       for (const g of groups) {
         const box = g.getBBox();
-        if (box.width === 0 && box.height === 0) return false; // not laid out yet
+        if (box.width === 0 && box.height === 0) return false;
       }
 
       initialized = true;
       const svgNs = "http://www.w3.org/2000/svg";
+      const configs: DigitConfig[] = [];
       for (const g of groups) {
         const box = g.getBBox();
         const cx = box.x + box.width / 2;
         const cy = box.y + box.height / 2;
 
-        // Replace the hand-drawn path with a <text> element styled to match
-        // the MouseTrail. Centered on the path's original bbox so positions
-        // don't shift.
         g.innerHTML = "";
         const text = doc.createElementNS(svgNs, "text");
         text.setAttribute("x", cx.toString());
@@ -60,46 +102,69 @@ export const BinaryHero = () => {
         text.textContent = Math.random() < 0.5 ? "0" : "1";
         g.appendChild(text);
 
-        const startX = ENTRY_X - cx;
-        const endX = TARGET_X - cx;
-        const endY = TARGET_Y - cy;
-        const duration = 2800 + Math.random() * 1600;
-        const delay = -Math.random() * duration;
-
-        const anim = g.animate(
-          [
-            { translate: `${startX}px 0`, opacity: 0, offset: 0 },
-            { opacity: 1, offset: 0.15 },
-            { opacity: 1, offset: 0.7 },
-            { translate: `${endX}px ${endY}px`, opacity: 0, offset: 1 },
-          ],
-          {
-            duration,
-            delay,
-            iterations: Infinity,
-            easing: "linear",
-          },
-        );
-        animations.push(anim);
+        const baseDuration = 2800 + Math.random() * 1600;
+        configs.push({
+          group: g,
+          startX: ENTRY_X - cx,
+          endX: TARGET_X - cx,
+          endY: TARGET_Y - cy,
+          baseDuration,
+          baseDelay: -Math.random() * baseDuration,
+        });
       }
+      configsRef.current = configs;
+      startAnimations(flashing ? FLASH_RATE : 1);
       return true;
     };
 
-    // try immediately in case the SVG is already loaded
     if (!apply()) {
       obj.addEventListener("load", apply);
-      // poll as a backup — load event on <object> can be flaky
-      const interval = window.setInterval(() => {
+      interval = window.setInterval(() => {
         if (apply()) window.clearInterval(interval);
       }, 100);
       window.setTimeout(() => window.clearInterval(interval), 5000);
     }
 
     return () => {
+      cancelled = true;
+      window.clearInterval(interval);
       obj.removeEventListener("load", apply);
-      for (const a of animations) a.cancel();
+      for (const a of animationsRef.current) a.cancel();
+      animationsRef.current = [];
+      configsRef.current = [];
     };
+    // flashing intentionally omitted — we want the setup to run only once;
+    // the other effect handles rate changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (configsRef.current.length === 0) return;
+    const rate = flashing ? FLASH_RATE : 1;
+    for (const a of animationsRef.current) a.cancel();
+    animationsRef.current = [];
+    for (const cfg of configsRef.current) {
+      const anim = cfg.group.animate(
+        [
+          { translate: `${cfg.startX}px 0`, opacity: 0, offset: 0 },
+          { opacity: 1, offset: 0.15 },
+          { opacity: 1, offset: 0.7 },
+          {
+            translate: `${cfg.endX}px ${cfg.endY}px`,
+            opacity: 0,
+            offset: 1,
+          },
+        ],
+        {
+          duration: cfg.baseDuration / rate,
+          delay: cfg.baseDelay / rate,
+          iterations: Infinity,
+          easing: "linear",
+        },
+      );
+      animationsRef.current.push(anim);
+    }
+  }, [flashing]);
 
   return (
     <object

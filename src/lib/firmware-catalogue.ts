@@ -38,6 +38,9 @@ export const loadFirmwareCatalogue = async (
         );
       }
       const raw = (await resp.json()) as RawFirmware[];
+      const base = /^https?:\/\//.test(source.repo_url)
+        ? source.repo_url
+        : new URL(source.repo_url, window.location.origin).toString();
       return raw.map(
         (r): FirmwareEntry => ({
           id: r.id,
@@ -46,7 +49,7 @@ export const loadFirmwareCatalogue = async (
           description: r.description,
           bgColor: r.bgColor,
           active: r.active,
-          url: new URL(r.filepath, source.repo_url).toString(),
+          url: new URL(r.filepath, base).toString(),
           source,
         }),
       );

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 const COLOR = "#ba8e51";
-const PARTICLE_COUNT = 40;
+const PARTICLES_PER_DIGIT = 3;
 const LIFETIME_MS = 1400;
 const FONT_SIZE = 20;
 const GRAVITY = 900;
@@ -14,6 +14,42 @@ interface Particle {
   char: "0" | "1";
   birth: number;
 }
+
+// Reads the current on-screen position of each floating digit in the
+// BinaryHero SVG so particles launch from where the user last saw them.
+// Falls back to viewport center if the SVG isn't available.
+const collectOrigins = (): { x: number; y: number; char: "0" | "1" }[] => {
+  const obj = document.querySelector<HTMLObjectElement>(
+    'object[aria-label="Binary illustration"]',
+  );
+  const doc = obj?.contentDocument;
+  if (!obj || !doc) {
+    return [
+      { x: window.innerWidth / 2, y: window.innerHeight / 2, char: "1" },
+    ];
+  }
+  const objRect = obj.getBoundingClientRect();
+  const groups = Array.from(
+    doc.querySelectorAll<SVGGElement>('[class^="move-"]'),
+  );
+  const origins: { x: number; y: number; char: "0" | "1" }[] = [];
+  for (const g of groups) {
+    const r = g.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) continue;
+    const char: "0" | "1" = g.textContent?.trim() === "0" ? "0" : "1";
+    origins.push({
+      x: objRect.left + r.left + r.width / 2,
+      y: objRect.top + r.top + r.height / 2,
+      char,
+    });
+  }
+  if (origins.length === 0) {
+    return [
+      { x: window.innerWidth / 2, y: window.innerHeight / 2, char: "1" },
+    ];
+  }
+  return origins;
+};
 
 export const SuccessBurst = ({ trigger }: { trigger: number }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,21 +68,22 @@ export const SuccessBurst = ({ trigger }: { trigger: number }) => {
     canvas.style.height = `${window.innerHeight}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
+    const origins = collectOrigins();
     const now = performance.now();
     const particles: Particle[] = [];
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 260 + Math.random() * 320;
-      particles.push({
-        x: cx,
-        y: cy,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 140,
-        char: Math.random() < 0.5 ? "0" : "1",
-        birth: now,
-      });
+    for (const o of origins) {
+      for (let i = 0; i < PARTICLES_PER_DIGIT; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 220 + Math.random() * 260;
+        particles.push({
+          x: o.x,
+          y: o.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 120,
+          char: Math.random() < 0.5 ? "0" : "1",
+          birth: now,
+        });
+      }
     }
 
     let rafId = 0;
@@ -58,8 +95,8 @@ export const SuccessBurst = ({ trigger }: { trigger: number }) => {
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       ctx.fillStyle = COLOR;
       ctx.font = `700 ${FONT_SIZE}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-      ctx.textBaseline = "top";
-      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "center";
 
       let anyAlive = false;
       for (const p of particles) {
@@ -88,7 +125,7 @@ export const SuccessBurst = ({ trigger }: { trigger: number }) => {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-[1001]"
+      className="pointer-events-none fixed inset-0 z-1001"
       aria-hidden="true"
     />
   );
