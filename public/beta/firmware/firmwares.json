@@ -7,5 +7,14 @@
     "description": "Preview build (combo_test.hex)",
     "bgColor": "#ffcc00",
     "active": true
+  },
+  {
+    "id": 1,
+    "name": "asdf234awefasdf",
+    "platform": "models",
+    "filepath": "./testCB_MOOD_MKII_1.1.bin",
+    "description": "asdf234awefasdf",
+    "bgColor": "#d576cd",
+    "active": true
   }
 ]
