@@ -19,12 +19,7 @@ import {
 
 const DEFAULT_TRANSFER_SIZE = 1024;
 
-type FlashStatus =
-  | "idle"
-  | "preparing"
-  | "installing"
-  | "complete"
-  | "error";
+type FlashStatus = "idle" | "preparing" | "installing" | "complete" | "error";
 
 type ConnectedDevice = Awaited<
   ReturnType<typeof requestAndConnectDevice>
@@ -33,6 +28,17 @@ type ConnectedDevice = Awaited<
 type LocalPayload =
   | { kind: "bin"; buffer: ArrayBuffer }
   | { kind: "hex"; segments: FirmwareSegment[] };
+
+interface ManifestEntry {
+  name: string;
+  filepath: string;
+}
+
+interface AdminFirmware {
+  name: string;
+  filename: string;
+  target: "production" | "beta";
+}
 
 export const LocalFlasher = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -62,6 +68,54 @@ export const LocalFlasher = () => {
     "idle" | "saving" | "success" | "error"
   >("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  // Existing firmwares — read live from the repo via /api/admin/list-firmwares
+  // so upload/delete results show up immediately instead of lagging behind the
+  // deployed bundle.
+  const [catalogue, setCatalogue] = useState<AdminFirmware[]>([]);
+  const [catalogueLoading, setCatalogueLoading] = useState(true);
+  const [catalogueError, setCatalogueError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const loadCatalogues = async () => {
+    setCatalogueLoading(true);
+    setCatalogueError(null);
+    try {
+      const resp = await fetch("/api/admin/list-firmwares");
+      const data = (await resp.json().catch(() => ({}))) as {
+        production?: ManifestEntry[];
+        beta?: ManifestEntry[];
+        error?: string;
+      };
+      if (!resp.ok) {
+        throw new Error(data.error ?? `HTTP ${resp.status}`);
+      }
+      const toAdmin = (
+        entries: ManifestEntry[] | undefined,
+        target: "production" | "beta",
+      ): AdminFirmware[] =>
+        (entries ?? []).map((e) => ({
+          name: e.name,
+          filename: e.filepath.replace(/^\.\//, ""),
+          target,
+        }));
+      const merged = [
+        ...toAdmin(data.production, "production"),
+        ...toAdmin(data.beta, "beta"),
+      ].sort((a, b) =>
+        a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1,
+      );
+      setCatalogue(merged);
+    } catch (err) {
+      setCatalogueError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCatalogueLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadCatalogues();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -219,9 +273,38 @@ export const LocalFlasher = () => {
     }
   };
 
-  const flashing =
-    flashStatus === "preparing" || flashStatus === "installing";
+  const flashing = flashStatus === "preparing" || flashStatus === "installing";
   const flashActive = flashStatus !== "idle";
+
+  const handleDelete = async (entry: AdminFirmware) => {
+    if (
+      !window.confirm(
+        `Delete ${entry.name} (${entry.filename}) from ${entry.target}? This can't be undone.`,
+      )
+    ) {
+      return;
+    }
+    setDeleting(`${entry.target}:${entry.filename}`);
+    try {
+      const resp = await fetch("/api/admin/delete-firmware", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: entry.filename, target: entry.target }),
+      });
+      const data = (await resp.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!resp.ok) {
+        window.alert(`Delete failed: ${data.error ?? resp.status}`);
+        return;
+      }
+      await loadCatalogues();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const canSave =
     file !== null &&
@@ -283,8 +366,8 @@ export const LocalFlasher = () => {
                   flashStatus === "complete"
                     ? "Successful"
                     : flashStatus === "error"
-                      ? flashError ?? "Update failed"
-                      : flashMessage ?? undefined
+                      ? (flashError ?? "Update failed")
+                      : (flashMessage ?? undefined)
                 }
               />
             ) : (
@@ -390,6 +473,57 @@ export const LocalFlasher = () => {
               </div>
             </div>
           )}
+
+          <div className="mt-10 w-[520px] max-w-full border-t-2 border-black pt-6">
+            <p className="pb-3 text-center text-sm font-bold uppercase tracking-widest">
+              In-repo firmwares
+            </p>
+            {catalogueLoading && (
+              <p className="text-center text-sm">Loading…</p>
+            )}
+            {catalogueError && (
+              <p className="text-center text-sm font-semibold text-red">
+                Could not load: {catalogueError}
+              </p>
+            )}
+            {!catalogueLoading && !catalogueError && (
+              <>
+                {catalogue.length === 0 && (
+                  <p className="text-center text-sm">Nothing uploaded yet.</p>
+                )}
+                <ul className="flex flex-col gap-2">
+                  {catalogue.map((fw) => {
+                    const key = `${fw.target}:${fw.filename}`;
+                    const busy = deleting === key;
+                    return (
+                      <li
+                        key={key}
+                        className="flex items-center gap-3 border-2 border-black bg-cream px-3 py-2"
+                      >
+                        <span
+                          className={`w-24 text-center text-xs font-bold uppercase tracking-widest ${fw.target === "beta" ? "text-gold" : "text-green"}`}
+                        >
+                          {fw.target}
+                        </span>
+                        <div className="flex flex-1 flex-col">
+                          <span className="font-bold">{fw.name}</span>
+                          <span className="text-xs opacity-70">{fw.filename}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(fw)}
+                          disabled={busy}
+                          className="cursor-pointer border-2 border-red px-2 py-1 text-xs font-bold text-red transition hover:bg-red hover:text-cream disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {busy ? "Deleting…" : "Delete"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </div>
         </main>
       </div>
     </div>
