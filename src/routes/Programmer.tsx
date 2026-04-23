@@ -328,8 +328,7 @@ export const Programmer = ({
           >
             <div className="flex flex-col gap-2.5">
               <p className="text-sm leading-[1.6] text-black/[0.42]">
-                Connect via data-transfer micro USB, then connect power
-                supply.
+                Connect via data-transfer micro USB, then connect power supply.
               </p>
               <CbaButton
                 disabled={!s1 || connectStatus === "connecting"}

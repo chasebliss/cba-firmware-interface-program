@@ -530,16 +530,26 @@ export const LocalFlasher = () => {
 
   const prodCount = catalogue.filter((f) => f.target === "production").length;
   const betaCount = catalogue.filter((f) => f.target === "beta").length;
-  const filteredCatalogue =
-    targetFilter === "all"
-      ? catalogue
-      : catalogue.filter((f) => f.target === targetFilter);
+  // Newest-first within a group. Entries missing uploadedAt sink to the
+  // bottom, then tiebreak alphabetically so the order is stable across loads.
+  const byDateDesc = (a: AdminFirmware, b: AdminFirmware) => {
+    const at = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
+    const bt = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+    if (at !== bt) return bt - at;
+    return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
+  };
+  const productionRows =
+    targetFilter === "beta"
+      ? []
+      : catalogue.filter((f) => f.target === "production").sort(byDateDesc);
+  const betaRows =
+    targetFilter === "production"
+      ? []
+      : catalogue.filter((f) => f.target === "beta").sort(byDateDesc);
+  const filteredCount = productionRows.length + betaRows.length;
 
   return (
-    <div
-      className="min-h-screen animate-cba-fade-in"
-      style={{ background: "#f5f2ec" }}
-    >
+    <div className="min-h-screen animate-cba-fade-in bg-gray-50">
       <SuccessBurst trigger={burstTrigger} />
       <AdminHeader flashing={flashing} />
 
@@ -683,8 +693,7 @@ export const LocalFlasher = () => {
                       onClick={handleConnect}
                       style={{
                         width: 170,
-                        opacity:
-                          connectStatus === "connected" ? 1 : undefined,
+                        opacity: connectStatus === "connected" ? 1 : undefined,
                       }}
                     >
                       {connectStatus === "connecting"
@@ -991,31 +1000,11 @@ export const LocalFlasher = () => {
             })}
           </div>
 
-          <table
-            data-no-trail
-            className="w-full table-fixed border-collapse border-y-2 border-r-2 border-black bg-cream"
-          >
+          <table data-no-trail className="w-full  ">
             <colgroup>
               <col />
               <col style={{ width: "170px" }} />
             </colgroup>
-            <thead>
-              <tr className="border-b-2 border-black bg-black/[0.03]">
-                {["Firmware", ""].map((h, i) => (
-                  <th
-                    key={i}
-                    scope="col"
-                    className={`py-2 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-black/35 ${
-                      i === 0
-                        ? "border-l-2 border-black pl-3.5 pr-3.5"
-                        : "px-3.5"
-                    }`}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
             <tbody>
               {catalogueLoading &&
                 Array.from({ length: 3 }).map((_, i) => (
@@ -1065,140 +1054,170 @@ export const LocalFlasher = () => {
                   </td>
                 </tr>
               )}
-              {!catalogueLoading &&
-                !catalogueError &&
-                filteredCatalogue.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={2}
-                      className="px-6 py-6 text-center text-[14px] text-black/35"
-                    >
-                      {catalogue.length === 0
-                        ? "Nothing uploaded yet."
-                        : `No ${targetFilter} firmwares.`}
-                    </td>
-                  </tr>
-                )}
-              {!catalogueLoading &&
-                !catalogueError &&
-                filteredCatalogue.map((fw, i) => {
-                  const key = `${fw.target}:${fw.filename}`;
-                  const busy = deleting === key;
-                  const isBeta = fw.target === "beta";
-                  const status = deployStatus[key] ?? "checking";
-                  const dotColor =
-                    status === "live"
-                      ? "var(--color-green)"
-                      : status === "pending"
-                        ? "var(--color-red)"
-                        : "rgba(0,0,0,0.2)";
-                  const dotTitle =
-                    status === "live"
-                      ? "Live on the CDN"
-                      : status === "pending"
-                        ? "Uploaded — waiting for next Vercel deploy"
-                        : "Checking…";
-                  return (
-                    <tr
-                      key={key}
-                      className="transition-opacity duration-200"
-                      style={{
-                        opacity: busy ? 0.4 : 1,
-                        background: busy ? "rgba(0,0,0,0.02)" : undefined,
-                        borderBottom:
-                          i < filteredCatalogue.length - 1
-                            ? "1px solid rgba(0,0,0,0.07)"
-                            : "none",
-                      }}
-                    >
-                      <td
-                        className="relative px-3.5 py-3 align-middle"
-                        style={{
-                          borderLeft: `2px solid ${fw.bgColor}`,
-                        }}
-                      >
+              {!catalogueLoading && !catalogueError && filteredCount === 0 && (
+                <tr>
+                  <td
+                    colSpan={2}
+                    className="px-6 py-6 text-center text-[14px] text-black/35"
+                  >
+                    {catalogue.length === 0
+                      ? "Nothing uploaded yet."
+                      : `No ${targetFilter} firmwares.`}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            {!catalogueLoading &&
+              !catalogueError &&
+              (
+                [
+                  {
+                    label: "Production",
+                    color: "var(--color-green)",
+                    rows: productionRows,
+                  },
+                  {
+                    label: "Beta",
+                    color: GOLD,
+                    rows: betaRows,
+                  },
+                ] as const
+              )
+                .filter((s) => s.rows.length > 0)
+                .map((section) => (
+                  <tbody key={section.label}>
+                    <tr>
+                      <td colSpan={2} className="px-3.5 py-1.5 bg-gray-50">
                         <span
-                          aria-hidden="true"
-                          className="pointer-events-none absolute left-0 w-[2px]"
-                          style={{
-                            top: -1,
-                            bottom: -1,
-                            background: fw.bgColor,
-                            zIndex: 1,
-                          }}
-                        />
-                        <div className="flex min-w-0 flex-col gap-1 pr-3">
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              aria-label={dotTitle}
-                              title={dotTitle}
-                              className="h-2 w-2 shrink-0 rounded-full transition-colors duration-300"
-                              style={{ background: dotColor }}
-                            />
-                            <span
-                              className="text-[9px] font-bold uppercase tracking-[0.1em]"
-                              style={{
-                                color: isBeta ? GOLD : "var(--color-green)",
-                              }}
-                            >
-                              {fw.target}
-                            </span>
-                          </div>
-                          <span
-                            title={fw.name}
-                            className="truncate text-[14px] font-bold"
-                          >
-                            {fw.name}
-                          </span>
-                          <div className="flex items-baseline gap-2">
-                            <span
-                              title={fw.filename}
-                              className="truncate font-mono text-[11px] text-black/45"
-                            >
-                              {fw.filename}
-                            </span>
-                            {fw.uploadedAt && (
-                              <span
-                                title={new Date(
-                                  fw.uploadedAt,
-                                ).toLocaleString()}
-                                className="shrink-0 text-[10px] text-black/35"
-                              >
-                                · {formatRelativeTime(fw.uploadedAt)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3.5 py-3 align-middle">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => void handleLoadFromRepo(fw)}
-                            disabled={busy || status !== "live" || flashing}
-                            title={
-                              status !== "live"
-                                ? "Available once deployed"
-                                : "Load into flasher"
-                            }
-                            className="cursor-pointer border border-black bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-black transition-colors duration-150 hover:bg-black hover:text-cream disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            Load
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleDelete(fw)}
-                            disabled={busy}
-                            className="cursor-pointer border border-red bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-red transition-colors duration-150 hover:bg-red hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {busy ? "…" : "Delete"}
-                          </button>
-                        </div>
+                          className="text-[9px] font-bold uppercase tracking-[0.12em]"
+                          style={{ color: section.color }}
+                        >
+                          {section.label}
+                        </span>
+                        <span className="ml-2 text-[9px] font-bold tracking-[0.12em] text-black/35">
+                          {section.rows.length}
+                        </span>
                       </td>
                     </tr>
-                  );
-                })}
-            </tbody>
+                    {section.rows.map((fw, i) => {
+                      const key = `${fw.target}:${fw.filename}`;
+                      const busy = deleting === key;
+                      const isBeta = fw.target === "beta";
+                      const status = deployStatus[key] ?? "checking";
+                      const dotColor =
+                        status === "live"
+                          ? "var(--color-green)"
+                          : status === "pending"
+                            ? "var(--color-red)"
+                            : "rgba(0,0,0,0.2)";
+                      const dotTitle =
+                        status === "live"
+                          ? "Live on the CDN"
+                          : status === "pending"
+                            ? "Uploaded — waiting for next Vercel deploy"
+                            : "Checking…";
+                      return (
+                        <tr
+                          key={key}
+                          className="bg-cream transition-opacity duration-200"
+                          style={{
+                            opacity: busy ? 0.4 : 1,
+                            background: busy ? "rgba(0,0,0,0.02)" : undefined,
+                            borderBottom:
+                              i < section.rows.length - 1
+                                ? "1px solid rgba(0,0,0,0.07)"
+                                : "none",
+                          }}
+                        >
+                          <td
+                            className="relative px-3.5 py-3 align-middle"
+                            style={{
+                              borderLeft: `2px solid ${fw.bgColor}`,
+                            }}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="pointer-events-none absolute left-0 w-[2px]"
+                              style={{
+                                top: -1,
+                                bottom: -1,
+                                background: fw.bgColor,
+                                zIndex: 1,
+                              }}
+                            />
+                            <div className="flex min-w-0 flex-col gap-1 pr-3">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  aria-label={dotTitle}
+                                  title={dotTitle}
+                                  className="h-2 w-2 shrink-0 rounded-full transition-colors duration-300"
+                                  style={{ background: dotColor }}
+                                />
+                                <span
+                                  className="text-[9px] font-bold uppercase tracking-[0.1em]"
+                                  style={{
+                                    color: isBeta ? GOLD : "var(--color-green)",
+                                  }}
+                                >
+                                  {fw.target}
+                                </span>
+                              </div>
+                              <span
+                                title={fw.name}
+                                className="truncate text-[14px] font-bold"
+                              >
+                                {fw.name}
+                              </span>
+                              <div className="flex items-baseline gap-2">
+                                <span
+                                  title={fw.filename}
+                                  className="truncate font-mono text-[11px] text-black/45"
+                                >
+                                  {fw.filename}
+                                </span>
+                                {fw.uploadedAt && (
+                                  <span
+                                    title={new Date(
+                                      fw.uploadedAt,
+                                    ).toLocaleString()}
+                                    className="shrink-0 text-[10px] text-black/35"
+                                  >
+                                    · {formatRelativeTime(fw.uploadedAt)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3.5 py-3 align-middle">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => void handleLoadFromRepo(fw)}
+                                disabled={busy || status !== "live" || flashing}
+                                title={
+                                  status !== "live"
+                                    ? "Available once deployed"
+                                    : "Load into flasher"
+                                }
+                                className="cursor-pointer border border-black bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-black transition-colors duration-150 hover:bg-black hover:text-cream disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                Load
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleDelete(fw)}
+                                disabled={busy}
+                                className="cursor-pointer border border-red bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-red transition-colors duration-150 hover:bg-red hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {busy ? "…" : "Delete"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                ))}
           </table>
 
           <p className="mt-3.5 text-[12px] leading-[1.6] text-black/30">
