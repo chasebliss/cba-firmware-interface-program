@@ -16,5 +16,14 @@
     "description": "asdf234awefasdf",
     "bgColor": "#d576cd",
     "active": true
+  },
+  {
+    "id": 2,
+    "name": "5rwq534yqwergasdfg",
+    "platform": "models",
+    "filepath": "./combo_test.hex",
+    "description": "aqwerg3qwasd",
+    "bgColor": "#ba8e51",
+    "active": true
   }
 ]
