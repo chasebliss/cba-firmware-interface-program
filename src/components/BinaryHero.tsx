@@ -22,9 +22,17 @@ interface DigitConfig {
 
 interface BinaryHeroProps {
   flashing?: boolean;
+  width?: number | string;
+  opacity?: number;
+  className?: string;
 }
 
-export const BinaryHero = ({ flashing = false }: BinaryHeroProps) => {
+export const BinaryHero = ({
+  flashing = false,
+  width = 500,
+  opacity = 1,
+  className = "",
+}: BinaryHeroProps) => {
   const objectRef = useRef<HTMLObjectElement>(null);
   const configsRef = useRef<DigitConfig[]>([]);
   const animationsRef = useRef<Animation[]>([]);
@@ -172,7 +180,11 @@ export const BinaryHero = ({ flashing = false }: BinaryHeroProps) => {
       data="/binary.svg"
       type="image/svg+xml"
       aria-label="Binary illustration"
-      className="pointer-events-none w-[500px] max-w-full opacity-85"
+      style={{
+        width: typeof width === "number" ? `${width}px` : width,
+        opacity,
+      }}
+      className={`pointer-events-none max-w-full ${className}`}
     />
   );
 };

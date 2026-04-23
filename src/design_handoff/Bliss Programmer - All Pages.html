@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bliss Programmer — All Pages</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;}*{margin:0;}
+body{font-family:'Poppins',sans-serif;-webkit-font-smoothing:antialiased;background:#fefbf6;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes bPulse{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes bDrift{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+@keyframes bSpin{0%,100%{transform:rotate(0deg)}50%{transform:rotate(6deg)}}
+progress{display:block;appearance:none;-webkit-appearance:none;border:none;width:100%;}
+progress::-webkit-progress-bar{background:rgba(0,0,0,0.1);}
+progress::-webkit-progress-value{transition:width .4s ease;}
+input[type=text],input[type=color],select,textarea{font-family:'Poppins',sans-serif;}
+.bin-svg .move-1{animation:bFloat 3.2s ease-in-out infinite;}
+.bin-svg .move-2{animation:bDrift 4.1s ease-in-out infinite .4s;}
+.bin-svg .move-3{animation:bFloat 2.8s ease-in-out infinite .8s;}
+.bin-svg .move-4{animation:bPulse 3.6s ease-in-out infinite .2s;}
+.bin-svg .move-5{animation:bDrift 3.9s ease-in-out infinite 1s;}
+.bin-svg .move-6{animation:bFloat 4.4s ease-in-out infinite .6s;}
+.bin-svg .move-7{animation:bPulse 2.9s ease-in-out infinite 1.2s;}
+.bin-svg .move-8{animation:bFloat 3.5s ease-in-out infinite .3s;}
+.bin-svg .move-9{animation:bDrift 4.2s ease-in-out infinite .9s;}
+.bin-svg .move-10{animation:bPulse 3.1s ease-in-out infinite .5s;}
+.bin-svg.flashing .move-1,.bin-svg.flashing .move-2,.bin-svg.flashing .move-3,
+.bin-svg.flashing .move-4,.bin-svg.flashing .move-5,.bin-svg.flashing .move-6,
+.bin-svg.flashing .move-7,.bin-svg.flashing .move-8,.bin-svg.flashing .move-9,
+.bin-svg.flashing .move-10{animation-duration:.6s!important;}
+.bin-svg .st0{fill:#000;}.bin-svg .st1{fill:#000;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+const CR='#fefbf6',INK='#000',GOLD='#ba8e51',GREEN='#10b981',RED='#ef4444';
+
+const FWS=[
+  {name:'MOOD MKII',  bgColor:'#b48ecf',active:true},
+  {name:'Lossy',      bgColor:'#e87fa0',active:true},
+  {name:'Blooper',    bgColor:'#7ab8d4',active:true},
+  {name:'Thermae',    bgColor:'#c4a35a',active:true},
+  {name:'Automatone', bgColor:'#5db88e',active:true},
+  {name:'Preamp MKII',bgColor:'#d4845a',active:true},
+];
+
+const ADMIN_FWS=[
+  {name:'MOOD MKII v1.2',  filename:'mood_mkii_v1_2.hex', target:'production'},
+  {name:'Lossy v2.0',      filename:'lossy_v2_0.bin',     target:'production'},
+  {name:'COMBO TEST',      filename:'combo_test.hex',      target:'beta'},
+  {name:'Blooper v3.1-rc', filename:'blooper_v3_1_rc.hex', target:'beta'},
+];
+
+/* ─── Flash hook ─────────────────────────── */
+function useFlash(){
+  const [sel,setSel]=useState(null);
+  const [conn,setConn]=useState(false);
+  const [prog,setProg]=useState(0);
+  const [going,setGoing]=useState(false);
+  const [done,setDone]=useState(false);
+  function pick(fw){setSel(fw);setConn(false);setProg(0);setGoing(false);setDone(false);}
+  function connect(){setConn(true);}
+  function update(){
+    setGoing(true);setDone(false);setProg(0);
+    const iv=setInterval(()=>setProg(p=>{
+      if(p>=100){clearInterval(iv);setGoing(false);setDone(true);return 100;}
+      return p+1.2;
+    }),70);
+  }
+  function reset(){setSel(null);setConn(false);setProg(0);setGoing(false);setDone(false);}
+  return{sel,conn,prog,going,done,pick,connect,update,reset};
+}
+
+/* ─── Binary Hero (animated inline SVG) ─── */
+function BinaryHero({opacity=0.45,width=320,flashing=false}){
+  return(
+    <div style={{width,maxWidth:'100%',flexShrink:0}}>
+      <svg className={`bin-svg${flashing?' flashing':''}`}
+        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 396 144"
+        style={{width:'100%',height:'auto',opacity,display:'block'}}>
+        <g>
+          <g><path className="st0" d="M117.1,107.8H114v-3.1h3.1V107.8z M110.5,107.8h-3.2v-3.1h3.2V107.8z M46,97.9h3.3v3.1H46V97.9z M42.4,101.1h-3.2V98h3.2V101.1z M96.9,107.8h-3.2v-3.1h3.2V107.8z M100.4,104.6h3.2v3.1h-3.2V104.6z M90.1,107.8h-3.2v-3.1h3.2V107.8z M83.3,107.8H80v-3.1h3.2v3.1H83.3z M76.4,107.8h-3.2v-3.1h3.2V107.8z M69.6,107.8h-3.2v-3.1h3.2V107.8z M62.8,107.8h-3.2v-3.1h3.2V107.8z M56,107.8h-3.2v-3.1H56V107.8z M49.2,107.8H46v-3.1h3.3L49.2,107.8L49.2,107.8z M52.8,97.9H56v3.1h-3.2V97.9z M59.6,97.9h3.2v3.1h-3.2V97.9z M66.4,97.9h3.2v3.1h-3.2V97.9z M73.2,97.9h3.2v3.1h-3.2V97.9z M80,97.9h3.2v3.1H80V97.9z M86.8,97.9H90v3.1h-3.2V97.9z M93.6,97.9h3.2v3.1h-3.2V97.9z M100.4,97.9h3.2v3.1h-3.2V97.9z M107.2,97.9h3.2v3.1h-3.2V97.9z M110.5,111.3v3.1h-3.2v-3.1H110.5z M103.7,114.4h-3.2v-3.1h3.2V114.4z M96.9,114.4h-3.2v-3.1h3.2V114.4z M90.1,114.4h-3.2v-3.1h3.2V114.4z M83.3,114.4H80v-3.1h3.2v3.1H83.3z M76.4,114.4h-3.2v-3.1h3.2V114.4z M69.6,114.4h-3.2v-3.1h3.2V114.4z M62.8,114.4h-3.2v-3.1h3.2V114.4z M56,114.4h-3.2v-3.1H56V114.4z M49.2,114.4H46v-3.1h3.3L49.2,114.4L49.2,114.4z M42.4,114.4h-3.2v-3.1h3.2V114.4z M39.2,107.8v-3.1h3.2v3.1H39.2z M35.6,107.8h-3.1v-3.1h3.1V107.8z M32.5,97.9h3.1v3.1h-3.1V97.9z M117.1,97.9v3.1H114v-3.1H117.1z M117.1,114.4H114v-3.1h3.1V114.4z M32.5,114.4v-3.1h3.1v3.1H32.5z"/></g>
+          <rect className="st0" x="40.5" y="33.8" width="68.6" height="52.6"/>
+          <path className="st0" d="M370.1,35.8v0.8v75.9v0.1v0.8c0,0.5-0.4,0.9-0.9,0.9h-0.7h-0.2h-40.4h-0.1H327c-0.5,0-0.9-0.4-0.9-0.9v-0.8v-0.1V36.6v-0.8v-0.2v-0.7c0-0.5,0.4-0.9,0.9-0.9h0.9h0.1h40.4h0.2h0.7c0.5,0,0.9,0.4,0.9,0.9v0.7v0.2H370.1z"/>
+          <g>
+            <g>
+              <g className="move-1"><path className="st1" d="M272,57.6v2.3c0,2.5-1.5,2.6-3.1,2.6s-3.1-0.1-3.1-2.6v-2.3c0-2.5,1.5-2.6,3.1-2.6S272,55.1,272,57.6z M267.7,57.9v1.7c0,1.3,0.2,1.3,1.2,1.3s1.2,0,1.2-1.3v-1.7c0-1.3-0.2-1.3-1.2-1.3C267.9,56.6,267.7,56.6,267.7,57.9z"/></g>
+              <g className="move-2"><path className="st1" d="M149.9,69.7V72c0,2.5-1.5,2.6-3.1,2.6s-3.1-0.1-3.1-2.6v-2.3c0-2.5,1.5-2.6,3.1-2.6C148.3,67,149.9,67.1,149.9,69.7z M145.6,70v1.7c0,1.3,0.2,1.3,1.2,1.3s1.2,0,1.2-1.3V70c0-1.3-0.2-1.3-1.2-1.3S145.6,68.7,145.6,70z"/></g>
+              <g className="move-7"><path className="st1" d="M207.5,70.5h-2v-5.7l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V70.5z"/></g>
+              <g className="move-4"><path className="st1" d="M277.7,88h-2v-5.7l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V88z"/></g>
+              <g className="move-5"><path className="st1" d="M177.6,50.3v2.3c0,2.5-1.5,2.6-3.1,2.6s-3.1-0.1-3.1-2.6v-2.3c0-2.5,1.5-2.6,3.1-2.6S177.6,47.8,177.6,50.3z M173.3,50.6v1.7c0,1.3,0.2,1.3,1.2,1.3s1.2,0,1.2-1.3v-1.7c0-1.3-0.2-1.3-1.2-1.3S173.3,49.3,173.3,50.6z"/></g>
+              <g className="move-5"><path className="st1" d="M183.8,55.2h-2v-5.7l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V55.2z"/></g>
+              <g className="move-7"><path className="st1" d="M163.6,91.6v2.3c0,2.5-1.5,2.6-3.1,2.6s-3.1-0.1-3.1-2.6v-2.3c0-2.5,1.5-2.6,3.1-2.6S163.6,89.1,163.6,91.6z M159.3,91.9v1.7c0,1.3,0.2,1.3,1.2,1.3s1.2,0,1.2-1.3v-1.7c0-1.3-0.2-1.3-1.2-1.3S159.3,90.7,159.3,91.9z"/></g>
+              <g className="move-7"><path className="st1" d="M169.7,96.5h-2v-5.7l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V96.5z"/></g>
+              <g className="move-7"><path className="st1" d="M155.6,96.5h-2v-5.7l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V96.5z"/></g>
+              <g className="move-10"><path className="st1" d="M213.3,87.9v2.3c0,2.5-1.5,2.6-3.1,2.6s-3.1-0.1-3.1-2.6v-2.3c0-2.5,1.5-2.6,3.1-2.6S213.3,85.4,213.3,87.9z M209,88.2v1.7c0,1.3,0.2,1.3,1.2,1.3s1.2,0,1.2-1.3v-1.7c0-1.3-0.2-1.3-1.2-1.3C209.2,86.9,209,86.9,209,88.2z"/></g>
+              <g className="move-2"><path className="st1" d="M224.7,56.5h-2v-5.7l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V56.5z"/></g>
+              <g className="move-4"><path className="st1" d="M185.3,80.3h-2v-5.7l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V80.3z"/></g>
+              <g className="move-1"><path className="st1" d="M293.7,74.7h-2V69l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V74.7z"/></g>
+              <g className="move-8"><path className="st1" d="M308.3,51v2.3c0,2.5-1.5,2.6-3.1,2.6s-3.1-0.1-3.1-2.6V51c0-2.5,1.5-2.6,3.1-2.6C306.8,48.3,308.3,48.4,308.3,51z M304,51.3V53c0,1.3,0.2,1.3,1.2,1.3s1.2,0,1.2-1.3v-1.7c0-1.3-0.2-1.3-1.2-1.3S304,50,304,51.3z"/></g>
+              <g className="move-4"><path className="st1" d="M247.7,67.5v2.3c0,2.5-1.5,2.6-3.1,2.6s-3.1-0.1-3.1-2.6v-2.3c0-2.5,1.5-2.6,3.1-2.6S247.7,65,247.7,67.5z M243.4,67.8v1.7c0,1.3,0.2,1.3,1.2,1.3s1.2,0,1.2-1.3v-1.7c0-1.3-0.2-1.3-1.2-1.3C243.6,66.5,243.4,66.5,243.4,67.8z"/></g>
+              <g className="move-4"><path className="st1" d="M238.7,72.4h-2v-5.7l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V72.4z"/></g>
+              <g className="move-10"><path className="st1" d="M146.5,59.9h-2v-5.7l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V59.9z"/></g>
+              <g className="move-8"><path className="st1" d="M304.9,89.4v2.3c0,2.5-1.5,2.6-3.1,2.6s-3.1-0.1-3.1-2.6v-2.3c0-2.5,1.5-2.6,3.1-2.6S304.9,86.9,304.9,89.4z M300.6,89.7v1.7c0,1.3,0.2,1.3,1.2,1.3s1.2,0,1.2-1.3v-1.7c0-1.3-0.2-1.3-1.2-1.3C300.9,88.4,300.6,88.4,300.6,89.7z"/></g>
+              <g className="move-8"><path className="st1" d="M296,94.3h-2v-5.7l-1.9,1.8l-1.1-1.3l2.7-2.2h2.3V94.3z"/></g>
+            </g>
+            <g>
+              <path className="st1" d="M334.4,48.7c2.5,0,4.6-2.1,4.6-4.6s-2.1-4.6-4.6-4.6s-4.6,2.1-4.6,4.6C329.8,46.6,331.8,48.7,334.4,48.7z"/>
+              <circle className="st1" cx="348.1" cy="44.1" r="4.6"/>
+              <path className="st1" d="M361.9,39.5c-2.5,0-4.6,2.1-4.6,4.6s2.1,4.6,4.6,4.6s4.6-2.1,4.6-4.6C366.5,41.5,364.4,39.5,361.9,39.5z"/>
+              <path className="st1" d="M334.4,61.5c2.5,0,4.6-2.1,4.6-4.6s-2.1-4.6-4.6-4.6s-4.6,2.1-4.6,4.6C329.8,59.5,331.8,61.5,334.4,61.5z"/>
+              <circle className="st1" cx="348.1" cy="56.9" r="4.6"/>
+              <path className="st1" d="M361.9,52.3c-2.5,0-4.6,2.1-4.6,4.6s2.1,4.6,4.6,4.6s4.6-2.1,4.6-4.6C366.5,54.4,364.4,52.3,361.9,52.3z"/>
+              <path className="st1" d="M336.4,98.2c-3.4,0-6.1,2.7-6.1,6.1s2.7,6.1,6.1,6.1s6.1-2.7,6.1-6.1C342.5,100.9,339.8,98.2,336.4,98.2z"/>
+              <rect className="st1" x="318.8" y="84.3" width="1.8" height="9.2"/>
+              <rect className="st1" x="318.8" y="73.2" width="1.8" height="9.2"/>
+              <rect className="st1" x="375.7" y="84.3" width="1.8" height="9.2"/>
+              <rect className="st1" x="375.7" y="73.2" width="1.8" height="9.2"/>
+              <rect className="st1" x="337.1" y="26.6" width="22" height="1.8"/>
+              <path className="st1" d="M331.6,68c0,1.5,1.2,2.7,2.7,2.7s2.7-1.2,2.7-2.7s-1.2-2.7-2.7-2.7C332.9,65.3,331.6,66.5,331.6,68z"/>
+              <path className="st1" d="M361.9,70.7c1.5,0,2.7-1.2,2.7-2.7s-1.2-2.7-2.7-2.7s-2.7,1.2-2.7,2.7C359.2,69.5,360.4,70.7,361.9,70.7z"/>
+              <path className="st1" d="M348.1,70.7c1.5,0,2.7-1.2,2.7-2.7s-1.2-2.7-2.7-2.7s-2.7,1.2-2.7,2.7S346.6,70.7,348.1,70.7z"/>
+              <path className="st1" d="M348.1,97.7c-1.5,0-2.7,1.2-2.7,2.7s1.2,2.7,2.7,2.7s2.7-1.2,2.7-2.7C350.8,99,349.6,97.7,348.1,97.7z"/>
+              <path className="st1" d="M369.2,30.3h-0.7h-0.2h-40.4h-0.1H327c-2.5,0-4.6,2.1-4.6,4.6v0.7v0.2v0.8v75.9v0.1v0.8c0,2.5,2.1,4.6,4.6,4.6h0.8h0.1h40.4h0.2h0.7c2.5,0,4.6-2.1,4.6-4.6v-0.8v-0.1V36.6v-0.8v-0.2v-0.7C373.8,32.4,371.8,30.3,369.2,30.3z M370.1,35.8v0.8v75.9v0.1v0.8c0,0.5-0.4,0.9-0.9,0.9h-0.7h-0.2h-40.4h-0.1H327c-0.5,0-0.9-0.4-0.9-0.9v-0.8v-0.1V36.6v-0.8v-0.2v-0.7c0-0.5,0.4-0.9,0.9-0.9h0.9h0.1h40.4h0.2h0.7c0.5,0,0.9,0.4,0.9,0.9v0.7v0.2H370.1z"/>
+              <path className="st1" d="M359.8,98.2c-3.4,0-6.1,2.7-6.1,6.1s2.7,6.1,6.1,6.1s6.1-2.7,6.1-6.1C365.8,100.9,363.1,98.2,359.8,98.2z"/>
+            </g>
+          </g>
+          <path className="st0" d="M130.9,97.9c1.8,0,3.2,1.4,3.2,3.2v10c0,1.8-1.4,3.2-3.2,3.2s-3.2-1.4-3.2-3.2v-10C127.7,99.4,129.2,97.9,130.9,97.9z"/>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+/* ─── Logo ───────────────────────────────── */
+function Logo({w=140}){
+  return <img src="assets/logo.svg" alt="Chase Bliss Audio"
+    style={{width:w,height:w*307/2315,display:'block'}}/>;
+}
+
+/* ─── BackLink ───────────────────────────── */
+function BackLink({label='To main site',color=INK,onClick}){
+  const [h,setH]=useState(false);
+  return(
+    <a href="#" onClick={e=>{e.preventDefault();onClick&&onClick();}}
+      onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{display:'flex',alignItems:'center',gap:5,textDecoration:'none',
+              color,fontWeight:700,fontSize:11,textTransform:'uppercase',letterSpacing:'0.1em'}}>
+      <svg width="16" height="16" fill="none" stroke={color} viewBox="0 0 24 24"
+        style={{transform:h?'translateX(-3px)':'none',transition:'transform .2s',flexShrink:0}}>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"/>
+      </svg>
+      {label}
+    </a>
+  );
+}
+
+/* ─── Dropdown ───────────────────────────── */
+function DD({sel,onSel,width='100%',placeholder='Select firmware…',items=FWS}){
+  const [open,setOpen]=useState(false);
+  const [hov,setHov]=useState(null);
+  const ref=useRef(null);
+  useEffect(()=>{
+    function h(e){if(ref.current&&!ref.current.contains(e.target))setOpen(false);}
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+  },[]);
+  return(
+    <div ref={ref} style={{position:'relative',width,fontFamily:'Poppins,sans-serif'}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{
+        border:`2px solid ${INK}`,background:CR,padding:'12px 16px',
+        display:'flex',justifyContent:'space-between',alignItems:'center',
+        fontWeight:700,fontSize:13,cursor:'pointer',userSelect:'none',
+        boxShadow:open||sel?'0 8px 24px rgba(0,0,0,.1)':'none',transition:'box-shadow .2s',
+      }}>
+        <span style={{color:sel?.bgColor?sel.bgColor:INK,transition:'color .3s'}}>
+          {sel?sel.name:placeholder}
+        </span>
+        <svg viewBox="0 0 20 20" width="16" height="16"
+          style={{transform:open?'rotate(180deg)':'none',transition:'transform .15s',flexShrink:0}}>
+          <path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-4.293-1.707a1 1 0 00-1.414 0L10 10.586 7.707 8.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 000-1.414z" fill={GOLD}/>
+        </svg>
+      </div>
+      {open&&(
+        <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:80,
+                     border:`2px solid ${INK}`,borderTop:'none',background:CR,
+                     boxShadow:'0 16px 40px rgba(0,0,0,.13)',animation:'slideDown .1s ease'}}>
+          {items.map((fw,i)=>(
+            <div key={fw.name}
+              style={{padding:'11px 16px',fontWeight:700,fontSize:13,cursor:'pointer',
+                      borderBottom:i<items.length-1?'1px solid rgba(0,0,0,.08)':'none',
+                      background:hov===fw.name?fw.bgColor:CR,color:INK,transition:'background .1s'}}
+              onMouseEnter={()=>setHov(fw.name)} onMouseLeave={()=>setHov(null)}
+              onClick={()=>{onSel(fw);setOpen(false);}}>
+              {fw.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Button ─────────────────────────────── */
+function Btn({children,disabled,success,danger,onClick,width=200,small=false}){
+  const [h,setH]=useState(false);
+  const bdr=danger?RED:success?GREEN:INK;
+  const clr=danger?RED:success?GREEN:INK;
+  return(
+    <button disabled={disabled} onClick={onClick}
+      onMouseEnter={()=>!disabled&&setH(true)} onMouseLeave={()=>setH(false)}
+      style={{
+        fontFamily:'Poppins,sans-serif',fontWeight:700,fontSize:small?11:13,
+        letterSpacing:small?'0.07em':'0.02em',
+        background:CR,border:`2px solid ${bdr}`,color:clr,
+        width,height:small?36:48,padding:'0 16px',
+        cursor:disabled?'not-allowed':'pointer',opacity:disabled?.28:1,
+        fontStyle:h&&!disabled?'italic':'normal',
+        boxShadow:h&&!disabled?'0 8px 20px rgba(0,0,0,.11)':'none',
+        transition:'box-shadow .2s,font-style .05s,opacity .2s',
+        display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,
+      }}>
+      {children}
+    </button>
+  );
+}
+
+/* ─── Progress ───────────────────────────── */
+function Prog({value,color,height=5}){
+  const id='p'+(color||'').replace(/[^a-z0-9]/gi,'x');
+  return(
+    <div style={{width:'100%'}}>
+      <style>{`#${id}::-webkit-progress-value{background:${color};}`}</style>
+      <progress id={id} value={value} max={100} style={{width:'100%',height}}/>
+    </div>
+  );
+}
+
+/* ─── Instructions content ───────────────── */
+function Instr({os}){
+  const [drv,setDrv]=useState(false);
+  const mac=['Select firmware from the dropdown.',
+    '*Connect pedal via data-transfer micro USB.',
+    '*Connect appropriate power supply (see manual).',
+    'Click Connect — select "DFU in FS mode" in browser popup.',
+    'Click Update.'];
+  const win=['Install Windows driver (first time only — see below).',
+    'Select firmware from the dropdown.',
+    '*Connect pedal via data-transfer micro USB.',
+    '*Connect appropriate power supply (see manual).',
+    'Click Connect — select "DFU in FS mode" in browser popup.',
+    'Click Update.'];
+  const steps=os==='mac'?mac:win;
+  return(
+    <div>
+      <p style={{fontStyle:'italic',fontWeight:700,fontSize:12,marginBottom:12}}>
+        <span style={{background:RED,color:'#fff',padding:'1px 7px',marginRight:6,fontStyle:'normal'}}>Note</span>
+        Your pedal may be damaged by uploading incorrect firmware.
+      </p>
+      <ol style={{padding:0,listStyle:'none'}}>
+        {steps.map((s,i)=>(
+          <li key={i} style={{padding:'0 0 7px 2em',textIndent:'-2em',listStyle:'none',fontSize:12,lineHeight:1.55}}>
+            <span style={{fontWeight:700,display:'inline-block',width:'1.5em',textAlign:'right',paddingRight:'0.5em'}}>{i+1}.</span>{s}
+          </li>
+        ))}
+      </ol>
+      <p style={{fontSize:11,fontStyle:'italic',fontWeight:600,color:'rgba(0,0,0,0.4)',marginTop:2}}>
+        {os==='mac'?'*Steps 2 & 3 must be done in this order.':'*Steps 3 & 4 must be done in this order.'}
+      </p>
+      {os==='win'&&(
+        <div style={{marginTop:12}}>
+          <button onClick={()=>setDrv(o=>!o)} style={{
+            all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:4,
+            fontFamily:'Poppins,sans-serif',fontWeight:700,fontSize:11,
+            textDecoration:'underline',textUnderlineOffset:3,
+          }}>
+            Driver install
+            <svg viewBox="0 0 20 20" width="12" height="12" fill="currentColor"
+              style={{transform:drv?'rotate(180deg)':'none',transition:'transform .15s'}}>
+              <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+            </svg>
+          </button>
+          {drv&&(
+            <ol style={{marginTop:8,padding:0,listStyle:'none'}}>
+              {['Download Zadig (zadig.akeo.ie) and open it.',
+                'Connect pedal (steps 3 & 4, in order).',
+                'Options → List All Devices → "DFU in FS Mode".',
+                'Click Upgrade Driver.']
+              .map((s,i)=>(
+                <li key={i} style={{padding:'0 0 5px 2em',textIndent:'-2em',listStyle:'none',fontSize:11}}>
+                  <span style={{fontWeight:700,display:'inline-block',width:'1.5em',textAlign:'right',paddingRight:'0.5em'}}>
+                    {String.fromCharCode(97+i)}.
+                  </span>{s}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── OS tabs ────────────────────────────── */
+function OSTabs({os,setOs}){
+  return(
+    <div style={{display:'flex',borderBottom:'1px solid rgba(0,0,0,.12)',marginBottom:16}}>
+      {['mac','win'].map(id=>(
+        <button key={id} onClick={()=>setOs(id)} style={{
+          all:'unset',cursor:'pointer',padding:'6px 16px',fontWeight:700,
+          fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',
+          fontFamily:'Poppins,sans-serif',
+          borderBottom:os===id?`2px solid ${INK}`:'2px solid transparent',
+          marginBottom:-1,color:os===id?INK:'rgba(0,0,0,0.3)',transition:'color .15s',
+        }}>
+          {id==='mac'?'macOS':'Windows'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Step number badge ──────────────────── */
+function StepN({n,done}){
+  return(
+    <span style={{
+      width:26,height:26,border:`2px solid ${INK}`,flexShrink:0,
+      display:'flex',alignItems:'center',justifyContent:'center',
+      fontWeight:700,fontSize:12,
+      background:done?INK:CR,color:done?CR:INK,transition:'background .25s',
+    }}>
+      {done?'✓':n}
+    </span>
+  );
+}
+
+/* ─── Shared Nav ─────────────────────────── */
+function Nav({onBack,hideInstructions=false,rightSlot=null}){
+  const [os,setOs]=useState('mac');
+  const [hovInstr,setHovInstr]=useState(null);
+  const timerRef=useRef(null);
+  function setHov(n){if(timerRef.current)clearTimeout(timerRef.current);setHovInstr(n);}
+  function clearHov(){timerRef.current=setTimeout(()=>setHovInstr(null),150);}
+
+  return(
+    <nav style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+                 padding:'18px 0',borderBottom:`2px solid ${INK}`,maxWidth:1200,margin:'0 auto',width:'100%'}}>
+      <div style={{width:'33%'}}>
+        <BackLink onClick={onBack}/>
+      </div>
+      <div style={{width:'33%',display:'flex',justifyContent:'center'}}>
+        <a href="#" onClick={e=>e.preventDefault()}>
+          <Logo w={130}/>
+        </a>
+      </div>
+      <div style={{width:'33%',display:'flex',justifyContent:'flex-end',alignItems:'center',gap:12}}>
+        {rightSlot}
+        {!hideInstructions&&(
+          <>
+            <span style={{fontWeight:700,fontSize:11,textTransform:'uppercase',letterSpacing:'0.08em'}}>Instructions:</span>
+            {/* Mac icon */}
+            <div style={{position:'relative'}}>
+              <div onMouseEnter={()=>setHov('mac')} onMouseLeave={clearHov} style={{cursor:'pointer',display:'flex'}}>
+                <svg fill={INK} viewBox="-3.5 -2 24 24" width="22" height="22">
+                  <path d="M13.623 10.627c-.025-2.533 2.066-3.748 2.159-3.808-1.175-1.72-3.005-1.955-3.657-1.982-1.557-.158-3.039.917-3.83.917-.788 0-2.008-.894-3.3-.87C3.299 4.909 1.734 5.87.86 7.39c-1.764 3.06-.452 7.595 1.267 10.077.84 1.215 1.842 2.58 3.157 2.53 1.266-.05 1.745-.819 3.276-.819 1.531 0 1.962.82 3.302.795 1.363-.026 2.226-1.239 3.06-2.457.965-1.41 1.362-2.775 1.386-2.845-.03-.013-2.658-1.02-2.684-4.045zm-2.518-7.433c.698-.847 1.169-2.022 1.04-3.194C11.14.04 9.921.67 9.2 1.515c-.647.75-1.214 1.945-1.062 3.094 1.122.088 2.268-.57 2.967-1.415z"/>
+                </svg>
+              </div>
+              {hovInstr==='mac'&&(
+                <div onMouseEnter={()=>setHov('mac')} onMouseLeave={clearHov} style={{
+                  position:'absolute',top:32,right:0,width:380,zIndex:100,
+                  background:CR,border:`1px solid ${INK}`,padding:28,
+                  boxShadow:'0 20px 50px rgba(0,0,0,.18)',animation:'slideDown .12s ease',
+                }}>
+                  <Instr os="mac"/>
+                </div>
+              )}
+            </div>
+            {/* Win icon */}
+            <div style={{position:'relative'}}>
+              <div onMouseEnter={()=>setHov('win')} onMouseLeave={clearHov} style={{cursor:'pointer',display:'flex'}}>
+                <svg fill={INK} viewBox="0 0 14 14" width="20" height="20">
+                  <path d="M 7.251852,7.25185 13,7.25185 13,13 7.251852,13 Z m -6.251852,0 5.748148,0 0,5.74815 L 1,13 Z M 7.251852,1 13,1 l 0,5.74815 -5.748148,0 z M 1,1 l 5.748148,0 0,5.74815 -5.748148,0 z"/>
+                </svg>
+              </div>
+              {hovInstr==='win'&&(
+                <div onMouseEnter={()=>setHov('win')} onMouseLeave={clearHov} style={{
+                  position:'absolute',top:32,right:0,width:380,zIndex:100,
+                  background:CR,border:`1px solid ${INK}`,padding:28,
+                  boxShadow:'0 20px 50px rgba(0,0,0,.18)',animation:'slideDown .12s ease',
+                }}>
+                  <Instr os="win"/>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </nav>
+  );
+}
+
+/* ─── Flash controls (shared by home+beta) ── */
+function FlashControls({F,width=320}){
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {!F.going&&!F.done?(<>
+        <Btn disabled={!F.sel} onClick={F.connect} width={width}>
+          {F.conn?'Connected ✓':'Connect'}
+        </Btn>
+        {F.conn&&<p style={{fontSize:11,color:GREEN,fontWeight:700}}>Device connected — ready to update.</p>}
+        <Btn disabled={!F.conn||!F.sel} success={F.conn&&!!F.sel} onClick={F.update} width={width}>Update</Btn>
+      </>):(
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div style={{fontWeight:700,fontSize:13,padding:'10px 14px',border:`2px solid ${INK}`}}>{F.sel?.name}</div>
+          <Prog value={F.prog} color={F.sel?.bgColor||GREEN}/>
+          <div style={{fontSize:13,fontWeight:700,color:GREEN,animation:F.going?'pulse 1.8s ease infinite':'none'}}>
+            {F.done?'Update complete.':`Uploading… ${Math.round(F.prog)}%`}
+          </div>
+          {F.done&&<Btn onClick={F.reset} width={width}>Flash again</Btn>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Section label ──────────────────────── */
+function SLabel({children,style={}}){
+  return(
+    <p style={{fontSize:10,fontWeight:700,textTransform:'uppercase',
+               letterSpacing:'0.12em',color:'rgba(0,0,0,0.38)',marginBottom:10,...style}}>
+      {children}
+    </p>
+  );
+}
+
+
+/*══════════════════════════════════════════════════════
+  PAGE: HOME  /
+  Stacked-card flasher + always-visible instructions
+══════════════════════════════════════════════════════*/
+function PageHome({goTo}){
+  const F=useFlash();
+  const [os,setOs]=useState('mac');
+  const s1=!!F.sel,s2=F.conn,s3=F.done;
+
+  return(
+    <div style={{minHeight:'100vh',background:CR,fontFamily:'Poppins,sans-serif',animation:'fadeIn .4s ease-out'}}>
+      <div style={{padding:'0 7vw'}}>
+        <Nav onBack={()=>goTo('home')}/>
+      </div>
+      <div style={{padding:'0 7vw',maxWidth:1200,margin:'0 auto',
+                   display:'grid',gridTemplateColumns:'1fr 1px 300px',
+                   minHeight:'calc(100vh - 80px)',alignItems:'start'}}>
+
+        {/* Left: cards */}
+        <div style={{padding:'44px 52px 80px 0'}}>
+          <div style={{marginBottom:32,display:'flex',alignItems:'center',gap:20}}>
+            <h1 style={{fontSize:'clamp(1.4rem,2.2vw,2rem)',fontWeight:700,letterSpacing:'-0.02em',flexShrink:0}}>
+              Bliss Programmer.
+            </h1>
+            <BinaryHero width={220} opacity={0.3} flashing={F.going}/>
+          </div>
+
+          {/* Card 1 */}
+          <div style={{border:`2px solid ${INK}`,marginBottom:-2,
+                       background:s1?`${F.sel.bgColor}10`:CR,transition:'background .5s'}}>
+            <div style={{padding:'15px 20px',borderBottom:'1px solid rgba(0,0,0,.08)',
+                         display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <StepN n={1} done={s1}/>
+                <span style={{fontWeight:700,fontSize:13}}>Select firmware</span>
+              </div>
+              {s1&&(
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:9,height:9,background:F.sel.bgColor,flexShrink:0}}/>
+                  <span style={{fontSize:11,color:'rgba(0,0,0,0.45)',fontWeight:600}}>{F.sel.name}</span>
+                </div>
+              )}
+            </div>
+            {!s2&&(
+              <div style={{padding:'16px 20px'}}>
+                <DD sel={F.sel} onSel={F.pick} width="100%"/>
+              </div>
+            )}
+          </div>
+
+          {/* Card 2 */}
+          <div style={{border:`2px solid ${INK}`,marginBottom:-2,
+                       opacity:s1?1:.28,transition:'opacity .3s'}}>
+            <div style={{padding:'15px 20px',
+                         borderBottom:!s2&&!s3?'1px solid rgba(0,0,0,.08)':'none',
+                         display:'flex',alignItems:'center',gap:12}}>
+              <StepN n={2} done={s2}/>
+              <span style={{fontWeight:700,fontSize:13}}>Connect pedal</span>
+            </div>
+            {!s2&&!s3&&(
+              <div style={{padding:'14px 20px',display:'flex',flexDirection:'column',gap:10}}>
+                <p style={{fontSize:12,color:'rgba(0,0,0,0.42)',lineHeight:1.6,maxWidth:380}}>
+                  Connect via data-transfer micro USB, then connect power supply.
+                </p>
+                <Btn disabled={!s1} onClick={F.connect} width={180}>Connect</Btn>
+              </div>
+            )}
+          </div>
+
+          {/* Card 3 */}
+          <div style={{border:`2px solid ${INK}`,opacity:s2?1:.28,transition:'opacity .3s'}}>
+            <div style={{padding:'15px 20px',
+                         borderBottom:(!F.going&&!F.done)?'1px solid rgba(0,0,0,.08)':'none',
+                         display:'flex',alignItems:'center',gap:12}}>
+              <StepN n={3} done={s3}/>
+              <span style={{fontWeight:700,fontSize:13}}>Update firmware</span>
+            </div>
+            {!F.going&&!F.done&&(
+              <div style={{padding:'14px 20px'}}>
+                <Btn disabled={!s2||!s1} success={s2&&s1} onClick={F.update} width={180}>Update</Btn>
+              </div>
+            )}
+            {(F.going||F.done)&&(
+              <div style={{padding:'14px 20px',display:'flex',flexDirection:'column',gap:10}}>
+                <Prog value={F.prog} color={F.sel?.bgColor||GREEN}/>
+                <div style={{fontSize:13,fontWeight:700,color:GREEN,
+                             animation:F.going?'pulse 1.8s ease infinite':'none'}}>
+                  {F.done?'Update complete.':`Uploading… ${Math.round(F.prog)}%`}
+                </div>
+                {F.done&&<Btn onClick={F.reset} width={180}>Flash again</Btn>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{background:'rgba(0,0,0,.09)',alignSelf:'stretch'}}/>
+
+        {/* Right: instructions */}
+        <div style={{padding:'44px 0 80px 36px',position:'sticky',top:24}}>
+          <SLabel>Instructions</SLabel>
+          <OSTabs os={os} setOs={setOs}/>
+          <Instr os={os}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/*══════════════════════════════════════════════════════
+  PAGE: BETA  /beta
+  Same layout, beta banner, more internal feeling.
+  Black header zone. Instructions panel right.
+══════════════════════════════════════════════════════*/
+function PageBeta({goTo}){
+  const F=useFlash();
+  const [os,setOs]=useState('mac');
+  const s1=!!F.sel,s2=F.conn,s3=F.done;
+
+  return(
+    <div style={{minHeight:'100vh',background:CR,fontFamily:'Poppins,sans-serif',animation:'fadeIn .4s ease-out'}}>
+
+      {/* Beta banner */}
+      <div style={{background:RED,color:'#fff',padding:'8px 7vw',
+                   display:'flex',alignItems:'center',justifyContent:'center',gap:14}}>
+        <span style={{background:'#fff',color:RED,fontWeight:700,fontSize:10,
+                      textTransform:'uppercase',letterSpacing:'0.14em',padding:'2px 9px',flexShrink:0}}>Beta</span>
+        <span style={{fontSize:12,fontWeight:500}}>
+          Unreleased firmware. For internal testing only — not for customer devices.
+        </span>
+      </div>
+
+      {/* Dark nav zone */}
+      <div style={{background:INK,padding:'0 7vw'}}>
+        <nav style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+                     padding:'16px 0',maxWidth:1200,margin:'0 auto',width:'100%'}}>
+          <div style={{width:'33%'}}>
+            <BackLink color={CR} onClick={()=>goTo('home')}/>
+          </div>
+          <div style={{width:'33%',display:'flex',justifyContent:'center'}}>
+            <img src="assets/logo.svg" alt="Chase Bliss Audio"
+              style={{width:130,height:130*307/2315,display:'block',filter:'invert(1)'}}/>
+          </div>
+          <div style={{width:'33%',display:'flex',justifyContent:'flex-end',alignItems:'center',gap:8}}>
+            <span style={{fontSize:10,fontWeight:700,letterSpacing:'0.1em',
+                          textTransform:'uppercase',color:'rgba(254,251,246,0.35)',
+                          fontFamily:'JetBrains Mono,monospace'}}>
+              internal · not for customers
+            </span>
+          </div>
+        </nav>
+      </div>
+
+      {/* Body */}
+      <div style={{padding:'0 7vw',maxWidth:1200,margin:'0 auto',
+                   display:'grid',gridTemplateColumns:'1fr 1px 300px',
+                   minHeight:'calc(100vh - 120px)',alignItems:'start'}}>
+
+        {/* Left: cards */}
+        <div style={{padding:'44px 52px 80px 0'}}>
+          <div style={{marginBottom:32,display:'flex',alignItems:'center',gap:20}}>
+            <h1 style={{fontSize:'clamp(1.4rem,2.2vw,2rem)',fontWeight:700,letterSpacing:'-0.02em',flexShrink:0}}>
+              Beta Programmer.
+            </h1>
+            <BinaryHero width={180} opacity={0.25} flashing={F.going}/>
+          </div>
+
+          {/* Card 1 */}
+          <div style={{border:`2px solid ${INK}`,marginBottom:-2,
+                       background:s1?`${F.sel.bgColor}10`:CR,transition:'background .5s'}}>
+            <div style={{padding:'15px 20px',borderBottom:'1px solid rgba(0,0,0,.08)',
+                         display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <StepN n={1} done={s1}/>
+                <span style={{fontWeight:700,fontSize:13}}>Select firmware</span>
+              </div>
+              {s1&&(
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:9,height:9,background:F.sel.bgColor,flexShrink:0}}/>
+                  <span style={{fontSize:11,color:'rgba(0,0,0,0.45)',fontWeight:600}}>{F.sel.name}</span>
+                </div>
+              )}
+            </div>
+            {!s2&&(
+              <div style={{padding:'16px 20px'}}>
+                <DD sel={F.sel} onSel={F.pick} width="100%"
+                  placeholder="Select beta firmware…"
+                  items={[{name:'COMBO TEST',bgColor:'#ffcc00'},{name:'MOOD MKII dev',bgColor:'#b48ecf'},{name:'Blooper v3.1-rc',bgColor:'#7ab8d4'}]}/>
+              </div>
+            )}
+          </div>
+
+          {/* Card 2 */}
+          <div style={{border:`2px solid ${INK}`,marginBottom:-2,
+                       opacity:s1?1:.28,transition:'opacity .3s'}}>
+            <div style={{padding:'15px 20px',
+                         borderBottom:!s2&&!s3?'1px solid rgba(0,0,0,.08)':'none',
+                         display:'flex',alignItems:'center',gap:12}}>
+              <StepN n={2} done={s2}/>
+              <span style={{fontWeight:700,fontSize:13}}>Connect pedal</span>
+            </div>
+            {!s2&&!s3&&(
+              <div style={{padding:'14px 20px',display:'flex',flexDirection:'column',gap:10}}>
+                <p style={{fontSize:12,color:'rgba(0,0,0,0.42)',lineHeight:1.6,maxWidth:380}}>
+                  Connect via data-transfer micro USB, then connect power supply.
+                </p>
+                <Btn disabled={!s1} onClick={F.connect} width={180}>Connect</Btn>
+              </div>
+            )}
+          </div>
+
+          {/* Card 3 */}
+          <div style={{border:`2px solid ${INK}`,opacity:s2?1:.28,transition:'opacity .3s'}}>
+            <div style={{padding:'15px 20px',
+                         borderBottom:(!F.going&&!F.done)?'1px solid rgba(0,0,0,.08)':'none',
+                         display:'flex',alignItems:'center',gap:12}}>
+              <StepN n={3} done={s3}/>
+              <span style={{fontWeight:700,fontSize:13}}>Update firmware</span>
+            </div>
+            {!F.going&&!F.done&&(
+              <div style={{padding:'14px 20px'}}>
+                <Btn disabled={!s2||!s1} success={s2&&s1} onClick={F.update} width={180}>Update</Btn>
+              </div>
+            )}
+            {(F.going||F.done)&&(
+              <div style={{padding:'14px 20px',display:'flex',flexDirection:'column',gap:10}}>
+                <Prog value={F.prog} color={F.sel?.bgColor||GREEN}/>
+                <div style={{fontSize:13,fontWeight:700,color:GREEN,
+                             animation:F.going?'pulse 1.8s ease infinite':'none'}}>
+                  {F.done?'Update complete.':`Uploading… ${Math.round(F.prog)}%`}
+                </div>
+                {F.done&&<Btn onClick={F.reset} width={180}>Flash again</Btn>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{background:'rgba(0,0,0,.09)',alignSelf:'stretch'}}/>
+
+        {/* Right: instructions */}
+        <div style={{padding:'44px 0 80px 36px',position:'sticky',top:24}}>
+          <SLabel>Instructions</SLabel>
+          <OSTabs os={os} setOs={setOs}/>
+          <Instr os={os}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/*══════════════════════════════════════════════════════
+  PAGE: ADMIN  /admin
+  Local file flasher + catalogue manager.
+  Two-column: flash tool left, catalogue right.
+══════════════════════════════════════════════════════*/
+function PageAdmin({goTo}){
+  // Flash state
+  const [file,setFile]=useState(null);
+  const [conn,setConn]=useState(false);
+  const [prog,setProg]=useState(0);
+  const [going,setGoing]=useState(false);
+  const [done,setDone]=useState(false);
+  function connect(){setConn(true);}
+  function update(){
+    setGoing(true);setDone(false);setProg(0);
+    const iv=setInterval(()=>setProg(p=>{
+      if(p>=100){clearInterval(iv);setGoing(false);setDone(true);return 100;}
+      return p+1.4;
+    }),70);
+  }
+  function flashReset(){setFile(null);setConn(false);setProg(0);setGoing(false);setDone(false);}
+
+  // Save form state
+  const [saveName,setSaveName]=useState('');
+  const [saveDesc,setSaveDesc]=useState('');
+  const [saveColor,setSaveColor]=useState('#ba8e51');
+  const [saveTarget,setSaveTarget]=useState('beta');
+  const [saving,setSaving]=useState(false);
+  const [saveMsg,setSaveMsg]=useState(null);
+  const [saveOk,setSaveOk]=useState(false);
+
+  function handleSave(){
+    if(!file||!saveName.trim())return;
+    setSaving(true);setSaveMsg(null);
+    setTimeout(()=>{
+      setSaving(false);setSaveOk(true);
+      setSaveMsg(`Committed to ${saveTarget}. Visible after next deploy.`);
+    },1800);
+  }
+
+  // Catalogue state
+  const [catalogue,setCatalogue]=useState(ADMIN_FWS);
+  const [deleting,setDeleting]=useState(null);
+  function handleDelete(entry){
+    const key=`${entry.target}:${entry.filename}`;
+    setDeleting(key);
+    setTimeout(()=>{
+      setCatalogue(c=>c.filter(e=>!(e.target===entry.target&&e.filename===entry.filename)));
+      setDeleting(null);
+    },700);
+  }
+
+  const canConnect=!!file&&!conn&&!going;
+  const canUpdate=conn&&!!file&&!going;
+  const canSave=!!file&&saveName.trim().length>0&&!saving&&!going;
+
+  // Field style
+  const fieldStyle={
+    border:`2px solid ${INK}`,background:CR,padding:'9px 12px',
+    fontFamily:'Poppins,sans-serif',fontWeight:700,fontSize:13,
+    width:'100%',outline:'none',
+  };
+  const labelStyle={fontSize:10,fontWeight:700,textTransform:'uppercase',
+                    letterSpacing:'0.1em',color:'rgba(0,0,0,0.38)',
+                    display:'block',marginBottom:6};
+
+  return(
+    <div style={{minHeight:'100vh',background:'#f5f2ec',fontFamily:'Poppins,sans-serif',animation:'fadeIn .4s ease-out'}}>
+
+      {/* Admin header stripe */}
+      <div style={{background:INK,padding:'0 7vw'}}>
+        <div style={{maxWidth:1200,margin:'0 auto',padding:'12px 0',
+                     display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <img src="assets/logo.svg" alt="Chase Bliss Audio"
+              style={{width:100,height:100*307/2315,display:'block',filter:'invert(1)',opacity:0.7}}/>
+            <span style={{width:1,height:16,background:'rgba(255,255,255,.2)',display:'block'}}/>
+            <span style={{fontSize:11,fontWeight:700,textTransform:'uppercase',
+                          letterSpacing:'0.14em',color:'rgba(255,255,255,0.5)',
+                          fontFamily:'JetBrains Mono,monospace'}}>
+              Admin
+            </span>
+          </div>
+          <BackLink color='rgba(254,251,246,0.45)' label="Exit admin" onClick={()=>goTo('home')}/>
+        </div>
+      </div>
+
+      {/* Page header */}
+      <div style={{background:CR,borderBottom:`2px solid ${INK}`,padding:'0 7vw'}}>
+        <div style={{maxWidth:1200,margin:'0 auto',padding:'22px 0',
+                     display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+          <div>
+            <p style={{fontSize:10,fontWeight:700,textTransform:'uppercase',
+                       letterSpacing:'0.12em',color:'rgba(0,0,0,0.35)',marginBottom:6}}>
+              firmware.chasebliss.com
+            </p>
+            <h1 style={{fontSize:'clamp(1.4rem,2vw,1.9rem)',fontWeight:700,letterSpacing:'-0.02em'}}>
+              Admin Flasher.
+            </h1>
+          </div>
+          <BinaryHero width={200} opacity={0.18} flashing={going}/>
+        </div>
+      </div>
+
+      {/* Two-column body */}
+      <div style={{padding:'0 7vw',maxWidth:1200,margin:'0 auto',
+                   display:'grid',gridTemplateColumns:'1fr 1px 400px',
+                   minHeight:'calc(100vh - 130px)',alignItems:'start'}}>
+
+        {/* Left: flash tool */}
+        <div style={{padding:'36px 48px 80px 0',display:'flex',flexDirection:'column',gap:0}}>
+
+          {/* Section: Load file */}
+          <div style={{paddingBottom:28,borderBottom:`1px solid rgba(0,0,0,.1)`,marginBottom:28}}>
+            <SLabel>1. Load firmware file</SLabel>
+            <label style={{
+              display:'flex',alignItems:'center',justifyContent:'center',
+              border:`2px dashed ${file?INK:'rgba(0,0,0,0.2)'}`,
+              background:file?`rgba(186,142,81,0.06)`:CR,
+              padding:'20px 24px',cursor:'pointer',
+              fontWeight:700,fontSize:13,
+              transition:'border-color .2s,background .2s',
+              gap:10,
+            }}>
+              <svg width="18" height="18" fill="none" stroke={file?GOLD:'rgba(0,0,0,0.3)'} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+              </svg>
+              <span style={{color:file?INK:'rgba(0,0,0,0.4)',maxWidth:280,
+                            overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                {file?file.name:'Choose .bin or .hex file'}
+              </span>
+              <input type="file" accept=".bin,.hex" style={{display:'none'}}
+                onChange={e=>setFile(e.target.files?.[0]||null)}/>
+            </label>
+            {file&&(
+              <div style={{marginTop:10,display:'flex',alignItems:'center',gap:10}}>
+                <div style={{flex:1,padding:'8px 12px',border:'1px solid rgba(0,0,0,.1)',
+                             background:'rgba(0,0,0,.02)',fontFamily:'JetBrains Mono,monospace',
+                             fontSize:11,color:'rgba(0,0,0,0.5)'}}>
+                  {file.name} · {(file.size/1024).toFixed(1)} KB
+                </div>
+                <button onClick={()=>{setFile(null);flashReset();}} style={{
+                  all:'unset',cursor:'pointer',fontWeight:700,fontSize:11,
+                  color:'rgba(0,0,0,0.35)',textDecoration:'underline',textUnderlineOffset:3,
+                  whiteSpace:'nowrap',
+                }}>Remove</button>
+              </div>
+            )}
+          </div>
+
+          {/* Section: Connect & Flash */}
+          <div style={{paddingBottom:28,borderBottom:`1px solid rgba(0,0,0,.1)`,marginBottom:28,
+                       opacity:file?1:.4,transition:'opacity .3s'}}>
+            <SLabel>2. Connect &amp; flash</SLabel>
+            {!going&&!done?(<>
+              <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                <Btn disabled={!canConnect} onClick={connect} width={170}>
+                  {conn?'Connected ✓':'Connect'}
+                </Btn>
+                <Btn disabled={!canUpdate} success={canUpdate} onClick={update} width={170}>Update</Btn>
+              </div>
+              {conn&&<p style={{marginTop:10,fontSize:11,color:GREEN,fontWeight:700}}>Device connected — ready to update.</p>}
+            </>):(
+              <div style={{display:'flex',flexDirection:'column',gap:10,maxWidth:360}}>
+                <Prog value={prog} color={GOLD}/>
+                <div style={{fontSize:13,fontWeight:700,color:GREEN,
+                             animation:going?'pulse 1.8s ease infinite':'none'}}>
+                  {done?'Flash complete.':`Uploading… ${Math.round(prog)}%`}
+                </div>
+                {done&&<Btn onClick={flashReset} width={160} small>Flash again</Btn>}
+              </div>
+            )}
+          </div>
+
+          {/* Section: Save to repo */}
+          <div style={{opacity:file?1:.4,transition:'opacity .3s'}}>
+            <SLabel>3. Save to repo <span style={{color:'rgba(0,0,0,.3)',fontWeight:500,textTransform:'none',letterSpacing:0}}>(optional)</span></SLabel>
+            <div style={{display:'flex',flexDirection:'column',gap:14,maxWidth:360}}>
+              <div>
+                <label style={labelStyle}>Name</label>
+                <input type="text" value={saveName} onChange={e=>setSaveName(e.target.value)}
+                  placeholder="e.g. MOOD MKII v1.2" style={fieldStyle}/>
+              </div>
+              <div>
+                <label style={labelStyle}>Description <span style={{fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
+                <input type="text" value={saveDesc} onChange={e=>setSaveDesc(e.target.value)}
+                  placeholder="Brief changelog" style={fieldStyle}/>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:16}}>
+                <div style={{flex:1}}>
+                  <label style={labelStyle}>Accent color</label>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <input type="color" value={saveColor} onChange={e=>setSaveColor(e.target.value)}
+                      style={{width:40,height:36,border:`2px solid ${INK}`,padding:2,
+                               cursor:'pointer',background:CR}}/>
+                    <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:11,fontWeight:700,
+                                  color:'rgba(0,0,0,0.5)'}}>{saveColor}</span>
+                    <div style={{width:20,height:20,background:saveColor,border:`1px solid rgba(0,0,0,.15)`}}/>
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Target</label>
+                  <div style={{display:'flex',gap:16}}>
+                    {['beta','production'].map(t=>(
+                      <label key={t} style={{display:'flex',alignItems:'center',gap:6,
+                                             cursor:'pointer',fontWeight:700,fontSize:12}}>
+                        <input type="radio" name="saveTarget" value={t}
+                          checked={saveTarget===t} onChange={()=>setSaveTarget(t)}
+                          style={{accentColor:INK}}/>
+                        {t.charAt(0).toUpperCase()+t.slice(1)}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:16}}>
+                <Btn disabled={!canSave} onClick={handleSave} width={180}>
+                  {saving?'Saving…':'Save to repo'}
+                </Btn>
+                {saveMsg&&(
+                  <p style={{fontSize:12,fontWeight:700,
+                             color:saveOk?GREEN:RED,maxWidth:200,lineHeight:1.4}}>
+                    {saveMsg}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{background:'rgba(0,0,0,.09)',alignSelf:'stretch'}}/>
+
+        {/* Right: catalogue */}
+        <div style={{padding:'36px 0 80px 36px'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+            <SLabel style={{marginBottom:0}}>In-repo firmwares</SLabel>
+            <button onClick={()=>setCatalogue(ADMIN_FWS)} style={{
+              all:'unset',cursor:'pointer',fontFamily:'Poppins,sans-serif',
+              fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',
+              color:'rgba(0,0,0,0.35)',textDecoration:'underline',textUnderlineOffset:3,
+            }}>
+              Refresh
+            </button>
+          </div>
+
+          {/* Target filter pills */}
+          <div style={{display:'flex',gap:8,marginBottom:16}}>
+            {[
+              {label:'All',count:catalogue.length,color:'rgba(0,0,0,0.3)'},
+              {label:'Production',count:catalogue.filter(f=>f.target==='production').length,color:GREEN},
+              {label:'Beta',count:catalogue.filter(f=>f.target==='beta').length,color:GOLD},
+            ].map(p=>(
+              <div key={p.label} style={{display:'flex',alignItems:'center',gap:5,
+                                         padding:'4px 10px',border:'1px solid rgba(0,0,0,.12)',
+                                         background:CR}}>
+                <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',
+                               letterSpacing:'0.08em',color:p.color}}>{p.label}</span>
+                <span style={{fontSize:10,fontWeight:700,color:'rgba(0,0,0,0.35)'}}>{p.count}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Table */}
+          <div style={{border:`2px solid ${INK}`,background:CR}}>
+            {/* Header */}
+            <div style={{
+              display:'grid',gridTemplateColumns:'80px 1fr 1fr auto',
+              padding:'8px 14px',borderBottom:`2px solid ${INK}`,
+              background:'rgba(0,0,0,0.03)',
+            }}>
+              {['Target','Name','File',''].map((h,i)=>(
+                <span key={i} style={{fontSize:9,fontWeight:700,textTransform:'uppercase',
+                                       letterSpacing:'0.12em',color:'rgba(0,0,0,0.35)'}}>
+                  {h}
+                </span>
+              ))}
+            </div>
+            {catalogue.length===0&&(
+              <div style={{padding:'24px',textAlign:'center',fontSize:13,color:'rgba(0,0,0,0.35)'}}>
+                Nothing uploaded yet.
+              </div>
+            )}
+            {catalogue.map((fw,i)=>{
+              const key=`${fw.target}:${fw.filename}`;
+              const busy=deleting===key;
+              const isBeta=fw.target==='beta';
+              return(
+                <div key={key} style={{
+                  display:'grid',gridTemplateColumns:'80px 1fr 1fr auto',
+                  padding:'12px 14px',alignItems:'center',
+                  borderBottom:i<catalogue.length-1?'1px solid rgba(0,0,0,.07)':'none',
+                  opacity:busy?.4:1,transition:'opacity .2s',
+                  background:busy?'rgba(0,0,0,.02)':undefined,
+                }}>
+                  <span style={{
+                    fontSize:9,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',
+                    color:isBeta?GOLD:GREEN,padding:'3px 0',
+                  }}>
+                    {fw.target}
+                  </span>
+                  <span style={{fontWeight:700,fontSize:13,paddingRight:12}}>{fw.name}</span>
+                  <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:11,
+                                 color:'rgba(0,0,0,0.45)',paddingRight:12,
+                                 overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    {fw.filename}
+                  </span>
+                  <button onClick={()=>handleDelete(fw)} disabled={busy} style={{
+                    all:'unset',cursor:busy?'not-allowed':'pointer',
+                    padding:'4px 10px',border:`1px solid ${RED}`,
+                    fontFamily:'Poppins,sans-serif',fontSize:10,fontWeight:700,
+                    color:RED,letterSpacing:'0.06em',textTransform:'uppercase',
+                    opacity:busy?.5:1,transition:'background .15s,color .15s',
+                  }}
+                  onMouseEnter={e=>{if(!busy){e.currentTarget.style.background=RED;e.currentTarget.style.color=CR;}}}
+                  onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color=RED;}}>
+                    {busy?'…':'Delete'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Hint */}
+          <p style={{marginTop:14,fontSize:11,color:'rgba(0,0,0,0.3)',lineHeight:1.6}}>
+            Changes committed via Save to repo are visible after the next Vercel deploy.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/*══════════════════════════════════════════════════════
+  ROUTER
+══════════════════════════════════════════════════════*/
+const ROUTES=[
+  {id:'home',  label:'/ Home'},
+  {id:'beta',  label:'/beta'},
+  {id:'admin', label:'/admin'},
+];
+
+function App(){
+  const [page,setPage]=useState(()=>localStorage.getItem('cba-page')||'home');
+  function goTo(p){setPage(p);localStorage.setItem('cba-page',p);}
+
+  const Page=page==='home'?PageHome:page==='beta'?PageBeta:PageAdmin;
+
+  return(
+    <div>
+      <Page goTo={goTo}/>
+
+      {/* Route switcher */}
+      <div style={{
+        position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',
+        background:INK,display:'flex',zIndex:9000,
+        boxShadow:'0 6px 24px rgba(0,0,0,.4)',border:'2px solid #222',
+        fontFamily:'Poppins,sans-serif',
+      }}>
+        {ROUTES.map((r,i)=>(
+          <button key={r.id} onClick={()=>goTo(r.id)} style={{
+            all:'unset',cursor:'pointer',
+            fontFamily:'JetBrains Mono,monospace',fontWeight:700,fontSize:11,
+            letterSpacing:'0.08em',padding:'12px 22px',whiteSpace:'nowrap',
+            background:page===r.id?CR:INK,
+            color:page===r.id?INK:'rgba(254,251,246,0.4)',
+            borderRight:i<ROUTES.length-1?'1px solid #333':'none',
+            transition:'background .15s,color .15s',
+          }}>
+            {r.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

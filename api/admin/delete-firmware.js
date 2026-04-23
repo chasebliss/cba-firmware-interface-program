@@ -64,9 +64,36 @@ export default async function handler(req, res) {
     target === "beta" ? "public/beta/firmware" : "public/firmware";
   const filePath = `${prefix}/${filename}`;
   const manifestPath = `${prefix}/firmwares.json`;
+  const entryFilepath = `./${filename}`;
 
   try {
-    // 1. Delete the firmware binary
+    // 1. Fetch manifest first and refuse if multiple entries share this
+    // filepath. New uploads are guarded against duplicates, but historical
+    // manifests may still contain aliased entries — deleting one would nuke
+    // the shared binary and wipe every matching entry.
+    const existingManifest = await githubGetFile(
+      repo,
+      manifestPath,
+      branch,
+      token,
+    );
+    const entries = existingManifest
+      ? JSON.parse(
+          Buffer.from(existingManifest.content, "base64").toString("utf8"),
+        )
+      : [];
+    const matches = entries.filter((e) => e.filepath === entryFilepath);
+    if (matches.length > 1) {
+      res.statusCode = 409;
+      res.setHeader("Content-Type", "application/json");
+      return res.end(
+        JSON.stringify({
+          error: `${matches.length} ${target} manifest entries reference "${filename}". Resolve duplicates in GitHub before deleting.`,
+        }),
+      );
+    }
+
+    // 2. Delete the firmware binary
     const existingFile = await githubGetFile(repo, filePath, branch, token);
     if (existingFile) {
       await githubDeleteFile(
@@ -79,34 +106,21 @@ export default async function handler(req, res) {
       );
     }
 
-    // 2. Update the manifest — fetch, filter out the entry, PUT
-    const existingManifest = await githubGetFile(
-      repo,
-      manifestPath,
-      branch,
-      token,
-    );
-    if (existingManifest) {
-      const entries = JSON.parse(
-        Buffer.from(existingManifest.content, "base64").toString("utf8"),
+    // 3. Strip the manifest entry
+    if (existingManifest && matches.length === 1) {
+      const filtered = entries.filter((e) => e.filepath !== entryFilepath);
+      const newContent = Buffer.from(
+        JSON.stringify(filtered, null, 2) + "\n",
+      ).toString("base64");
+      await githubPutFile(
+        repo,
+        manifestPath,
+        newContent,
+        branch,
+        token,
+        `admin: update ${target} manifest to remove ${filename}`,
+        existingManifest.sha,
       );
-      const filtered = entries.filter(
-        (e) => e.filepath !== `./${filename}`,
-      );
-      if (filtered.length !== entries.length) {
-        const newContent = Buffer.from(
-          JSON.stringify(filtered, null, 2) + "\n",
-        ).toString("base64");
-        await githubPutFile(
-          repo,
-          manifestPath,
-          newContent,
-          branch,
-          token,
-          `admin: update ${target} manifest to remove ${filename}`,
-          existingManifest.sha,
-        );
-      }
     }
 
     res.statusCode = 200;

@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BinaryHero } from "@/components/BinaryHero";
 import { CbaButton } from "@/components/CbaButton";
-import { HeadingBox } from "@/components/HeadingBox";
+import { InstructionsPanel } from "@/components/Instructions";
 import { Nav } from "@/components/Nav";
 import { PedalDropdown } from "@/components/PedalDropdown";
-import {
-  FlashProgressBar,
-  FlashStatusPill,
-} from "@/components/ProgressOverlay";
+import { StepCard } from "@/components/StepCard";
 import { SuccessBurst } from "@/components/SuccessBurst";
 import type { FirmwareSource } from "@/data/sources";
 import {
@@ -23,12 +20,7 @@ import {
 
 const DEFAULT_TRANSFER_SIZE = 1024;
 
-type FlashStatus =
-  | "idle"
-  | "preparing"
-  | "installing"
-  | "complete"
-  | "error";
+type FlashStatus = "idle" | "preparing" | "installing" | "complete" | "error";
 
 type ConnectedDevice = Awaited<
   ReturnType<typeof requestAndConnectDevice>
@@ -39,6 +31,12 @@ interface ProgrammerProps {
   showInactive?: boolean;
   banner?: ReactNode;
   title?: string;
+  navVariant?: "light" | "dark";
+  navRightSlot?: ReactNode;
+  showNavInstructions?: boolean;
+  heroWidth?: number;
+  heroOpacity?: number;
+  navBgClass?: string;
 }
 
 export const Programmer = ({
@@ -46,6 +44,12 @@ export const Programmer = ({
   showInactive = false,
   banner,
   title = "Bliss Programmer.",
+  navVariant = "light",
+  navRightSlot,
+  showNavInstructions = true,
+  heroWidth = 500,
+  heroOpacity = 1,
+  navBgClass = "",
 }: ProgrammerProps) => {
   const [catalogue, setCatalogue] = useState<FirmwareEntry[]>([]);
   const [catalogueLoading, setCatalogueLoading] = useState(true);
@@ -103,9 +107,7 @@ export const Programmer = ({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setCatalogueError(
-          err instanceof Error ? err.message : String(err),
-        );
+        setCatalogueError(err instanceof Error ? err.message : String(err));
         setCatalogueLoading(false);
       });
 
@@ -217,38 +219,85 @@ export const Programmer = ({
     }
   };
 
-  const canConnect =
-    selected !== null &&
-    connectStatus !== "connecting" &&
-    flashStatus !== "preparing" &&
-    flashStatus !== "installing";
-  const canUpdate =
-    connectStatus === "connected" &&
-    selected !== null &&
-    flashStatus !== "preparing" &&
-    flashStatus !== "installing";
+  const handleReset = () => {
+    setSelected(null);
+    setConnectStatus("disconnected");
+    setConnectError(null);
+    setFlashStatus("idle");
+    setFlashMessage(null);
+    setFlashError(null);
+    setFlashProgress({ done: 0, total: 0 });
+  };
 
-  const flashing =
-    flashStatus === "preparing" || flashStatus === "installing";
-  const flashActive = flashStatus !== "idle";
+  const s3 = flashStatus === "complete";
+  const s1 = selected !== null || s3;
+  const s2 = connectStatus === "connected" || s3;
+
+  const flashing = flashStatus === "preparing" || flashStatus === "installing";
+  const errored = flashStatus === "error";
+
+  const progressRatio =
+    flashProgress.total > 0
+      ? Math.min(1, flashProgress.done / flashProgress.total)
+      : 0;
+  const progressPct = Math.round(progressRatio * 100);
+  const barColor = selected?.bgColor ?? "#10b981";
+
+  const card1Background = s1 ? `${selected!.bgColor}10` : "var(--color-cream)";
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="min-h-screen animate-cba-fade-in bg-cream">
       <SuccessBurst trigger={burstTrigger} />
       {banner}
-      <div className="flex flex-1 flex-col animate-cba-fade-in px-[7vw] pb-20">
-        <Nav />
-        <main className="flex flex-col items-center pt-8">
-          <HeadingBox>{title}</HeadingBox>
-          <BinaryHero flashing={flashing} />
-          <FlashProgressBar
-            done={flashProgress.done}
-            total={flashProgress.total}
-            bgColor={selected?.bgColor ?? "#a17399"}
-            errored={flashStatus === "error"}
-            visible={flashActive && flashStatus !== "preparing"}
-          />
-          <div className="mt-2 flex flex-col items-center gap-4">
+      <div className={`px-[7vw] ${navBgClass}`}>
+        <Nav
+          variant={navVariant}
+          showInstructions={showNavInstructions}
+          rightSlot={navRightSlot}
+        />
+      </div>
+      <div
+        className="mx-auto grid max-w-[1200px] items-start px-[7vw]"
+        style={{
+          gridTemplateColumns: "1fr 1px 300px",
+          minHeight: "calc(100vh - 80px)",
+        }}
+      >
+        <div className="pb-20 pr-[52px] pt-11">
+          <div className="mb-8 items-center flex flex-col gap-3">
+            <h1
+              className="font-bold tracking-[-0.02em]"
+              style={{ fontSize: "clamp(1.6rem, 2.4vw, 2.25rem)" }}
+            >
+              {title}
+            </h1>
+            <BinaryHero
+              width={heroWidth}
+              opacity={heroOpacity}
+              flashing={flashing}
+            />
+          </div>
+
+          <StepCard
+            n={1}
+            label="Select firmware"
+            done={s1}
+            open={!s2}
+            style={{ background: card1Background }}
+            headerRight={
+              s1 ? (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-[9px] w-[9px] shrink-0"
+                    style={{ background: selected?.bgColor }}
+                  />
+                  <span className="text-[12px] font-semibold text-black/45">
+                    {selected?.name}
+                  </span>
+                </div>
+              ) : undefined
+            }
+          >
             <PedalDropdown
               firmwares={catalogue}
               selected={selected}
@@ -257,53 +306,129 @@ export const Programmer = ({
               disabled={flashing}
             />
             {catalogueError && (
-              <p className="max-w-md text-center text-sm font-semibold text-red">
+              <p className="mt-2 text-sm font-semibold text-red">
                 Could not load firmware list: {catalogueError}
               </p>
             )}
-            {flashActive ? (
-              <FlashStatusPill
-                status={flashStatus}
-                message={
-                  flashStatus === "complete"
-                    ? "Successful"
-                    : flashStatus === "error"
-                      ? flashError ?? "Update failed"
-                      : flashMessage ?? undefined
-                }
-              />
-            ) : (
-              <>
-                <CbaButton disabled={!canConnect} onClick={handleConnect}>
-                  {connectStatus === "connecting"
-                    ? "Connecting…"
-                    : connectStatus === "connected"
-                      ? "Connected"
-                      : "Connect"}
-                </CbaButton>
+          </StepCard>
+
+          <StepCard
+            n={2}
+            label="Connect pedal"
+            done={s2}
+            locked={!s1}
+            open={!s2 && !s3}
+            headerRight={
+              s2 ? (
+                <span className="text-[12px] font-bold text-green">
+                  Connected ✓
+                </span>
+              ) : undefined
+            }
+          >
+            <div className="flex flex-col gap-2.5">
+              <p className="text-sm leading-[1.6] text-black/[0.42]">
+                Connect via data-transfer micro USB, then connect power
+                supply.
+              </p>
+              <CbaButton
+                disabled={!s1 || connectStatus === "connecting"}
+                onClick={handleConnect}
+                style={{ width: 180 }}
+              >
+                {connectStatus === "connecting" ? "Connecting…" : "Connect"}
+              </CbaButton>
+              {connectError && (
+                <p className="max-w-md text-sm font-semibold text-red">
+                  {connectError}
+                </p>
+              )}
+            </div>
+          </StepCard>
+
+          <StepCard
+            n={3}
+            label="Update firmware"
+            done={s3}
+            locked={!s2 && !s3}
+            headerRight={
+              s3 ? (
+                <span className="text-[12px] font-bold text-green">
+                  Complete ✓
+                </span>
+              ) : undefined
+            }
+          >
+            <div
+              key={
+                flashing
+                  ? "flashing"
+                  : errored
+                    ? "error"
+                    : s3
+                      ? "complete"
+                      : "idle"
+              }
+              className="animate-tab-fade"
+            >
+              {!flashing && !s3 && !errored && (
                 <CbaButton
-                  disabled={!canUpdate}
-                  variant={
-                    connectStatus === "connected" ? "success" : "default"
-                  }
+                  disabled={!s1 || !s2}
+                  variant={s1 && s2 ? "success" : "default"}
                   onClick={handleUpdate}
+                  style={{ width: 180 }}
                 >
                   Update
                 </CbaButton>
-                {connectStatus === "connected" && (
-                  <p className="text-xs font-bold text-green">
-                    Device connected — ready to update.
+              )}
+              {flashing && (
+                <div className="flex flex-col gap-2.5">
+                  <progress
+                    value={progressPct}
+                    max={100}
+                    className="block h-[5px] w-full appearance-none border-none [&::-webkit-progress-bar]:bg-black/10"
+                  />
+                  <style>{`progress::-webkit-progress-value{background:${barColor};transition:width .4s ease;}progress::-moz-progress-bar{background:${barColor};}`}</style>
+                  <div className="animate-cba-pulse text-[14px] font-bold text-green">
+                    {flashStatus === "preparing"
+                      ? (flashMessage ?? "Preparing…")
+                      : `Uploading… ${progressPct}%`}
+                  </div>
+                </div>
+              )}
+              {errored && (
+                <div className="flex flex-col gap-2.5">
+                  <progress
+                    value={progressPct}
+                    max={100}
+                    className="block h-[5px] w-full appearance-none border-none [&::-webkit-progress-bar]:bg-black/10"
+                  />
+                  <style>{`progress::-webkit-progress-value{background:var(--color-red);transition:width .4s ease;}progress::-moz-progress-bar{background:var(--color-red);}`}</style>
+                  <p className="text-[14px] font-bold text-red">
+                    {flashError ?? "Update failed"}
                   </p>
-                )}
-                {connectError && (
-                  <p className="max-w-md text-center text-sm font-semibold text-red">
-                    {connectError}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-        </main>
+                  <CbaButton onClick={handleReset} style={{ width: 180 }}>
+                    Try again
+                  </CbaButton>
+                </div>
+              )}
+              {s3 && (
+                <CbaButton onClick={handleReset} style={{ width: 180 }}>
+                  Flash again
+                </CbaButton>
+              )}
+            </div>
+          </StepCard>
+        </div>
+
+        <div className="self-stretch bg-black/[0.09]" />
+
+        <div
+          className="pb-20 pl-9 pt-11"
+          style={{ position: "sticky", top: 24 }}
+        >
+          <InstructionsPanel />
+        </div>
       </div>
     </div>
   );

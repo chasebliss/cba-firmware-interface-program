@@ -5,7 +5,7 @@ const GRID_SIZE = 14;
 const FONT_SIZE = 13;
 const LIFETIME_MS = 600;
 const INTERACTIVE_SELECTOR =
-  'button, a, input, select, textarea, label, [role="button"], [role="listbox"], [role="option"], [role="dialog"]';
+  'button, a, input, select, textarea, label, [role="button"], [role="listbox"], [role="option"], [role="dialog"], [data-no-trail]';
 
 export const MouseTrail = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);

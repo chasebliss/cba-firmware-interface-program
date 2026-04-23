@@ -41,10 +41,12 @@ export default async function handler(req, res) {
   try {
     body = await readJson(req);
   } catch (err) {
-    res.statusCode = 400;
+    res.statusCode = err.tooLarge ? 413 : 400;
     res.setHeader("Content-Type", "application/json");
     return res.end(
-      JSON.stringify({ error: `invalid body: ${err.message}` }),
+      JSON.stringify({
+        error: err.tooLarge ? err.message : `invalid body: ${err.message}`,
+      }),
     );
   }
 
@@ -60,8 +62,34 @@ export default async function handler(req, res) {
     target === "beta" ? "public/beta/firmware" : "public/firmware";
   const filePath = `${prefix}/${filename}`;
   const manifestPath = `${prefix}/firmwares.json`;
+  const entryFilepath = `./${filename}`;
 
   try {
+    // Fetch manifest first so we can reject duplicate filenames before touching
+    // the binary. Duplicate `filepath` entries create an aliasing bug: a later
+    // delete filters by filepath and would remove all matching entries plus
+    // the shared binary.
+    const existingManifest = await githubGetFile(
+      repo,
+      manifestPath,
+      branch,
+      token,
+    );
+    const entries = existingManifest
+      ? JSON.parse(
+          Buffer.from(existingManifest.content, "base64").toString("utf8"),
+        )
+      : [];
+    if (entries.some((e) => e.filepath === entryFilepath)) {
+      res.statusCode = 409;
+      res.setHeader("Content-Type", "application/json");
+      return res.end(
+        JSON.stringify({
+          error: `A ${target} firmware with filename "${filename}" already exists. Rename the file or delete the existing entry first.`,
+        }),
+      );
+    }
+
     // 1. Commit the firmware binary
     const existingFile = await githubGetFile(
       repo,
@@ -79,24 +107,13 @@ export default async function handler(req, res) {
       existingFile?.sha,
     );
 
-    // 2. Read manifest, append entry, commit
-    const existingManifest = await githubGetFile(
-      repo,
-      manifestPath,
-      branch,
-      token,
-    );
-    const entries = existingManifest
-      ? JSON.parse(
-          Buffer.from(existingManifest.content, "base64").toString("utf8"),
-        )
-      : [];
+    // 2. Append manifest entry, commit
     const nextId = entries.reduce((m, e) => Math.max(m, e.id), -1) + 1;
     entries.push({
       id: nextId,
       name,
       platform: "models",
-      filepath: `./${filename}`,
+      filepath: entryFilepath,
       description: description || name,
       bgColor: bgColor || "#ba8e51",
       active: true,
@@ -141,8 +158,6 @@ function validate({ filename, contentBase64, target, name }) {
     return "filename must end in .bin or .hex";
   if (typeof contentBase64 !== "string" || !contentBase64)
     return "contentBase64 is required";
-  if (contentBase64.length > MAX_BODY_BYTES)
-    return "file too large";
   if (target !== "production" && target !== "beta")
     return "target must be 'production' or 'beta'";
   if (typeof name !== "string" || !name.trim()) return "name is required";
@@ -157,7 +172,9 @@ async function readJson(req) {
       total += chunk.length;
       if (total > MAX_BODY_BYTES) {
         req.destroy();
-        reject(new Error("request body too large"));
+        const e = new Error("request body too large");
+        e.tooLarge = true;
+        reject(e);
         return;
       }
       body += chunk;
