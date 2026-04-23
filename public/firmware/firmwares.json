@@ -1,20 +1,22 @@
 [
   {
     "id": 0,
-    "name": "test upload",
+    "name": "MOOD MKII 1.0",
     "platform": "models",
-    "filepath": "./CB_MOOD_MKII_1.1.bin",
-    "description": "test upload",
-    "bgColor": "#ba8e51",
-    "active": true
+    "filepath": "./CB_MOOD_MKII_1.0.bin",
+    "description": "MOOD MKII 1.0",
+    "bgColor": "#b48ecf",
+    "active": true,
+    "uploadedAt": "2026-04-23T23:00:00.000Z"
   },
   {
     "id": 1,
-    "name": "sdfawefasdf",
+    "name": "MOOD MKII 1.1",
     "platform": "models",
-    "filepath": "./testCB_MOOD_MKII_1.1.bin",
-    "description": "45234423g",
-    "bgColor": "#9cddcd",
-    "active": true
+    "filepath": "./CB_MOOD_MKII_1.1.bin",
+    "description": "MOOD MKII 1.1",
+    "bgColor": "#b48ecf",
+    "active": true,
+    "uploadedAt": "2026-04-23T23:00:00.000Z"
   }
 ]
