@@ -86,10 +86,12 @@ export const LocalFlasher = () => {
   const [catalogue, setCatalogue] = useState<AdminFirmware[]>([]);
   const [catalogueLoading, setCatalogueLoading] = useState(true);
   const [catalogueError, setCatalogueError] = useState<string | null>(null);
+  // Separate from catalogueLoading: stays true through the HEAD-probe phase
+  // too, so the Refresh button's "Refreshing…" label reflects the full
+  // refresh cycle (not just the initial manifest fetch, which is fast enough
+  // to feel invisible).
+  const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [targetFilter, setTargetFilter] = useState<
-    "all" | "production" | "beta"
-  >("all");
   // Per-row deploy state: "live" once the file is served by the CDN, "pending"
   // if we got a 404 (uploaded but Vercel hasn't redeployed yet), "checking"
   // while the HEAD probe is in flight.
@@ -101,6 +103,7 @@ export const LocalFlasher = () => {
   const loadCatalogues = async () => {
     const token = ++refreshTokenRef.current;
     setCatalogueLoading(true);
+    setRefreshing(true);
     setCatalogueError(null);
     try {
       const resp = await fetch(`/api/admin/list-firmwares?t=${token}`, {
@@ -131,11 +134,16 @@ export const LocalFlasher = () => {
         ...toAdmin(data.beta, "beta"),
       ].sort((a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1));
       setCatalogue(merged);
-      void probeDeployStatus(merged);
+      setCatalogueLoading(false);
+      // Await probe so the Refresh button keeps signalling work through the
+      // HEAD-probe phase, but flip catalogueLoading off first so rows show
+      // while probe runs.
+      await probeDeployStatus(merged);
     } catch (err) {
       setCatalogueError(err instanceof Error ? err.message : String(err));
-    } finally {
       setCatalogueLoading(false);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -528,8 +536,6 @@ export const LocalFlasher = () => {
       : 0;
   const progressPct = Math.round(progressRatio * 100);
 
-  const prodCount = catalogue.filter((f) => f.target === "production").length;
-  const betaCount = catalogue.filter((f) => f.target === "beta").length;
   // Newest-first within a group. Entries missing uploadedAt sink to the
   // bottom, then tiebreak alphabetically so the order is stable across loads.
   const byDateDesc = (a: AdminFirmware, b: AdminFirmware) => {
@@ -538,15 +544,12 @@ export const LocalFlasher = () => {
     if (at !== bt) return bt - at;
     return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
   };
-  const productionRows =
-    targetFilter === "beta"
-      ? []
-      : catalogue.filter((f) => f.target === "production").sort(byDateDesc);
-  const betaRows =
-    targetFilter === "production"
-      ? []
-      : catalogue.filter((f) => f.target === "beta").sort(byDateDesc);
-  const filteredCount = productionRows.length + betaRows.length;
+  const productionRows = catalogue
+    .filter((f) => f.target === "production")
+    .sort(byDateDesc);
+  const betaRows = catalogue
+    .filter((f) => f.target === "beta")
+    .sort(byDateDesc);
 
   return (
     <div className="min-h-screen animate-cba-fade-in bg-gray-50">
@@ -554,17 +557,14 @@ export const LocalFlasher = () => {
       <AdminHeader flashing={flashing} />
 
       <div
-        className="mx-auto grid max-w-[1200px] items-start px-[7vw]"
-        style={{
-          gridTemplateColumns: "1fr 1px 480px",
-          minHeight: "calc(100vh - 130px)",
-        }}
+        className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-[7vw] md:grid-cols-[1fr_1px_1fr] md:gap-0"
+        style={{ minHeight: "calc(100vh - 130px)" }}
       >
-        <div className="flex flex-col pb-20 pr-12 pt-9">
+        <div className="flex flex-col pb-8 pt-9 md:pb-20 md:pr-12">
           <div className="mb-7 border-b border-black/10 pb-7">
             <SectionLabel>1. Load firmware file</SectionLabel>
             <label
-              className="flex cursor-pointer items-center justify-center gap-2.5 px-6 py-5 text-[15px] font-bold transition-[border-color,background] duration-200"
+              className="flex  cursor-pointer items-center justify-center gap-2.5 px-6 py-5 text-[15px] font-bold transition-[border-color,background] duration-200"
               style={{
                 border: `2px dashed ${dragging ? GOLD : file ? "#000" : "rgba(0,0,0,0.2)"}`,
                 background: dragging
@@ -684,15 +684,16 @@ export const LocalFlasher = () => {
             >
               {!flashActive && (
                 <>
-                  <div className="flex flex-wrap gap-2.5">
+                  <div className="flex gap-2.5">
                     <CbaButton
                       disabled={!canConnect}
                       variant={
                         connectStatus === "connected" ? "success" : "default"
                       }
                       onClick={handleConnect}
+                      fullWidth
+                      className="flex-1"
                       style={{
-                        width: 170,
                         opacity: connectStatus === "connected" ? 1 : undefined,
                       }}
                     >
@@ -706,7 +707,8 @@ export const LocalFlasher = () => {
                       disabled={!canUpdate}
                       variant={canUpdate ? "success" : "default"}
                       onClick={handleUpdate}
-                      style={{ width: 170 }}
+                      fullWidth
+                      className="flex-1"
                     >
                       Update
                     </CbaButton>
@@ -719,7 +721,7 @@ export const LocalFlasher = () => {
                 </>
               )}
               {flashing && (
-                <div className="flex max-w-[360px] flex-col gap-2.5">
+                <div className="flex flex-col items-center gap-2.5">
                   <progress
                     value={progressPct}
                     max={100}
@@ -734,7 +736,7 @@ export const LocalFlasher = () => {
                 </div>
               )}
               {errored && (
-                <div className="flex max-w-[360px] flex-col gap-2.5">
+                <div className="flex flex-col items-center gap-2.5">
                   <progress
                     value={progressPct}
                     max={100}
@@ -754,7 +756,7 @@ export const LocalFlasher = () => {
                 </div>
               )}
               {flashDone && (
-                <div className="flex max-w-[360px] flex-col gap-2.5">
+                <div className="flex flex-col items-center gap-2.5">
                   <p className="text-[14px] font-bold text-green">
                     Flash complete.
                   </p>
@@ -790,7 +792,7 @@ export const LocalFlasher = () => {
             </SectionLabel>
             {isEditing && editingEntry && (
               <div
-                className="mb-3.5 flex min-h-[88px] max-w-[360px] items-start justify-between gap-3 border-2 px-3 py-2"
+                className="mb-3.5 flex min-h-[88px]  items-start justify-between gap-3 border-2 px-3 py-2"
                 style={{
                   borderColor: editingEntry.bgColor,
                   background: `${editingEntry.bgColor}14`,
@@ -823,7 +825,7 @@ export const LocalFlasher = () => {
                 </button>
               </div>
             )}
-            <div className="flex max-w-[360px] flex-col gap-3.5">
+            <div className="flex  flex-col gap-3.5">
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-black/[0.38]">
                   Name
@@ -899,18 +901,18 @@ export const LocalFlasher = () => {
                   </div>
                 </div>
               </div>
-              <div className="relative flex items-center gap-4">
+              <div className="relative mt-10 flex items-center gap-4">
                 <CbaButton
                   disabled={!canSave}
                   onClick={handleSave}
-                  style={{ width: 200 }}
+                  fullWidth
                 >
                   {saveStatus === "saving" ? "Saving…" : saveButtonLabel}
                 </CbaButton>
                 {duplicateInTarget && (
                   <div
                     role="alert"
-                    className="animate-tab-fade absolute left-0 top-full z-20 mt-2 w-[280px] border-2 border-black bg-cream px-3 py-2 shadow-cba"
+                    className="animate-tab-fade absolute left-1/2 top-full z-20 mt-2 w-[280px] -translate-x-1/2 border-2 border-black bg-cream px-3 py-2 shadow-cba"
                   >
                     <p className="text-[12px] font-bold leading-[1.4]">
                       Already in {saveTarget} as{" "}
@@ -933,140 +935,53 @@ export const LocalFlasher = () => {
           </div>
         </div>
 
-        <div className="self-stretch bg-black/[0.09]" />
+        <div className="hidden bg-black/[0.09] md:block md:self-stretch" />
 
-        <div className="pb-20 pl-9 pt-9">
+        <div className="pb-20 pt-0 md:pl-9 md:pt-9">
           <div className="mb-5 flex items-center justify-between">
             <SectionLabel className="mb-0">Saved firmwares</SectionLabel>
             <button
               type="button"
               onClick={() => void loadCatalogues()}
-              disabled={catalogueLoading}
+              disabled={refreshing}
               className="cursor-pointer border-none bg-transparent p-0 text-[10px] font-bold uppercase tracking-[0.1em] text-black/35 underline underline-offset-[3px] transition-opacity duration-150 hover:text-black/60 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {catalogueLoading ? "Refreshing…" : "Refresh"}
+              {refreshing ? "Refreshing…" : "Refresh"}
             </button>
           </div>
 
-          <div className="mb-4 flex gap-2">
-            {[
-              {
-                id: "all" as const,
-                label: "All",
-                count: catalogue.length,
-                color: "rgba(0,0,0,0.6)",
-              },
-              {
-                id: "production" as const,
-                label: "Production",
-                count: prodCount,
-                color: "var(--color-green)",
-              },
-              {
-                id: "beta" as const,
-                label: "Beta",
-                count: betaCount,
-                color: GOLD,
-              },
-            ].map((p) => {
-              const active = targetFilter === p.id;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setTargetFilter(p.id)}
-                  aria-pressed={active}
-                  className={`flex cursor-pointer items-center gap-1.5 border bg-cream px-2.5 py-1 transition-[border-color,background] duration-150 ${
-                    active
-                      ? "border-black"
-                      : "border-black/[0.12] hover:border-black/30"
-                  }`}
-                  style={active ? { background: "#fefbf6" } : undefined}
+          <div data-no-trail className="flex flex-col gap-6">
+            {catalogueLoading &&
+              Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={`skel-${i}`}
+                  className="animate-cba-pulse relative flex items-center gap-3 px-3.5 py-3"
                 >
                   <span
-                    className="text-[10px] font-bold uppercase tracking-[0.08em]"
-                    style={{ color: p.color, opacity: active ? 1 : 0.6 }}
-                  >
-                    {p.label}
-                  </span>
-                  <span
-                    className="text-[10px] font-bold"
-                    style={{ color: active ? "#000" : "rgba(0,0,0,0.35)" }}
-                  >
-                    {p.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <table data-no-trail className="w-full  ">
-            <colgroup>
-              <col />
-              <col style={{ width: "170px" }} />
-            </colgroup>
-            <tbody>
-              {catalogueLoading &&
-                Array.from({ length: 3 }).map((_, i) => (
-                  <tr
-                    key={`skel-${i}`}
-                    className="animate-cba-pulse"
-                    style={{
-                      borderBottom:
-                        i < 2 ? "1px solid rgba(0,0,0,0.07)" : "none",
-                    }}
-                  >
-                    <td
-                      className="relative px-3.5 py-3 align-middle"
-                      style={{ borderLeft: "2px solid rgba(0,0,0,0.1)" }}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute left-0 w-[2px]"
-                        style={{
-                          top: -1,
-                          bottom: -1,
-                          background: "rgba(0,0,0,0.1)",
-                          zIndex: 1,
-                        }}
-                      />
-                      <div className="flex flex-col gap-1.5">
-                        <div className="h-[10px] w-16 bg-black/10" />
-                        <div className="h-3.5 w-40 bg-black/10" />
-                        <div className="h-3 w-48 bg-black/10" />
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-3 align-middle">
-                      <div className="flex justify-end gap-1.5">
-                        <div className="h-[26px] w-14 bg-black/10" />
-                        <div className="h-[26px] w-14 bg-black/10" />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              {catalogueError && (
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="px-6 py-6 text-center text-sm font-semibold text-red"
-                  >
-                    Could not load: {catalogueError}
-                  </td>
-                </tr>
-              )}
-              {!catalogueLoading && !catalogueError && filteredCount === 0 && (
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="px-6 py-6 text-center text-[14px] text-black/35"
-                  >
-                    {catalogue.length === 0
-                      ? "Nothing uploaded yet."
-                      : `No ${targetFilter} firmwares.`}
-                  </td>
-                </tr>
-              )}
-            </tbody>
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-px -top-px left-0 z-[1] w-[2px] bg-black/10"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <div className="h-[10px] w-16 bg-black/10" />
+                    <div className="h-3.5 w-40 bg-black/10" />
+                    <div className="h-3 w-48 bg-black/10" />
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <div className="h-[26px] w-14 bg-black/10" />
+                    <div className="h-[26px] w-14 bg-black/10" />
+                  </div>
+                </div>
+              ))}
+            {catalogueError && (
+              <p className="px-6 py-6 text-center text-sm font-semibold text-red">
+                Could not load: {catalogueError}
+              </p>
+            )}
+            {!catalogueLoading && !catalogueError && catalogue.length === 0 && (
+              <p className="px-6 py-6 text-center text-[14px] text-black/35">
+                Nothing uploaded yet.
+              </p>
+            )}
             {!catalogueLoading &&
               !catalogueError &&
               (
@@ -1085,67 +1000,47 @@ export const LocalFlasher = () => {
               )
                 .filter((s) => s.rows.length > 0)
                 .map((section) => (
-                  <tbody key={section.label}>
-                    <tr>
-                      <td colSpan={2} className="px-3.5 py-1.5 bg-gray-50">
-                        <span
-                          className="text-[9px] font-bold uppercase tracking-[0.12em]"
-                          style={{ color: section.color }}
-                        >
-                          {section.label}
-                        </span>
-                        <span className="ml-2 text-[9px] font-bold tracking-[0.12em] text-black/35">
-                          {section.rows.length}
-                        </span>
-                      </td>
-                    </tr>
-                    {section.rows.map((fw, i) => {
-                      const key = `${fw.target}:${fw.filename}`;
-                      const busy = deleting === key;
-                      const isBeta = fw.target === "beta";
-                      const status = deployStatus[key] ?? "checking";
-                      const dotColor =
-                        status === "live"
-                          ? "var(--color-green)"
-                          : status === "pending"
-                            ? "var(--color-red)"
-                            : "rgba(0,0,0,0.2)";
-                      const dotTitle =
-                        status === "live"
-                          ? "Live on the CDN"
-                          : status === "pending"
-                            ? "Uploaded — waiting for next Vercel deploy"
-                            : "Checking…";
-                      return (
-                        <tr
-                          key={key}
-                          className="bg-cream transition-opacity duration-200"
-                          style={{
-                            opacity: busy ? 0.4 : 1,
-                            background: busy ? "rgba(0,0,0,0.02)" : undefined,
-                            borderBottom:
-                              i < section.rows.length - 1
-                                ? "1px solid rgba(0,0,0,0.07)"
-                                : "none",
-                          }}
-                        >
-                          <td
-                            className="relative px-3.5 py-3 align-middle"
-                            style={{
-                              borderLeft: `2px solid ${fw.bgColor}`,
-                            }}
+                  <section key={section.label}>
+                    <div className="mb-2 flex items-baseline gap-2">
+                      <span
+                        className="text-[9px] font-bold uppercase tracking-[0.12em]"
+                        style={{ color: section.color }}
+                      >
+                        {section.label}
+                      </span>
+                      <span className="text-[9px] font-bold tracking-[0.12em] text-black/35">
+                        {section.rows.length}
+                      </span>
+                    </div>
+                    <ul className="flex flex-col gap-px">
+                      {section.rows.map((fw) => {
+                        const key = `${fw.target}:${fw.filename}`;
+                        const busy = deleting === key;
+                        const status = deployStatus[key] ?? "checking";
+                        const dotColor =
+                          status === "live"
+                            ? "var(--color-green)"
+                            : status === "pending"
+                              ? "var(--color-red)"
+                              : "rgba(0,0,0,0.2)";
+                        const dotTitle =
+                          status === "live"
+                            ? "Live on the CDN"
+                            : status === "pending"
+                              ? "Uploaded — waiting for next Vercel deploy"
+                              : "Checking…";
+                        return (
+                          <li
+                            key={key}
+                            className="relative flex items-center gap-3 px-3.5 py-3 transition-opacity duration-200 bg-cream"
+                            style={{ opacity: busy ? 0.4 : 1 }}
                           >
                             <span
                               aria-hidden="true"
-                              className="pointer-events-none absolute left-0 w-[2px]"
-                              style={{
-                                top: -1,
-                                bottom: -1,
-                                background: fw.bgColor,
-                                zIndex: 1,
-                              }}
+                              className="pointer-events-none absolute -bottom-px -top-px left-0 z-[1] w-[2px]"
+                              style={{ background: fw.bgColor }}
                             />
-                            <div className="flex min-w-0 flex-col gap-1 pr-3">
+                            <div className="flex min-w-0 flex-1 flex-col gap-1">
                               <div className="flex items-center gap-1.5">
                                 <span
                                   aria-label={dotTitle}
@@ -1154,20 +1049,12 @@ export const LocalFlasher = () => {
                                   style={{ background: dotColor }}
                                 />
                                 <span
-                                  className="text-[9px] font-bold uppercase tracking-[0.1em]"
-                                  style={{
-                                    color: isBeta ? GOLD : "var(--color-green)",
-                                  }}
+                                  title={fw.name}
+                                  className="truncate text-[14px] font-bold"
                                 >
-                                  {fw.target}
+                                  {fw.name}
                                 </span>
                               </div>
-                              <span
-                                title={fw.name}
-                                className="truncate text-[14px] font-bold"
-                              >
-                                {fw.name}
-                              </span>
                               <div className="flex items-baseline gap-2">
                                 <span
                                   title={fw.filename}
@@ -1187,9 +1074,7 @@ export const LocalFlasher = () => {
                                 )}
                               </div>
                             </div>
-                          </td>
-                          <td className="px-3.5 py-3 align-middle">
-                            <div className="flex items-center justify-end gap-1.5">
+                            <div className="flex shrink-0 items-center gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => void handleLoadFromRepo(fw)}
@@ -1212,13 +1097,13 @@ export const LocalFlasher = () => {
                                 {busy ? "…" : "Delete"}
                               </button>
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
                 ))}
-          </table>
+          </div>
 
           <p className="mt-3.5 text-[12px] leading-[1.6] text-black/30">
             Saved firmwares are visible after the next Vercel deploy.

@@ -257,13 +257,10 @@ export const Programmer = ({
         />
       </div>
       <div
-        className="mx-auto grid max-w-[1200px] items-start px-[7vw]"
-        style={{
-          gridTemplateColumns: "1fr 1px 300px",
-          minHeight: "calc(100vh - 80px)",
-        }}
+        className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-[7vw] md:grid-cols-[1fr_1px_300px] md:gap-0"
+        style={{ minHeight: "calc(100vh - 80px)" }}
       >
-        <div className="pb-20 pr-[52px] pt-11">
+        <div className="pb-8 pt-11 md:pb-20 md:pr-[52px]">
           <div className="mb-8 items-center flex flex-col gap-3">
             <h1
               className="font-bold tracking-[-0.02em]"

@@ -39,14 +39,18 @@ export const AdminHeader = ({ flashing = false }: AdminHeaderProps) => {
         </div>
       </div>
       <div className="border-b-2 border-black bg-cream px-[7vw]">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between py-[22px]">
+        <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-4 py-5 md:flex-row md:items-center md:justify-between md:gap-8 md:py-[22px]">
           <h1
-            className="font-bold tracking-[-0.02em]"
+            className="text-center font-bold tracking-[-0.02em] md:text-left"
             style={{ fontSize: "clamp(1.6rem, 2.2vw, 2.15rem)" }}
           >
             Admin Programmer.
           </h1>
-          <BinaryHero width={300} flashing={flashing} />
+          <BinaryHero
+            width={300}
+            flashing={flashing}
+            className="max-w-full"
+          />
         </div>
       </div>
     </>
