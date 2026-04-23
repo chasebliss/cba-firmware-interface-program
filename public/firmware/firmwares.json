@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": 0,
+    "name": "test upload",
+    "platform": "models",
+    "filepath": "./CB_MOOD_MKII_1.1.bin",
+    "description": "test upload",
+    "bgColor": "#ba8e51",
+    "active": true
+  }
+]
