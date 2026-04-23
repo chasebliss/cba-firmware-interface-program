@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chase Bliss — Website UI Kit</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  * { margin: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: "Poppins", sans-serif; background: #fff; color: #000; -webkit-font-smoothing: antialiased; }
+
+  /* Kit screen tabs */
+  .kit-tabs {
+    display: flex; gap: 0;
+    border-bottom: 2px solid #000;
+    background: #fefbf6;
+    position: sticky; top: 0; z-index: 200;
+    padding: 0 24px;
+  }
+  .kit-tab {
+    font-family: "Poppins", sans-serif; font-weight: 600;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 10px 18px; border: none; border-bottom: 3px solid transparent;
+    background: none; cursor: pointer; color: #a89e93;
+    min-width: unset; width: auto; height: auto;
+  }
+  .kit-tab:hover { color: #000; font-style: normal; }
+  .kit-tab.active { color: #000; border-bottom-color: #000; }
+
+  .screen { animation: fadeIn 0.3s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* Page sections */
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden; }
+  .hero img { width: 100%; display: block; max-height: 640px; object-fit: cover; }
+  .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.35) 100%); }
+
+  /* Pedal grid */
+  .pedal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px 24px; }
+  .pedal-grid-wide { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px 32px; }
+
+  /* Product page */
+  .product-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; padding: 64px 0; }
+
+  /* About */
+  .team-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 24px; }
+
+  /* Typography */
+  .serif-xl { font-family: "Poppins", sans-serif; font-size: clamp(28px, 3.5vw, 48px); font-weight: 700; line-height: 1.15; }
+  .serif-lg  { font-family: "Poppins", sans-serif; font-size: clamp(22px, 2.5vw, 36px); font-weight: 700; line-height: 1.2; }
+  .serif-md  { font-family: "Poppins", sans-serif; font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .sans-sm   { font-family: "Poppins", sans-serif; font-size: 13px; color: #666; }
+  .sans-body { font-family: "Poppins", sans-serif; font-size: 15px; line-height: 1.7; color: #333; font-weight: 400; }
+  .label-tag { font-family: "Poppins", sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: #999; }
+
+  /* Buttons */
+  .btn-primary {
+    font-family: "Poppins", sans-serif; font-weight: 600; font-size: 14px;
+    background: #000; color: #fff; border: none;
+    padding: 14px 32px; cursor: pointer; letter-spacing: 0.04em;
+    transition: background 0.2s;
+  }
+  .btn-primary:hover { background: #222; }
+  .btn-outline {
+    font-family: "Poppins", sans-serif; font-weight: 600; font-size: 14px;
+    background: transparent; color: #000; border: 1.5px solid #000;
+    padding: 13px 32px; cursor: pointer; letter-spacing: 0.04em;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-outline:hover { background: #000; color: #fff; }
+
+  /* Divider */
+  hr.thin { border: none; border-top: 1px solid #e8e4dd; margin: 48px 0; }
+
+  /* DbAh product logos row */
+  .dbah-row { display: flex; justify-content: center; gap: 48px; padding: 48px 32px; background: #fafaf8; border-top: 1px solid #e8e4dd; border-bottom: 1px solid #e8e4dd; }
+  .dbah-row img { height: 32px; opacity: 0.75; }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel" src="WebComponents.jsx"></script>
+<script type="text/babel">
+
+const SCREENS = [
+  { id: 'home',    label: 'Home' },
+  { id: 'pedals',  label: 'Pedals' },
+  { id: 'product', label: 'Product Page' },
+  { id: 'about',   label: 'About' },
+];
+
+// ── Home ──────────────────────────────────────────────────────
+function ScreenHome({ onNavigate }) {
+  return (
+    <div className="screen">
+      <SiteNav onNavigate={onNavigate} active="home" />
+
+      {/* Hero */}
+      <div className="hero">
+        <img
+          src="https://images.squarespace-cdn.com/content/v1/622176a9b8d15d57ffbf5700/1776103458600-2OA4POJN8VK8KX3623OX/Pedals_Hero_Chase+Bliss.jpg"
+          alt="Chase Bliss pedals" />
+        <div className="hero-overlay" />
+      </div>
+
+      {/* DbAh product logos */}
+      <div className="dbah-row">
+        <img src="https://www.chasebliss.com/s/Chase-Bliss_DbAh_blooper.svg" alt="blooper" />
+        <img src="https://www.chasebliss.com/s/Chase-Bliss_DbAh_MOOD.svg" alt="MOOD" />
+        <img src="https://www.chasebliss.com/s/Chase-Bliss_DbAh_Habit.svg" alt="Habit" />
+      </div>
+
+      {/* Featured pedals */}
+      <div className="container" style={{ padding: '64px 32px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 40 }}>
+          <h2 className="serif-lg">New &amp; Available</h2>
+          <a href="#" onClick={e => { e.preventDefault(); onNavigate('pedals'); }}
+            style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: '#000', textDecoration: 'underline', letterSpacing: '0.02em' }}>
+            All Pedals →
+          </a>
+        </div>
+        <div className="pedal-grid-wide">
+          {PEDALS.slice(0,4).map(p => (
+            <PedalCard key={p.name} pedal={p} wide onClick={() => onNavigate('product')} />
+          ))}
+        </div>
+      </div>
+
+      {/* Limited */}
+      <div style={{ background: '#f5f2ee', padding: '64px 32px' }}>
+        <div className="container" style={{ padding: 0 }}>
+          <div className="label-tag" style={{ marginBottom: 12 }}>Limited Editions</div>
+          <h2 className="serif-lg" style={{ marginBottom: 40 }}>Small Batch Bliss</h2>
+          <div className="pedal-grid-wide">
+            {LIMITED.map(p => <PedalCard key={p.name} pedal={p} wide />)}
+          </div>
+        </div>
+      </div>
+
+      <SiteFooter />
+    </div>
+  );
+}
+
+// ── Pedals Page ───────────────────────────────────────────────
+function ScreenPedals({ onNavigate }) {
+  return (
+    <div className="screen">
+      <SiteNav onNavigate={onNavigate} active="pedals" />
+      <div className="container" style={{ padding: '64px 32px 80px' }}>
+        <h1 className="serif-xl" style={{ marginBottom: 48 }}>Pedals</h1>
+
+        {/* Limited */}
+        <div className="label-tag" style={{ marginBottom: 24 }}>Limited Editions</div>
+        <div className="pedal-grid" style={{ marginBottom: 64 }}>
+          {LIMITED.map(p => <PedalCard key={p.name + p.edition} pedal={p} />)}
+        </div>
+
+        <hr className="thin" style={{ margin: '0 0 64px' }} />
+
+        {/* Active */}
+        <div className="pedal-grid">
+          {PEDALS.map(p => (
+            <PedalCard key={p.name} pedal={p} onClick={() => onNavigate('product')} />
+          ))}
+        </div>
+
+        <hr className="thin" />
+
+        {/* Small Batch link */}
+        <div style={{ textAlign: 'center', padding: '32px 0 48px' }}>
+          <div className="label-tag" style={{ marginBottom: 16 }}>Archive &amp; Legacy</div>
+          <a href="#" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600, color: '#000' }}>
+            Small Batch Bliss →
+          </a>
+        </div>
+      </div>
+      <SiteFooter />
+    </div>
+  );
+}
+
+// ── Product Page ──────────────────────────────────────────────
+function ScreenProduct({ onNavigate }) {
+  const pedal = PEDALS.find(p => p.name === 'MOOD MKII');
+  const [qty, setQty] = React.useState(1);
+
+  return (
+    <div className="screen">
+      <SiteNav onNavigate={onNavigate} active="pedals" />
+      <div className="container">
+        <div style={{ padding: '24px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <a href="#" onClick={e => { e.preventDefault(); onNavigate('pedals'); }}
+            style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#999', textDecoration: 'none' }}>Pedals</a>
+          <span style={{ color: '#ccc' }}>›</span>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#000' }}>MOOD MKII</span>
+        </div>
+
+        <div className="product-layout">
+          {/* Image */}
+          <div>
+            <img src={pedal.img} alt="MOOD MKII" style={{ width: '100%', display: 'block' }} />
+          </div>
+
+          {/* Info */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingTop: 8 }}>
+            <div>
+              <div className="label-tag" style={{ marginBottom: 8 }}>Chase Bliss</div>
+              <h1 className="serif-xl" style={{ marginBottom: 6 }}>MOOD MKII</h1>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: '#777' }}>Instant Ambience</div>
+            </div>
+
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: '#000' }}>$399</div>
+
+            <div className="sans-body" style={{ fontSize: 15 }}>
+              Two separate channels — one for reverb/delay/slip, one for stretch/tape/env — with a shared clock running through them both. A looper and a micro-looper living side-by-side.
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #000' }}>
+                <button onClick={() => setQty(q => Math.max(1,q-1))} style={{ background: 'none', border: 'none', width: 40, height: 48, cursor: 'pointer', fontSize: 18, fontWeight: 300 }}>−</button>
+                <span style={{ fontFamily: "'DM Sans', sans-serif", width: 32, textAlign: 'center', fontSize: 15, fontWeight: 500 }}>{qty}</span>
+                <button onClick={() => setQty(q => q+1)} style={{ background: 'none', border: 'none', width: 40, height: 48, cursor: 'pointer', fontSize: 18, fontWeight: 300 }}>+</button>
+              </div>
+              <button className="btn-primary" style={{ flex: 1 }}>Add to Cart</button>
+            </div>
+
+            <button className="btn-outline">Update Firmware</button>
+
+            <hr className="thin" style={{ margin: '8px 0' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                ['Two independent channels', 'Left: Reverb / Delay / Slip — Right: Stretch / Tape / Env'],
+                ['Shared clock', 'Lock both channels to a single tempo'],
+                ['MIDI', 'Full MIDI implementation via TRS'],
+                ['Expression', 'Stereo TRS expression input'],
+              ].map(([title, desc]) => (
+                <div key={title} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: '#000', width: 160, flexShrink: 0 }}>{title}</div>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#666', lineHeight: 1.5 }}>{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Related */}
+        <div style={{ padding: '48px 0 80px' }}>
+          <div className="label-tag" style={{ marginBottom: 24 }}>You might also like</div>
+          <div className="pedal-grid">
+            {PEDALS.filter(p => p.name !== 'MOOD MKII').slice(0,4).map(p => (
+              <PedalCard key={p.name} pedal={p} onClick={() => {}} />
+            ))}
+          </div>
+        </div>
+      </div>
+      <SiteFooter />
+    </div>
+  );
+}
+
+// ── About ─────────────────────────────────────────────────────
+function ScreenAbout({ onNavigate }) {
+  return (
+    <div className="screen">
+      <SiteNav onNavigate={onNavigate} active="about" />
+
+      {/* Hero text */}
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: '80px 32px 64px', textAlign: 'center' }}>
+        <h1 className="serif-xl" style={{ marginBottom: 32, lineHeight: 1.2 }}>
+          We're a group of pedal makers in Minneapolis.<br/>And Amsterdam.
+        </h1>
+        <p className="sans-body" style={{ maxWidth: 600, margin: '0 auto 24px' }}>
+          Our first pedal, Warped Vinyl, was an analog vibrato with a digital brain. The idea was to match the quality and character of analog processing with the anything-goes flexibility of digital control. We make digital circuits now too, but the approach is the same: Offer new and deeply personal ways to interact with effects.
+        </p>
+      </div>
+
+      {/* DbAh logos */}
+      <div className="dbah-row">
+        <img src="https://www.chasebliss.com/s/Chase-Bliss_DbAh_blooper.svg" alt="blooper" />
+        <img src="https://www.chasebliss.com/s/Chase-Bliss_DbAh_MOOD.svg" alt="MOOD" />
+        <img src="https://www.chasebliss.com/s/Chase-Bliss_DbAh_Habit.svg" alt="Habit" />
+      </div>
+
+      {/* Founder note */}
+      <div style={{ background: '#f5f2ee', padding: '64px 32px' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
+          <div>
+            <div className="label-tag" style={{ marginBottom: 16 }}>A note from our founder</div>
+            <h2 className="serif-lg" style={{ marginBottom: 20 }}>How does this thing actually work?</h2>
+            <p className="sans-body" style={{ marginBottom: 16 }}>
+              Named in honor of Chase Korte — Joel's brother, whose life philosophy was shaped by Joseph Campbell's "Follow Your Bliss."
+            </p>
+            <p className="sans-body">
+              Joel studied electrical engineering, spent five years at ZVEX, and founded Chase Bliss Audio in 2013.
+            </p>
+          </div>
+          <img
+            src="https://images.squarespace-cdn.com/content/v1/622176a9b8d15d57ffbf5700/38fa4655-c6a8-45bd-94a3-89c241b8bbec/Chase+Bliss_Joel+Korte_Note_2023.jpg"
+            alt="Joel Korte handwritten note" style={{ width: '100%', display: 'block' }} />
+        </div>
+      </div>
+
+      {/* Team */}
+      <div className="container" style={{ padding: '64px 32px 80px' }}>
+        <div className="label-tag" style={{ marginBottom: 8 }}>The Team</div>
+        <h2 className="serif-lg" style={{ marginBottom: 48 }}>The people behind the pedals.</h2>
+        <div className="team-grid">
+          {TEAM.map(m => (
+            <div key={m.name} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <img src={m.img} alt={m.name} style={{ width: '100%', display: 'block', aspectRatio: '1', objectFit: 'cover', filter: 'grayscale(20%)' }} />
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: '#000' }}>{m.name}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#888' }}>{m.role}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <SiteFooter />
+    </div>
+  );
+}
+
+// ── App ───────────────────────────────────────────────────────
+function App() {
+  const stored = localStorage.getItem('cba-web-screen') || 'home';
+  const [screen, setScreenRaw] = React.useState(stored);
+  const setScreen = s => { setScreenRaw(s); localStorage.setItem('cba-web-screen', s); };
+
+  const screenMap = { home: ScreenHome, pedals: ScreenPedals, product: ScreenProduct, about: ScreenAbout };
+  const Screen = screenMap[screen] || ScreenHome;
+
+  return (
+    <div>
+      <div className="kit-tabs">
+        {SCREENS.map(s => (
+          <button key={s.id} className={`kit-tab${screen===s.id?' active':''}`} onClick={() => setScreen(s.id)}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <Screen onNavigate={setScreen} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

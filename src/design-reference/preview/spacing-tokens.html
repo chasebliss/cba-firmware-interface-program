@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; }
+body { font-family: "Poppins", sans-serif; background: #fefbf6; padding: 20px; }
+.rows { display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; align-items: center; gap: 12px; }
+.bar-wrap { width: 220px; height: 20px; background: #f0ebe3; position: relative; }
+.bar { height: 100%; background: #ba8e51; }
+.token { font-size: 11px; font-weight: 700; color: #000; width: 80px; }
+.val   { font-size: 11px; color: #5a5248; }
+</style></head><body>
+<div class="rows">
+  <div class="row"><div class="token">--space-1</div><div class="bar-wrap"><div class="bar" style="width:4px"></div></div><div class="val">4px</div></div>
+  <div class="row"><div class="token">--space-2</div><div class="bar-wrap"><div class="bar" style="width:8px"></div></div><div class="val">8px</div></div>
+  <div class="row"><div class="token">--space-3</div><div class="bar-wrap"><div class="bar" style="width:12px"></div></div><div class="val">12px</div></div>
+  <div class="row"><div class="token">--space-4</div><div class="bar-wrap"><div class="bar" style="width:16px"></div></div><div class="val">16px</div></div>
+  <div class="row"><div class="token">--space-5</div><div class="bar-wrap"><div class="bar" style="width:20px"></div></div><div class="val">20px — btn padding</div></div>
+  <div class="row"><div class="token">--space-6</div><div class="bar-wrap"><div class="bar" style="width:24px"></div></div><div class="val">24px</div></div>
+  <div class="row"><div class="token">--space-8</div><div class="bar-wrap"><div class="bar" style="width:32px"></div></div><div class="val">32px</div></div>
+  <div class="row"><div class="token">--space-10</div><div class="bar-wrap"><div class="bar" style="width:40px"></div></div><div class="val">40px — panel padding</div></div>
+  <div class="row"><div class="token">--space-20</div><div class="bar-wrap"><div class="bar" style="width:80px"></div></div><div class="val">80px — page bottom</div></div>
+</div>
+</body></html>

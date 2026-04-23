@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; }
+body { font-family: "Poppins", sans-serif; background: #fefbf6; padding: 0 7vw; -webkit-font-smoothing: antialiased; }
+nav {
+  max-width: 1200px;
+  padding: 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #000;
+}
+.back { display: flex; align-items: center; gap: 4px; text-decoration: none; color: #000; font-weight: 700; font-size: 14px; }
+.back svg { transition: transform 0.3s; }
+.back:hover svg { transform: translateX(-5px); }
+.center img { width: 208px; height: 32px; }
+.right { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+</style></head><body>
+<nav>
+  <div style="width:33%">
+    <a href="#" class="back">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      To main site
+    </a>
+  </div>
+  <div style="width:33%;display:flex;justify-content:center" class="center">
+    <a href="https://chasebliss.com" target="_blank">
+      <img src="../assets/logo.svg" alt="Chase Bliss Audio">
+    </a>
+  </div>
+  <div style="width:33%;display:flex;justify-content:flex-end" class="right">
+    <span>Instructions:</span>
+    <svg fill="#000" viewBox="-3.5 -2 24 24" width="28" height="28" xmlns="http://www.w3.org/2000/svg"><path d="M13.623 10.627c-.025-2.533 2.066-3.748 2.159-3.808-1.175-1.72-3.005-1.955-3.657-1.982-1.557-.158-3.039.917-3.83.917-.788 0-2.008-.894-3.3-.87C3.299 4.909 1.734 5.87.86 7.39c-1.764 3.06-.452 7.595 1.267 10.077.84 1.215 1.842 2.58 3.157 2.53 1.266-.05 1.745-.819 3.276-.819 1.531 0 1.962.82 3.302.795 1.363-.026 2.226-1.239 3.06-2.457.965-1.41 1.362-2.775 1.386-2.845-.03-.013-2.658-1.02-2.684-4.045zm-2.518-7.433c.698-.847 1.169-2.022 1.04-3.194C11.14.04 9.921.67 9.2 1.515c-.647.75-1.214 1.945-1.062 3.094 1.122.088 2.268-.57 2.967-1.415z"/></svg>
+    <svg fill="#000" viewBox="0 0 14 14" width="26" height="26"><path d="M 7.251852,7.25185 13,7.25185 13,13 7.251852,13 Z m -6.251852,0 5.748148,0 0,5.74815 L 1,13 Z M 7.251852,1 13,1 l 0,5.74815 -5.748148,0 z M 1,1 l 5.748148,0 0,5.74815 -5.748148,0 z"/></svg>
+  </div>
+</nav>
+</body></html>

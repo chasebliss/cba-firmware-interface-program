@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; }
+body { font-family: "DM Sans", sans-serif; background: #fff; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cell { padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border: 1px solid #e8e4dd; }
+.cell--dark { background: #000; border-color: #000; }
+.lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #aaa; align-self: flex-start; }
+.row3 { grid-column: 1/-1; display: flex; align-items: center; justify-content: space-around; padding: 24px; border: 1px solid #e8e4dd; }
+</style></head><body>
+<div class="grid">
+  <div class="cell">
+    <div class="lbl">Horizontal — on white</div>
+    <img src="https://images.squarespace-cdn.com/content/v1/622176a9b8d15d57ffbf5700/dc30d122-ba24-4732-a3cd-eaa2744c6b40/Chase+Bliss_Logo_Horizontal.png?format=750w" style="height:28px;width:auto">
+  </div>
+  <div class="cell cell--dark">
+    <div class="lbl" style="color:#555">Horizontal — on black</div>
+    <img src="https://images.squarespace-cdn.com/content/v1/622176a9b8d15d57ffbf5700/dc30d122-ba24-4732-a3cd-eaa2744c6b40/Chase+Bliss_Logo_Horizontal.png?format=750w" style="height:28px;width:auto;filter:invert(1)">
+  </div>
+  <div class="row3">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div class="lbl">Logomark</div>
+      <img src="https://www.chasebliss.com/s/Chase-Bliss_Logomark.svg" style="height:48px">
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div class="lbl">Digital Brain Analog Heart</div>
+      <img src="https://www.chasebliss.com/s/Chase-Bliss_Digital-brain-Analog-Heart.svg" style="height:24px">
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+      <div class="lbl">DbAh — Product lockups</div>
+      <div style="display:flex;gap:16px">
+        <img src="https://www.chasebliss.com/s/Chase-Bliss_DbAh_blooper.svg" style="height:28px">
+        <img src="https://www.chasebliss.com/s/Chase-Bliss_DbAh_MOOD.svg" style="height:28px">
+        <img src="https://www.chasebliss.com/s/Chase-Bliss_DbAh_Habit.svg" style="height:28px">
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

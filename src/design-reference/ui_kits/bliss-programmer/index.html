@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bliss Programmer — UI Kit</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  * { margin: 0; }
+  body {
+    font-family: "Poppins", sans-serif;
+    background: #fefbf6;
+    color: #000;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Screen tabs */
+  .screen-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #000;
+    background: #fefbf6;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 0 7vw;
+  }
+  .screen-tab {
+    font-family: "Poppins", sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 12px 20px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: none;
+    cursor: pointer;
+    color: #a89e93;
+    min-width: unset;
+    width: auto;
+    height: auto;
+  }
+  .screen-tab:hover { color: #000; font-style: normal; }
+  .screen-tab.active { color: #000; border-bottom-color: #000; }
+
+  .page { padding: 0 7vw; min-height: 100vh; animation: fadeIn 0.5s ease-out; }
+  @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+
+  /* Instruction panel */
+  .instr-panel {
+    position: absolute;
+    background: #fefbf6;
+    border: 1px solid #000;
+    padding: 32px;
+    width: 440px;
+    z-index: 20;
+    box-shadow: 0 25px 50px -12px rgb(0 0 0/.18);
+    top: 56px;
+    right: 0;
+    text-align: left;
+  }
+  .instr-panel ol { margin: 0 0 1em; padding: 0; counter-reset: item; }
+  .instr-panel ol > li { padding: 0 0 0 2em; text-indent: -2em; list-style: none; counter-increment: item; margin-bottom: 8px; font-size: 13px; }
+  .instr-panel ol > li:before { display: inline-block; width: 1.5em; padding-right: .5em; font-weight: 700; text-align: right; content: counter(item) "."; }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel" src="Components.jsx"></script>
+<script type="text/babel">
+
+const SCREENS = [
+  { id: 'default',  label: 'Default' },
+  { id: 'selected', label: 'Pedal Selected' },
+  { id: 'updating', label: 'Updating' },
+  { id: 'beta',     label: 'Beta Banner' },
+];
+
+// ── Screen: Default ──────────────────────────────────────────
+function ScreenDefault() {
+  const [sel, setSel] = React.useState(null);
+  return (
+    <div>
+      <Nav />
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:32}}>
+        <HeadingBox>Bliss Programmer.</HeadingBox>
+        <BinaryHero />
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:16,marginTop:8}}>
+          <DropdownSelect selected={sel} onSelect={setSel} />
+          <CBAButton disabled={!sel}>Connect</CBAButton>
+          <CBAButton disabled={true}>Update</CBAButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Screen: Selected ─────────────────────────────────────────
+function ScreenSelected() {
+  const [sel, setSel] = React.useState(FIRMWARES[0]);
+  const [connected, setConnected] = React.useState(false);
+
+  return (
+    <div>
+      <Nav />
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:32}}>
+        <HeadingBox>Bliss Programmer.</HeadingBox>
+        <BinaryHero />
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:16,marginTop:8}}>
+          <DropdownSelect selected={sel} onSelect={setSel} />
+          <CBAButton disabled={false} onClick={() => setConnected(true)}>
+            Connect
+          </CBAButton>
+          <CBAButton
+            disabled={!connected}
+            variant={connected ? 'success' : undefined}>
+            Update
+          </CBAButton>
+          {connected && (
+            <p style={{fontSize:12,color:'#10b981',fontWeight:700,marginTop:-8}}>
+              Device connected — ready to update.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Screen: Updating ─────────────────────────────────────────
+function ScreenUpdating() {
+  const [progress, setProgress] = React.useState(0);
+  const [status, setStatus] = React.useState('loading');
+  const fw = FIRMWARES[0];
+
+  React.useEffect(() => {
+    if (status !== 'loading') return;
+    const iv = setInterval(() => {
+      setProgress(p => {
+        if (p >= 100) { clearInterval(iv); setStatus('done'); return 100; }
+        return p + 2;
+      });
+    }, 60);
+    return () => clearInterval(iv);
+  }, [status]);
+
+  return (
+    <div>
+      <Nav />
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:32}}>
+        <HeadingBox>Bliss Programmer.</HeadingBox>
+        <div style={{width:500,maxWidth:'100%',opacity:0.4,padding:'16px 0'}}>
+          <img src="../../assets/binaryV2.svg" alt="" style={{width:'100%'}} />
+        </div>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:16,marginTop:8,width:384}}>
+          <div style={{width:'100%',fontWeight:700,fontSize:15,padding:'12px 14px',border:'2px solid #000',background:'#fefbf6'}}>
+            {fw.name}
+          </div>
+          <ProgressOverlay firmware={fw} progress={progress} status={status} />
+          {status === 'done' && (
+            <CBAButton onClick={() => { setProgress(0); setStatus('loading'); }}>
+              Update again
+            </CBAButton>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Screen: Beta ─────────────────────────────────────────────
+function ScreenBeta() {
+  const [sel, setSel] = React.useState(null);
+  return (
+    <div>
+      <BetaBanner />
+      <Nav />
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:32}}>
+        <HeadingBox>Bliss Programmer.</HeadingBox>
+        <BinaryHero />
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:16,marginTop:8}}>
+          <DropdownSelect selected={sel} onSelect={setSel} />
+          <WarningBadge>Your pedal may be damaged by uploading incorrect firmware.</WarningBadge>
+          <CBAButton disabled={!sel}>Connect</CBAButton>
+          <CBAButton disabled={true}>Update</CBAButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── App ───────────────────────────────────────────────────────
+function App() {
+  const stored = localStorage.getItem('cba-kit-screen') || 'default';
+  const [screen, setScreenRaw] = React.useState(stored);
+  const setScreen = (s) => { setScreenRaw(s); localStorage.setItem('cba-kit-screen', s); };
+
+  const screenMap = { default: ScreenDefault, selected: ScreenSelected, updating: ScreenUpdating, beta: ScreenBeta };
+  const Screen = screenMap[screen] || ScreenDefault;
+
+  return (
+    <div>
+      <div className="screen-tabs">
+        {SCREENS.map(s => (
+          <button key={s.id} className={`screen-tab${screen===s.id?' active':''}`} onClick={() => setScreen(s.id)}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <div className="page">
+        <Screen />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
