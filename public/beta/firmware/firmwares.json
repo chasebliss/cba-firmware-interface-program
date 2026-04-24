@@ -16,7 +16,7 @@
     "filepath": "./aweerasdff.bin",
     "description": "big time test here bro",
     "bgColor": "#ff0aca",
-    "active": true,
+    "active": false,
     "uploadedAt": "2026-04-23T23:34:45.982Z"
   }
 ]
