@@ -9,15 +9,10 @@ export interface FirmwareSource {
   repo_url: string;
 }
 
+// All production firmware lives in this repo under public/firmware/, managed
+// via the /admin upload form. The older external chasebliss/firmware source
+// was retired once everything consolidated here.
 export const PRODUCTION_SOURCES: FirmwareSource[] = [
-  {
-    name: "DaisyExamples",
-    data_url:
-      "https://raw.githubusercontent.com/chasebliss/firmware/main/firmwares.json",
-    repo_url: "https://raw.githubusercontent.com/chasebliss/firmware/main/",
-  },
-  // Admin-uploaded production firmware lives in this repo under
-  // public/firmware/ — committed via the /admin upload form.
   {
     name: "Uploaded",
     data_url: "/firmware/firmwares.json",
