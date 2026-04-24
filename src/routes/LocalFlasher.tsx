@@ -31,6 +31,7 @@ interface ManifestEntry {
   bgColor?: string;
   description?: string;
   uploadedAt?: string;
+  active?: boolean;
 }
 
 interface AdminFirmware {
@@ -40,6 +41,7 @@ interface AdminFirmware {
   bgColor: string;
   description: string;
   uploadedAt: string | null;
+  active: boolean;
 }
 
 export const LocalFlasher = () => {
@@ -128,6 +130,7 @@ export const LocalFlasher = () => {
           bgColor: e.bgColor ?? GOLD,
           description: e.description ?? "",
           uploadedAt: e.uploadedAt ?? null,
+          active: e.active !== false,
         }));
       const merged = [
         ...toAdmin(data.production, "production"),
@@ -423,7 +426,7 @@ export const LocalFlasher = () => {
       const key = `${editingEntry.target}:${editingEntry.filename}`;
       if (deployStatus[key] === "live") {
         const ok = window.confirm(
-          `Overwrite "${editingEntry.name}" in ${editingEntry.target}? Users will see the updated firmware once Vercel redeploys.`,
+          `Overwrite "${editingEntry.name}" in ${editingEntry.target}? Users will see the new version once the site finishes updating.`,
         );
         if (!ok) return;
       }
@@ -476,6 +479,40 @@ export const LocalFlasher = () => {
     } catch (err) {
       setSaveStatus("error");
       setSaveMessage(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  // Flip active on a manifest entry. Hidden entries stay in the admin list
+  // but disappear from the public /  and /beta dropdowns (Programmer filters
+  // on active before rendering).
+  const [toggling, setToggling] = useState<string | null>(null);
+  const handleToggleActive = async (entry: AdminFirmware) => {
+    const nextActive = !entry.active;
+    setToggling(`${entry.target}:${entry.filename}`);
+    try {
+      const resp = await fetch("/api/admin/update-firmware", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: entry.filename,
+          target: entry.target,
+          patch: { active: nextActive },
+        }),
+      });
+      const data = (await resp.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!resp.ok) {
+        window.alert(
+          `${nextActive ? "Show" : "Hide"} failed: ${data.error ?? resp.status}`,
+        );
+        return;
+      }
+      await loadCatalogues();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setToggling(null);
     }
   };
 
@@ -924,11 +961,7 @@ export const LocalFlasher = () => {
                 </div>
               </div>
               <div className="relative mt-10 flex items-center gap-4">
-                <CbaButton
-                  disabled={!canSave}
-                  onClick={handleSave}
-                  fullWidth
-                >
+                <CbaButton disabled={!canSave} onClick={handleSave} fullWidth>
                   {saveStatus === "saving" ? "Saving…" : saveButtonLabel}
                 </CbaButton>
                 {duplicateInTarget && (
@@ -1039,27 +1072,31 @@ export const LocalFlasher = () => {
                         const key = `${fw.target}:${fw.filename}`;
                         const busy = deleting === key;
                         const status = deployStatus[key] ?? "checking";
-                        const dotColor =
-                          status === "live"
+                        const dotColor = !fw.active
+                          ? "var(--color-red)"
+                          : status === "live"
                             ? "var(--color-green)"
                             : status === "pending"
-                              ? "var(--color-red)"
+                              ? "var(--color-yellow)"
                               : "rgba(0,0,0,0.2)";
-                        const dotTitle =
-                          status === "live"
-                            ? "Live on the CDN"
+                        const dotTitle = !fw.active
+                          ? "Disabled — hidden from users"
+                          : status === "live"
+                            ? "Live for users"
                             : status === "pending"
-                              ? "Uploaded — waiting for next Vercel deploy"
+                              ? "Saved — site is still updating"
                               : "Checking…";
                         return (
                           <li
                             key={key}
-                            className="relative flex items-center gap-3 px-3.5 py-3 transition-opacity duration-200 bg-cream"
-                            style={{ opacity: busy ? 0.4 : 1 }}
+                            className="relative flex items-center gap-3 bg-cream px-3.5 py-3 transition-opacity duration-200"
+                            style={{
+                              opacity: busy ? 0.4 : fw.active ? 1 : 0.55,
+                            }}
                           >
                             <span
                               aria-hidden="true"
-                              className="pointer-events-none absolute -bottom-px -top-px left-0 z-[1] w-[2px]"
+                              className="pointer-events-none absolute -bottom-px -top-px left-0 z-[1] w-[4px]"
                               style={{ background: fw.bgColor }}
                             />
                             <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -1076,6 +1113,14 @@ export const LocalFlasher = () => {
                                 >
                                   {fw.name}
                                 </span>
+                                {!fw.active && (
+                                  <span
+                                    title="Disabled — hidden from users, still in the admin list"
+                                    className="shrink-0 border border-red/50 px-1.5 py-px text-[9px] font-bold uppercase tracking-[0.1em] text-red"
+                                  >
+                                    Disabled
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-baseline gap-2">
                                 <span
@@ -1103,18 +1148,35 @@ export const LocalFlasher = () => {
                                 disabled={busy || status !== "live" || flashing}
                                 title={
                                   status !== "live"
-                                    ? "Available once deployed"
+                                    ? "Available once the site finishes updating"
                                     : "Load into flasher"
                                 }
-                                className="cursor-pointer border border-black bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-black transition-colors duration-150 hover:bg-black hover:text-cream disabled:cursor-not-allowed disabled:opacity-40"
+                                className="cursor-pointer border border-black bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-black transition-colors duration-200 ease-out hover:bg-black hover:text-cream disabled:cursor-not-allowed disabled:opacity-40"
                               >
                                 Load
                               </button>
                               <button
                                 type="button"
+                                onClick={() => void handleToggleActive(fw)}
+                                disabled={busy || toggling === key || flashing}
+                                title={
+                                  fw.active
+                                    ? "Disable — hide from users, keep in admin"
+                                    : "Enable — show to users again"
+                                }
+                                className="cursor-pointer border border-black/40 bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-black/70 transition-colors duration-200 ease-out hover:border-black hover:bg-black hover:text-cream disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                {toggling === key
+                                  ? "…"
+                                  : fw.active
+                                    ? "Disable"
+                                    : "Enable"}
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => void handleDelete(fw)}
                                 disabled={busy}
-                                className="cursor-pointer border border-red bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-red transition-colors duration-150 hover:bg-red hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
+                                className="cursor-pointer border border-red bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-red transition-colors duration-200 ease-out hover:bg-red hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {busy ? "…" : "Delete"}
                               </button>
@@ -1127,9 +1189,29 @@ export const LocalFlasher = () => {
                 ))}
           </div>
 
-          <p className="mt-3.5 text-[12px] leading-[1.6] text-black/30">
-            Saved firmwares are visible after the next Vercel deploy.
-          </p>
+          <ul className="mt-3.5 flex flex-col gap-1.5 text-[12px] leading-[1.6] text-black/45">
+            <li className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 shrink-0 rounded-full bg-green"
+              />
+              Green — live in environment.
+            </li>
+            <li className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 shrink-0 rounded-full bg-yellow"
+              />
+              Yellow — saved, site is still updating (usually a minute or two).
+            </li>
+            <li className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 shrink-0 rounded-full bg-red"
+              />
+              Red — disabled, hidden from environment.
+            </li>
+          </ul>
         </div>
       </div>
     </div>
