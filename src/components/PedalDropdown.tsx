@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { FirmwareEntry } from "@/lib/firmware-catalogue";
+import { formatRelativeTime } from "@/lib/format";
 
 interface PedalDropdownProps {
   firmwares: FirmwareEntry[];
@@ -129,7 +130,7 @@ export const PedalDropdown = ({
                   onSelect(fw);
                   setOpen(false);
                 }}
-                className={`animate-cba-pop-in cursor-pointer px-4 py-3 text-[15px] font-bold transition-colors duration-150 ${
+                className={`animate-cba-pop-in flex cursor-pointer flex-col gap-0.5 px-4 py-3 transition-colors duration-150 ${
                   i < firmwares.length - 1 ? "border-b border-black" : ""
                 }`}
                 style={{
@@ -137,7 +138,22 @@ export const PedalDropdown = ({
                   animationDelay: `${i * 20}ms`,
                 }}
               >
-                {fw.name}
+                <span className="text-[15px] font-bold">{fw.name}</span>
+                {(fw.filename || fw.uploadedAt) && (
+                  <span className="flex items-baseline gap-2 text-[11px] font-medium text-black/55">
+                    {fw.filename && (
+                      <span className="truncate font-mono">{fw.filename}</span>
+                    )}
+                    {fw.uploadedAt && (
+                      <span
+                        title={new Date(fw.uploadedAt).toLocaleString()}
+                        className="shrink-0 text-[10px] text-black/45"
+                      >
+                        · {formatRelativeTime(fw.uploadedAt)}
+                      </span>
+                    )}
+                  </span>
+                )}
               </li>
             ))}
           </ul>,

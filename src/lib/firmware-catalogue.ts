@@ -9,6 +9,7 @@ interface RawFirmware {
   description: string;
   bgColor: string;
   active: boolean;
+  uploadedAt?: string;
 }
 
 export interface FirmwareEntry {
@@ -18,7 +19,9 @@ export interface FirmwareEntry {
   description: string;
   bgColor: string;
   active: boolean;
+  filename: string; // basename of filepath, e.g. "MOOD_MKII_1.1.bin"
   url: string; // resolved absolute URL to the .bin or .hex file
+  uploadedAt: string | null;
   source: FirmwareSource;
 }
 
@@ -41,18 +44,21 @@ export const loadFirmwareCatalogue = async (
       const base = /^https?:\/\//.test(source.repo_url)
         ? source.repo_url
         : new URL(source.repo_url, window.location.origin).toString();
-      return raw.map(
-        (r): FirmwareEntry => ({
+      return raw.map((r): FirmwareEntry => {
+        const filename = r.filepath.replace(/^\.\//, "");
+        return {
           id: r.id,
           name: r.name,
           platform: r.platform,
           description: r.description,
           bgColor: r.bgColor,
           active: r.active,
+          filename,
           url: new URL(r.filepath, base).toString(),
+          uploadedAt: r.uploadedAt ?? null,
           source,
-        }),
-      );
+        };
+      });
     }),
   );
 

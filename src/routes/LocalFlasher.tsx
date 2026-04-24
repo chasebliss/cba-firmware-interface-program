@@ -11,6 +11,7 @@ import {
   type DfuLogger,
   type FirmwareSegment,
 } from "@/lib/dfu";
+import { formatRelativeTime } from "@/lib/format";
 
 const DEFAULT_TRANSFER_SIZE = 1024;
 const GOLD = "#ba8e51";
@@ -595,9 +596,11 @@ export const LocalFlasher = () => {
       : 0;
   const progressPct = Math.round(progressRatio * 100);
 
-  // Newest-first within a group. Entries missing uploadedAt sink to the
-  // bottom, then tiebreak alphabetically so the order is stable across loads.
-  const byDateDesc = (a: AdminFirmware, b: AdminFirmware) => {
+  // Active first, disabled sink to the bottom of their section. Within each
+  // active/disabled bucket: newest upload first, tiebreak alphabetically so
+  // the order is stable across loads.
+  const sortForSection = (a: AdminFirmware, b: AdminFirmware) => {
+    if (a.active !== b.active) return a.active ? -1 : 1;
     const at = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
     const bt = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
     if (at !== bt) return bt - at;
@@ -605,10 +608,10 @@ export const LocalFlasher = () => {
   };
   const productionRows = catalogue
     .filter((f) => f.target === "production")
-    .sort(byDateDesc);
+    .sort(sortForSection);
   const betaRows = catalogue
     .filter((f) => f.target === "beta")
-    .sort(byDateDesc);
+    .sort(sortForSection);
 
   return (
     <div className="min-h-screen animate-cba-fade-in bg-gray-50">
@@ -1202,7 +1205,8 @@ export const LocalFlasher = () => {
                 aria-hidden="true"
                 className="h-2 w-2 shrink-0 rounded-full bg-yellow"
               />
-              Yellow — saved, site is still updating (usually a minute or two).
+              Yellow — saved, site is still updating (usually under a 30
+              seconds).
             </li>
             <li className="flex items-center gap-2">
               <span
@@ -1216,26 +1220,6 @@ export const LocalFlasher = () => {
       </div>
     </div>
   );
-};
-
-const formatRelativeTime = (iso: string): string => {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return "";
-  const diffMs = Date.now() - then;
-  const sec = Math.round(diffMs / 1000);
-  if (sec < 60) return "just now";
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.round(hr / 24);
-  if (day < 7) return `${day}d ago`;
-  const wk = Math.round(day / 7);
-  if (wk < 5) return `${wk}w ago`;
-  const mo = Math.round(day / 30);
-  if (mo < 12) return `${mo}mo ago`;
-  const yr = Math.round(day / 365);
-  return `${yr}y ago`;
 };
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
