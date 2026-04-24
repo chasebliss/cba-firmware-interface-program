@@ -9,7 +9,7 @@ export const AdminHeader = ({ flashing = false }: AdminHeaderProps) => {
   return (
     <>
       <div className="bg-black px-[7vw]">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between py-3">
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between py-[30px]">
           <a
             href="/beta"
             className="group flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white no-underline"

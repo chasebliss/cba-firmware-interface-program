@@ -14,7 +14,7 @@ export const Nav = ({ variant = "light" }: NavProps) => {
 
   return (
     <nav
-      className={`relative mx-auto flex w-full max-w-[1200px] items-center py-[18px] ${borderClass}`}
+      className={`relative mx-auto flex w-full max-w-[1200px] items-center py-[30px] ${borderClass}`}
     >
       <div className="flex whitespace-nowrap">
         <a
@@ -45,10 +45,7 @@ export const Nav = ({ variant = "light" }: NavProps) => {
         aria-label="Chase Bliss Audio"
         className="absolute left-1/2 -translate-x-1/2"
       >
-        <Logo
-          width={200}
-          className={isDark ? "text-cream" : "text-black"}
-        />
+        <Logo width={200} className={isDark ? "text-cream" : "text-black"} />
       </a>
     </nav>
   );
