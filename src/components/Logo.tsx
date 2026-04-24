@@ -17,6 +17,9 @@ interface LogoProps {
   animate?: boolean;
   textAnimation?: LogoTextAnimation;
   replayable?: boolean;
+  // Loop the text animation (draw in → pause → draw out → pause → ...).
+  // Only wired for the "draw" animation today; other variants stay one-shot.
+  loop?: boolean;
 }
 
 const VIEWBOX_W = 776.71;
@@ -26,8 +29,9 @@ export const Logo = ({
   className = "",
   width,
   animate = true,
-  textAnimation = "typewriter",
+  textAnimation = "draw",
   replayable = false,
+  loop = true,
 }: LogoProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const reactId = useId();
@@ -45,31 +49,476 @@ export const Logo = ({
     ).sort((a, b) => a.getBBox().x - b.getBBox().x);
     const all = [...mark, ...glyphs];
 
-    if (!replayable && hasPlayed) {
+    if (!replayable && !loop && hasPlayed) {
       gsap.set(all, { clearProps: "all" });
       return;
     }
 
     const [scoop, shield, diamond] = mark;
 
+    // Each shape hops in from the left, arcing across the frame to its
+    // final spot while spinning like a rolling ball. Arc = horizontal
+    // x-tween + y up-then-down keyframes; rotation runs in parallel; scale
+    // squash on landing gives the ball-hits-floor feel. Center transform
+    // origin so rotation pivots correctly; squash compresses toward middle.
     gsap.set(all, { autoAlpha: 0, transformOrigin: "50% 50%" });
-    gsap.set(scoop, { x: -100, y: 60, rotation: -50 });
-    gsap.set(shield, { x: 80, y: -55, rotation: 40 });
-    gsap.set(diamond, { y: -90, rotation: 270 });
+    gsap.set(scoop, { x: -240, y: 0, rotation: 0 });
+    gsap.set(shield, { x: -300, y: 0, rotation: 0 });
+    gsap.set(diamond, { x: -200, y: 0, rotation: 0 });
+
+    // Arrivals stagger so you see 3 distinct hops bouncing in sequence.
+    const SCOOP_START = 0;
+    const SHIELD_START = 0.45;
+    const DIAMOND_START = 0.9;
+    const TRAVEL = 0.8; // shared hop duration
+
+    // Silly looping antics after the intro — string of little character
+    // moments that don't repeat within a single cycle. All rotation tweens
+    // use relative (+=/-=) values so they stack cleanly on the absolute
+    // rotation left by the intro (no accidental upside-down frames).
+    let markLoopTl: gsap.core.Timeline | null = null;
+    const startMarkLoop = () => {
+      if (markLoopTl || !loop) return;
+      markLoopTl = gsap.timeline({
+        delay: 0.8,
+        repeat: -1,
+        repeatDelay: 3,
+      });
+
+      // 1) DIAMOND hops high with a spin, hovers at the peak, drops back
+      //    with a squash-and-settle.
+      markLoopTl
+        .to(diamond, {
+          y: -55,
+          rotation: "+=360",
+          duration: 0.55,
+          ease: "power2.out",
+        })
+        .to(diamond, { y: -62, duration: 0.25, ease: "sine.inOut" })
+        .to(diamond, { y: 0, duration: 0.4, ease: "bounce.out" })
+        .to(
+          diamond,
+          {
+            keyframes: [
+              { scaleY: 0.7, scaleX: 1.25, duration: 0.07 },
+              { scaleY: 1.06, scaleX: 0.97, duration: 0.12 },
+              {
+                scaleY: 1,
+                scaleX: 1,
+                duration: 0.3,
+                ease: "elastic.out(1, 0.5)",
+              },
+            ],
+            ease: "none",
+          },
+          "-=0.18",
+        );
+
+      // 2) SHIELD rocks side-to-side like a metronome, then centers.
+      markLoopTl
+        .to(
+          shield,
+          { rotation: "+=12", duration: 0.2, ease: "power2.out" },
+          "+=0.3",
+        )
+        .to(shield, { rotation: "-=24", duration: 0.25, ease: "sine.inOut" })
+        .to(shield, {
+          rotation: "+=12",
+          duration: 0.3,
+          ease: "elastic.out(1, 0.5)",
+        });
+
+      // 3) DOMINO WAVE — scoop hops, shield hops, diamond hops in quick
+      //    sequence. Stadium-wave feel.
+      markLoopTl
+        .to(
+          scoop,
+          { y: -14, duration: 0.18, ease: "power2.out" },
+          "+=0.3",
+        )
+        .to(scoop, { y: 0, duration: 0.28, ease: "bounce.out" })
+        .to(
+          shield,
+          { y: -14, duration: 0.18, ease: "power2.out" },
+          "-=0.35",
+        )
+        .to(shield, { y: 0, duration: 0.28, ease: "bounce.out" })
+        .to(
+          diamond,
+          { y: -14, duration: 0.18, ease: "power2.out" },
+          "-=0.35",
+        )
+        .to(diamond, { y: 0, duration: 0.28, ease: "bounce.out" });
+
+      // 3.5) PARADE — all three pop to the right one by one with a mini
+      //      spin, gather on the right and do a group wiggle, then parade
+      //      back left together to their original spots.
+      markLoopTl
+        .to(
+          scoop,
+          {
+            x: 42,
+            y: -24,
+            rotation: "+=360",
+            duration: 0.4,
+            ease: "power2.out",
+          },
+          "+=0.3",
+        )
+        .to(scoop, { y: 0, duration: 0.3, ease: "bounce.out" })
+        .to(
+          shield,
+          {
+            x: 42,
+            y: -24,
+            rotation: "+=360",
+            duration: 0.4,
+            ease: "power2.out",
+          },
+          "-=0.35",
+        )
+        .to(shield, { y: 0, duration: 0.3, ease: "bounce.out" })
+        .to(
+          diamond,
+          {
+            x: 42,
+            y: -24,
+            rotation: "+=360",
+            duration: 0.4,
+            ease: "power2.out",
+          },
+          "-=0.35",
+        )
+        .to(diamond, { y: 0, duration: 0.3, ease: "bounce.out" })
+        // Group wiggle on the right — small rotation shimmy while huddled.
+        .to(
+          [scoop, shield, diamond],
+          {
+            rotation: "+=6",
+            duration: 0.15,
+            ease: "sine.inOut",
+            yoyo: true,
+            repeat: 3,
+          },
+          "+=0.15",
+        )
+        // Parade back to the left, staggered.
+        .to(
+          [scoop, shield, diamond],
+          {
+            x: 0,
+            y: -22,
+            rotation: "-=360",
+            duration: 0.4,
+            ease: "power2.out",
+            stagger: 0.08,
+          },
+          "+=0.2",
+        )
+        .to(
+          [scoop, shield, diamond],
+          {
+            y: 0,
+            duration: 0.3,
+            ease: "bounce.out",
+            stagger: 0.08,
+          },
+          "-=0.3",
+        );
+
+      // 4) SCOOP shuffles out to the left, does a double-take head wobble,
+      //    shuffles back to its spot.
+      markLoopTl
+        .to(
+          scoop,
+          {
+            x: -28,
+            y: -6,
+            rotation: "-=18",
+            duration: 0.32,
+            ease: "power2.out",
+          },
+          "+=0.3",
+        )
+        .to(scoop, { y: 0, duration: 0.22, ease: "bounce.out" })
+        .to(scoop, {
+          rotation: "+=8",
+          duration: 0.15,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 1,
+        })
+        .to(scoop, {
+          x: 0,
+          // Return trip fully cancels the -18 tilt on the way out so
+          // scoop lands back at exactly the same rotation each cycle.
+          rotation: "+=18",
+          y: -6,
+          duration: 0.32,
+          ease: "power2.out",
+        })
+        .to(scoop, { y: 0, duration: 0.25, ease: "bounce.out" });
+
+      // 5) DIAMOND does a solo pencil-spin in place — full 720° twirl, no
+      //    vertical movement.
+      markLoopTl.to(
+        diamond,
+        { rotation: "+=720", duration: 0.85, ease: "power2.inOut" },
+        "+=0.3",
+      );
+
+      // 6) SHIELD slow-scan — tilts slowly left, holds, tilts slowly right,
+      //    centers. Reads as "looking around."
+      markLoopTl
+        .to(
+          shield,
+          { rotation: "-=18", duration: 0.55, ease: "sine.inOut" },
+          "+=0.25",
+        )
+        .to(shield, { duration: 0.2 })
+        .to(shield, {
+          rotation: "+=36",
+          duration: 0.65,
+          ease: "sine.inOut",
+        })
+        .to(shield, { duration: 0.2 })
+        .to(shield, {
+          rotation: "-=18",
+          duration: 0.45,
+          ease: "elastic.out(1, 0.5)",
+        });
+
+      // 7) SCOOP shivers — six rapid tiny wobbles, like it got the chills.
+      markLoopTl.to(
+        scoop,
+        {
+          keyframes: [
+            { x: -2, rotation: "-=2", duration: 0.05 },
+            { x: 2, rotation: "+=4", duration: 0.05 },
+            { x: -2, rotation: "-=4", duration: 0.05 },
+            { x: 2, rotation: "+=4", duration: 0.05 },
+            { x: -2, rotation: "-=4", duration: 0.05 },
+            {
+              x: 0,
+              rotation: "+=2",
+              duration: 0.15,
+              ease: "elastic.out(1, 0.5)",
+            },
+          ],
+          ease: "none",
+        },
+        "+=0.25",
+      );
+
+      // 7.5) HEAD BOB — all three pulse y together in a 3-beat rhythm,
+      //      like dancing to a beat.
+      markLoopTl.to(
+        [scoop, shield, diamond],
+        {
+          y: -8,
+          duration: 0.17,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: 5,
+        },
+        "+=0.3",
+      );
+
+      // 8) All three BREATHE — synchronized slow scale pulse, twice. Like
+      //    the logo is inhaling / exhaling.
+      markLoopTl
+        .to(
+          [scoop, shield, diamond],
+          { scale: 1.06, duration: 0.55, ease: "sine.inOut" },
+          "+=0.35",
+        )
+        .to([scoop, shield, diamond], {
+          scale: 1,
+          duration: 0.55,
+          ease: "sine.inOut",
+        })
+        .to([scoop, shield, diamond], {
+          scale: 1.06,
+          duration: 0.55,
+          ease: "sine.inOut",
+        })
+        .to([scoop, shield, diamond], {
+          scale: 1,
+          duration: 0.55,
+          ease: "sine.inOut",
+        });
+
+      // 9) GROUP CHEER — everyone hops up together, lands with elastic
+      //    settle. Big closing flourish before the pause + loop restart.
+      markLoopTl
+        .to(
+          [scoop, shield, diamond],
+          { y: -24, scale: 0.94, duration: 0.32, ease: "power2.out" },
+          "+=0.35",
+        )
+        .to([scoop, shield, diamond], {
+          y: 0,
+          scale: 1,
+          duration: 0.55,
+          ease: "elastic.out(1, 0.55)",
+        });
+    };
 
     const tl = gsap.timeline({
       delay: 0.1,
-      defaults: { ease: "back.out(1.4)", duration: 0.6 },
       onComplete: () => {
         if (!replayable) hasPlayed = true;
+        startMarkLoop();
       },
     });
 
-    tl.to(scoop, { autoAlpha: 1, x: 0, y: 0, rotation: 0 }, 0)
-      .to(shield, { autoAlpha: 1, x: 0, y: 0, rotation: 0 }, 0.05)
-      .to(diamond, { autoAlpha: 1, y: 0, rotation: 0, duration: 0.7 }, 0.1);
+    // Helper: a single left-to-right hop landing at (x: 0, y: 0).
+    //   x-tween runs linear across the whole travel (horizontal drift)
+    //   y-tween arcs up-then-down with sine eases (gravity feel)
+    //   rotation spins like a rolling ball mid-flight
+    //   scale-tween stays flat during travel, then squash-stretch-settle
+    const hopIn = (
+      el: SVGGraphicsElement,
+      startAt: number,
+      peakHeight: number,
+      spin: number,
+    ) => {
+      tl.set(el, { autoAlpha: 1 }, startAt)
+        .to(el, { x: 0, duration: TRAVEL, ease: "power1.inOut" }, startAt)
+        // Linear rotation so the spin reads at constant speed through the
+        // whole arc — no slow-in/slow-out that makes the rotation feel
+        // compressed at the end.
+        .to(
+          el,
+          { rotation: spin, duration: TRAVEL, ease: "none" },
+          startAt,
+        )
+        .to(
+          el,
+          {
+            keyframes: [
+              { y: -peakHeight, duration: TRAVEL * 0.5, ease: "sine.out" },
+              { y: 0, duration: TRAVEL * 0.4, ease: "sine.in" },
+            ],
+            ease: "none",
+          },
+          startAt,
+        )
+        .to(
+          el,
+          {
+            keyframes: [
+              // travel phase: slight stretch to lean into motion
+              { scaleY: 1.08, scaleX: 0.94, duration: TRAVEL * 0.9 },
+              // impact: squash (compress vertically, widen horizontally)
+              { scaleY: 0.7, scaleX: 1.22, duration: 0.06 },
+              // rebound: stretch back up
+              { scaleY: 1.06, scaleX: 0.97, duration: 0.12 },
+              // settle: elastic overshoot to rest
+              {
+                scaleY: 1,
+                scaleX: 1,
+                duration: 0.25,
+                ease: "elastic.out(1, 0.5)",
+              },
+            ],
+            ease: "none",
+          },
+          startAt,
+        );
+    };
 
-    const textStart = 0.15;
+    // 1) Scoop hops in — modest arc, one full clockwise spin, lands first.
+    hopIn(scoop, SCOOP_START, 55, 360);
+
+    // 2) Shield hops in — higher arc, one full turn. Scoop bumps from the
+    //    impact beside it (overlapping action).
+    hopIn(shield, SHIELD_START, 65, 360);
+    tl.to(
+      scoop,
+      {
+        keyframes: [
+          { x: -3, scaleY: 0.95, duration: 0.08 },
+          { x: 0, scaleY: 1, duration: 0.5, ease: "elastic.out(1, 0.4)" },
+        ],
+        ease: "none",
+      },
+      SHIELD_START + TRAVEL * 0.9,
+    );
+
+    // 3) Diamond hops in — highest arc to land on top, 2 full spins. Stack
+    //    compresses briefly when it touches down (secondary action).
+    hopIn(diamond, DIAMOND_START, 80, 720);
+    tl.to(
+      [scoop, shield],
+      {
+        keyframes: [
+          { scaleY: 0.93, duration: 0.08 },
+          { scaleY: 1, duration: 0.5, ease: "elastic.out(1, 0.4)" },
+        ],
+        ease: "none",
+      },
+      DIAMOND_START + TRAVEL * 0.9,
+    );
+
+    // Text starts with the shapes at t=0 and finishes roughly when the
+    // stack has settled, so both halves of the intro open and close in
+    // sync instead of running back-to-back.
+    const textStart = 0;
+
+    // Helpers for the "draw" text animation — extracted so both the intro
+    // and the hover-replay can reuse them.
+    const primeDrawState = () => {
+      glyphs.forEach((el) => {
+        const totalLen =
+          "getTotalLength" in el && typeof el.getTotalLength === "function"
+            ? (el as SVGPathElement).getTotalLength()
+            : 0;
+        if (totalLen > 0) {
+          gsap.set(el, {
+            autoAlpha: 1,
+            strokeDasharray: totalLen,
+            strokeDashoffset: totalLen,
+            fillOpacity: 0,
+            stroke: "currentColor",
+            strokeWidth: 1.5,
+          });
+        } else {
+          gsap.set(el, { autoAlpha: 0 });
+        }
+      });
+    };
+    const queueDrawTweens = (
+      target: gsap.core.Timeline,
+      at: number | string = 0,
+    ) => {
+      // Stretched to run alongside the full mark entrance — starts with
+      // the shapes at t=0 and wraps up around the same time they settle
+      // (~2s) instead of being a quick follow-up.
+      target
+        .to(
+          glyphs,
+          {
+            strokeDashoffset: 0,
+            autoAlpha: 1,
+            duration: 1.3,
+            stagger: 0.04,
+            ease: "power2.inOut",
+          },
+          at,
+        )
+        .to(
+          glyphs,
+          {
+            fillOpacity: 1,
+            strokeWidth: 0,
+            duration: 0.4,
+            stagger: 0.04,
+            ease: "power1.out",
+          },
+          typeof at === "number" ? at + 1.0 : "-=0.3",
+        );
+    };
 
     switch (textAnimation) {
       case "typewriter": {
@@ -105,45 +554,8 @@ export const Logo = ({
         break;
       }
       case "draw": {
-        glyphs.forEach((el) => {
-          const totalLen =
-            "getTotalLength" in el && typeof el.getTotalLength === "function"
-              ? (el as SVGPathElement).getTotalLength()
-              : 0;
-          if (totalLen > 0) {
-            gsap.set(el, {
-              autoAlpha: 1,
-              strokeDasharray: totalLen,
-              strokeDashoffset: totalLen,
-              fillOpacity: 0,
-              stroke: "currentColor",
-              strokeWidth: 1.5,
-            });
-          } else {
-            gsap.set(el, { autoAlpha: 0 });
-          }
-        });
-        tl.to(
-          glyphs,
-          {
-            strokeDashoffset: 0,
-            autoAlpha: 1,
-            duration: 0.7,
-            stagger: 0.04,
-            ease: "power2.inOut",
-          },
-          textStart,
-        ).to(
-          glyphs,
-          {
-            fillOpacity: 1,
-            strokeWidth: 0,
-            duration: 0.3,
-            stagger: 0.04,
-            ease: "power1.out",
-          },
-          textStart + 0.4,
-        );
+        primeDrawState();
+        queueDrawTweens(tl, textStart);
         break;
       }
       case "glitch": {
@@ -209,9 +621,10 @@ export const Logo = ({
 
     return () => {
       tl.kill();
+      if (markLoopTl) markLoopTl.kill();
       gsap.set(all, { clearProps: "all" });
     };
-  }, [animate, textAnimation, replayable, clipId]);
+  }, [animate, textAnimation, replayable, clipId, loop]);
 
   const style = width
     ? { width: typeof width === "number" ? `${width}px` : width }

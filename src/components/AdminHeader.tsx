@@ -10,19 +10,12 @@ export const AdminHeader = ({ flashing = false }: AdminHeaderProps) => {
     <>
       <div className="bg-black px-[7vw]">
         <div className="mx-auto flex max-w-[1200px] items-center justify-between py-3">
-          <div className="flex items-center gap-3">
-            <Logo width={160} className="text-cream opacity-70" />
-            <span className="block h-4 w-px bg-white/20" />
-            <span className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white/50">
-              Admin
-            </span>
-          </div>
           <a
             href="/beta"
-            className="group flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-cream/45 no-underline"
+            className="group flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white no-underline"
           >
             <svg
-              className="h-4 w-4 transition-transform duration-200 ease-out group-hover:-translate-x-[3px]"
+              className="h-4 w-4 text-white transition-transform duration-200 ease-out group-hover:-translate-x-[3px]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -36,9 +29,16 @@ export const AdminHeader = ({ flashing = false }: AdminHeaderProps) => {
             </svg>
             To Beta
           </a>
+          <div className="flex items-center gap-3">
+            <Logo width={160} className="text-white" />
+            <span className="block h-4 w-px bg-white" />
+            <span className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white">
+              Admin
+            </span>
+          </div>
         </div>
       </div>
-      <div className="border-b-2 border-black bg-cream px-[7vw]">
+      <div className="border-b border-black/10  bg-cream px-[7vw]">
         <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-4 py-5 md:flex-row md:items-center md:justify-between md:gap-8 md:py-[22px]">
           <h1
             className="text-center font-bold tracking-[-0.02em] md:text-left"
@@ -46,11 +46,7 @@ export const AdminHeader = ({ flashing = false }: AdminHeaderProps) => {
           >
             Admin Programmer.
           </h1>
-          <BinaryHero
-            width={300}
-            flashing={flashing}
-            className="max-w-full"
-          />
+          <BinaryHero width={300} flashing={flashing} className="max-w-full" />
         </div>
       </div>
     </>

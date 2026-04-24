@@ -88,12 +88,34 @@ export const LocalFlasher = () => {
 
   const [catalogue, setCatalogue] = useState<AdminFirmware[]>([]);
   const [catalogueLoading, setCatalogueLoading] = useState(true);
+  // Cached per-section counts from the last successful load, persisted in
+  // localStorage so the skeleton mirrors the real layout (Production section
+  // + Beta section, each with the right number of rows) on first render.
+  const [cachedCounts, setCachedCounts] = useState<{
+    production: number;
+    beta: number;
+  }>(() => {
+    if (typeof window === "undefined") return { production: 2, beta: 1 };
+    try {
+      const raw = window.localStorage.getItem("cba-admin-firmware-counts");
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          production?: number;
+          beta?: number;
+        };
+        if (
+          typeof parsed.production === "number" &&
+          typeof parsed.beta === "number"
+        ) {
+          return { production: parsed.production, beta: parsed.beta };
+        }
+      }
+    } catch {
+      // fall through to default
+    }
+    return { production: 2, beta: 1 };
+  });
   const [catalogueError, setCatalogueError] = useState<string | null>(null);
-  // Separate from catalogueLoading: stays true through the HEAD-probe phase
-  // too, so the Refresh button's "Refreshing…" label reflects the full
-  // refresh cycle (not just the initial manifest fetch, which is fast enough
-  // to feel invisible).
-  const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   // Per-row deploy state: "live" once the file is served by the CDN, "pending"
   // if we got a 404 (uploaded but Vercel hasn't redeployed yet), "checking"
@@ -106,7 +128,6 @@ export const LocalFlasher = () => {
   const loadCatalogues = async () => {
     const token = ++refreshTokenRef.current;
     setCatalogueLoading(true);
-    setRefreshing(true);
     setCatalogueError(null);
     try {
       const resp = await fetch(`/api/admin/list-firmwares?t=${token}`, {
@@ -138,16 +159,22 @@ export const LocalFlasher = () => {
         ...toAdmin(data.beta, "beta"),
       ].sort((a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1));
       setCatalogue(merged);
-      setCatalogueLoading(false);
-      // Await probe so the Refresh button keeps signalling work through the
-      // HEAD-probe phase, but flip catalogueLoading off first so rows show
-      // while probe runs.
-      await probeDeployStatus(merged);
+      const nextCounts = {
+        production: merged.filter((m) => m.target === "production").length,
+        beta: merged.filter((m) => m.target === "beta").length,
+      };
+      setCachedCounts(nextCounts);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          "cba-admin-firmware-counts",
+          JSON.stringify(nextCounts),
+        );
+      }
+      void probeDeployStatus(merged);
     } catch (err) {
       setCatalogueError(err instanceof Error ? err.message : String(err));
-      setCatalogueLoading(false);
     } finally {
-      setRefreshing(false);
+      setCatalogueLoading(false);
     }
   };
 
@@ -996,40 +1023,70 @@ export const LocalFlasher = () => {
         <div className="hidden bg-black/[0.09] md:block md:self-stretch" />
 
         <div className="pb-20 pt-0 md:pl-9 md:pt-9">
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5">
             <SectionLabel className="mb-0">Saved firmwares</SectionLabel>
-            <button
-              type="button"
-              onClick={() => void loadCatalogues()}
-              disabled={refreshing}
-              className="cursor-pointer border-none bg-transparent p-0 text-[10px] font-bold uppercase tracking-[0.1em] text-black/35 underline underline-offset-[3px] transition-opacity duration-150 hover:text-black/60 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {refreshing ? "Refreshing…" : "Refresh"}
-            </button>
           </div>
 
           <div data-no-trail className="flex flex-col gap-6">
             {catalogueLoading &&
-              Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={`skel-${i}`}
-                  className="animate-cba-pulse relative flex items-center gap-3 px-3.5 py-3"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -bottom-px -top-px left-0 z-[1] w-[2px] bg-black/10"
-                  />
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <div className="h-[10px] w-16 bg-black/10" />
-                    <div className="h-3.5 w-40 bg-black/10" />
-                    <div className="h-3 w-48 bg-black/10" />
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <div className="h-[26px] w-14 bg-black/10" />
-                    <div className="h-[26px] w-14 bg-black/10" />
-                  </div>
-                </div>
-              ))}
+              (
+                [
+                  {
+                    label: "Production",
+                    color: "var(--color-green)",
+                    count: cachedCounts.production,
+                  },
+                  {
+                    label: "Beta",
+                    color: GOLD,
+                    count: cachedCounts.beta,
+                  },
+                ] as const
+              )
+                .filter((s) => s.count > 0)
+                .map((section) => (
+                  <section key={`skel-${section.label}`}>
+                    <div className="mb-2 flex items-baseline gap-2">
+                      <span
+                        className="text-[9px] font-bold uppercase tracking-[0.12em]"
+                        style={{ color: section.color }}
+                      >
+                        {section.label}
+                      </span>
+                      <span className="text-[9px] font-bold tracking-[0.12em] text-black/35">
+                        {section.count}
+                      </span>
+                    </div>
+                    <ul className="flex flex-col">
+                      {Array.from({ length: section.count }).map((_, i) => (
+                        <li
+                          key={i}
+                          className="animate-cba-pulse relative flex items-center gap-3 bg-cream px-3.5 py-3"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute -bottom-px -top-px left-0 z-[1] w-[4px] bg-black/10"
+                          />
+                          <div className="flex min-w-0 flex-1 flex-col gap-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="h-2 w-2 shrink-0 rounded-full bg-black/10" />
+                              <div className="h-[17px] w-36 bg-black/10" />
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <div className="h-[13px] w-40 bg-black/10" />
+                              <div className="h-[12px] w-12 shrink-0 bg-black/10" />
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <div className="h-[24px] w-[52px] border border-black/10" />
+                            <div className="h-[24px] w-[66px] border border-black/10" />
+                            <div className="h-[24px] w-[62px] border border-black/10" />
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
             {catalogueError && (
               <p className="px-6 py-6 text-center text-sm font-semibold text-red">
                 Could not load: {catalogueError}

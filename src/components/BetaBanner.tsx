@@ -5,7 +5,7 @@ export const BetaBanner = () => {
         Beta
       </span>
       <span className="text-[13px] font-medium">
-        Unreleased firmware. For internal testing only devices.
+        Unreleased firmware. For internal testing.
       </span>
     </div>
   );
