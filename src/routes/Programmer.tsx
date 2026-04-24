@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BinaryHero } from "@/components/BinaryHero";
+import { Logo } from "@/components/Logo";
 import { CbaButton } from "@/components/CbaButton";
 import { InstructionsPanel } from "@/components/Instructions";
 import { Nav } from "@/components/Nav";
@@ -262,6 +263,7 @@ export const Programmer = ({
       >
         <div className="pb-8 pt-11 md:pb-20 md:pr-[52px]">
           <div className="mb-8 items-center flex flex-col gap-3">
+            <Logo width={320} className="text-black" />
             <h1
               className="font-bold tracking-[-0.02em]"
               style={{ fontSize: "clamp(1.6rem, 2.4vw, 2.25rem)" }}

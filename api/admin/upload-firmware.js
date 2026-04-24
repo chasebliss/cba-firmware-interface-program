@@ -4,12 +4,12 @@
 // the firmware appears in the running app on next build.
 //
 // Required env vars:
-//   BETA_PASSWORD — shared with middleware.js, used to verify the auth cookie
-//   GITHUB_TOKEN  — fine-grained PAT with contents:write on this repo
-//   GITHUB_REPO   — "owner/name" of this repo (e.g. "jsfowles/bliss-programmer")
-//   GITHUB_BRANCH — optional, defaults to "main"
+//   ADMIN_PASSWORD — shared with middleware.js, used to verify the auth cookie
+//   GITHUB_TOKEN   — fine-grained PAT with contents:write on this repo
+//   GITHUB_REPO    — "owner/name" of this repo (e.g. "jsfowles/bliss-programmer")
+//   GITHUB_BRANCH  — optional, defaults to "main"
 
-const COOKIE_NAME = "beta_auth";
+const COOKIE_NAME = "admin_auth";
 const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10MB hard cap
 
 export default async function handler(req, res) {
@@ -260,7 +260,7 @@ function encodeURIPath(path) {
 }
 
 async function verifyAuth(req) {
-  const password = process.env.BETA_PASSWORD;
+  const password = process.env.ADMIN_PASSWORD;
   if (!password) return false;
   const expected = await signOk(password);
   const cookieHeader = req.headers.cookie ?? "";

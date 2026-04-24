@@ -4,9 +4,9 @@
 // upload-firmware.js.
 //
 // Required env vars (same as upload-firmware.js):
-//   BETA_PASSWORD, GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH (optional)
+//   ADMIN_PASSWORD, GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH (optional)
 
-const COOKIE_NAME = "beta_auth";
+const COOKIE_NAME = "admin_auth";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -34,9 +34,9 @@ export default async function handler(req, res) {
         diagnostic: {
           hasGITHUB_TOKEN: !!process.env.GITHUB_TOKEN,
           hasGITHUB_REPO: !!process.env.GITHUB_REPO,
-          hasBETA_PASSWORD: !!process.env.BETA_PASSWORD,
+          hasADMIN_PASSWORD: !!process.env.ADMIN_PASSWORD,
           relatedKeys: Object.keys(process.env).filter((k) =>
-            /^(GITHUB_|BETA_|VERCEL_)/.test(k),
+            /^(GITHUB_|ADMIN_|BETA_|VERCEL_)/.test(k),
           ),
         },
       }),
@@ -233,7 +233,7 @@ function encodeURIPath(path) {
 }
 
 async function verifyAuth(req) {
-  const password = process.env.BETA_PASSWORD;
+  const password = process.env.ADMIN_PASSWORD;
   if (!password) return false;
   const expected = await signOk(password);
   const cookieHeader = req.headers.cookie ?? "";

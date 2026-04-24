@@ -5,9 +5,9 @@
 // client can't hit raw.githubusercontent.com directly — this proxy is the
 // only way to read live manifest state from the browser.
 //
-// Auth-gated on the same beta_auth cookie as upload/delete.
+// Auth-gated on the admin_auth cookie (ADMIN_PASSWORD), same as upload/delete.
 
-const COOKIE_NAME = "beta_auth";
+const COOKIE_NAME = "admin_auth";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -129,7 +129,7 @@ function encodeURIPath(path) {
 }
 
 async function verifyAuth(req) {
-  const password = process.env.BETA_PASSWORD;
+  const password = process.env.ADMIN_PASSWORD;
   if (!password) return false;
   const expected = await signOk(password);
   const cookieHeader = req.headers.cookie ?? "";

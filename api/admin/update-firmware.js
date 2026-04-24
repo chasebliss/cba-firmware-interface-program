@@ -3,9 +3,9 @@
 // rename, or change accent color without re-uploading the .bin/.hex.
 //
 // Required env vars (same as upload-firmware.js):
-//   BETA_PASSWORD, GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH (optional)
+//   ADMIN_PASSWORD, GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH (optional)
 
-const COOKIE_NAME = "beta_auth";
+const COOKIE_NAME = "admin_auth";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -212,7 +212,7 @@ function encodeURIPath(path) {
 }
 
 async function verifyAuth(req) {
-  const password = process.env.BETA_PASSWORD;
+  const password = process.env.ADMIN_PASSWORD;
   if (!password) return false;
   const expected = await signOk(password);
   const cookieHeader = req.headers.cookie ?? "";
