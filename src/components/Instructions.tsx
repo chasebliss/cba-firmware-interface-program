@@ -117,7 +117,7 @@ export const InstructionsPanel = () => {
   const [os, setOs] = useState<"mac" | "win">("mac");
   return (
     <div>
-      <p className="mb-2.5 text-[10px] text-gold font-bold uppercase tracking-[0.12em] ">
+      <p className="mb-2.5 text-[10px] text-gold font-bold uppercase tracking-widest ">
         Instructions
       </p>
       <OSTabs os={os} onChange={setOs} />

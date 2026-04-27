@@ -42,3 +42,7 @@ export {
   requestAndConnectDevice,
   type ConnectResult,
 } from "./connect";
+
+export { FakeDfuseTransport, connectToFakeDevice } from "./fake-device";
+
+export type { UsbTransport } from "./transport";

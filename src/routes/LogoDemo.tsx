@@ -67,7 +67,7 @@ export const LogoDemo = () => {
       <div className="mx-auto max-w-[1400px]">
         <div className="mb-10 flex items-end justify-between border-b-2 border-black pb-6">
           <div>
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-black/45">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-black/45">
               Playground
             </p>
             <h1 className="text-[28px] font-bold tracking-[-0.02em]">
@@ -95,7 +95,7 @@ export const LogoDemo = () => {
             <section key={logo.id}>
               <div className="mb-5 flex items-baseline justify-between border-b border-black/15 pb-2">
                 <h2 className="text-lg font-bold">{logo.label}</h2>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black/45">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-black/45">
                   {ANIMATIONS.length} animations
                 </p>
               </div>
@@ -106,7 +106,7 @@ export const LogoDemo = () => {
                     className="flex flex-col rounded-sm border border-black/10 bg-white/60 p-4"
                   >
                     <div className="mb-3 flex items-center justify-between">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black/55">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-black/55">
                         {anim.label}
                       </p>
                       {anim.continuous && (

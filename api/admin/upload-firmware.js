@@ -112,14 +112,17 @@ export default async function handler(req, res) {
     );
 
     // 2. Update existing manifest entry in place, or append a new one.
+    const now = new Date().toISOString();
     if (existingIdx !== -1) {
       entries[existingIdx] = {
         ...entries[existingIdx],
         name,
         description: description || name,
         bgColor: bgColor || entries[existingIdx].bgColor || "#ba8e51",
-        // Preserve the original uploadedAt on update so "X ago" still reflects
-        // the initial upload, not the latest edit.
+        // Preserve uploadedAt — that's the original release date, surfaced to
+        // public users via the firmware dropdown. Bump updatedAt instead so
+        // the admin row reflects the latest edit.
+        updatedAt: now,
       };
     } else {
       const nextId = entries.reduce((m, e) => Math.max(m, e.id), -1) + 1;
@@ -131,7 +134,8 @@ export default async function handler(req, res) {
         description: description || name,
         bgColor: bgColor || "#ba8e51",
         active: true,
-        uploadedAt: new Date().toISOString(),
+        uploadedAt: now,
+        updatedAt: now,
       });
     }
     const newContent = Buffer.from(

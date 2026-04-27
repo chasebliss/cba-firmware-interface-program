@@ -417,7 +417,7 @@ export const Programmer = ({
           </StepCard>
         </div>
 
-        <div className="self-stretch bg-black/[0.09]" />
+        <div className="self-stretch bg-black/9" />
 
         <div
           className="pb-20 pl-9 pt-11"

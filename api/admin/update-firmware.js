@@ -115,6 +115,7 @@ export default async function handler(req, res) {
     if (typeof patch.active === "boolean") {
       next.active = patch.active;
     }
+    next.updatedAt = new Date().toISOString();
     entries[idx] = next;
 
     const verb = patch.active === false

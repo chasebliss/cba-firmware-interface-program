@@ -2,6 +2,8 @@
 // preserved exactly. UI concerns (logging, progress rendering) are passed in
 // as a logger interface; nothing in here touches the DOM.
 
+import type { UsbTransport } from "./transport";
+
 export const DFU_REQUEST = {
   DETACH: 0x00,
   DNLOAD: 0x01,
@@ -248,14 +250,14 @@ export const parseSubDescriptors = (
 };
 
 export class DfuDevice {
-  device_: USBDevice;
+  device_: UsbTransport;
   settings: DfuInterfaceSettings;
   intfNumber: number;
   disconnected = false;
   logger: DfuLogger = {};
   properties?: DfuDeviceProperties;
 
-  constructor(device: USBDevice, settings: DfuInterfaceSettings) {
+  constructor(device: UsbTransport, settings: DfuInterfaceSettings) {
     this.device_ = device;
     this.settings = settings;
     this.intfNumber = settings.interface.interfaceNumber;

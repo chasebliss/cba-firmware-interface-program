@@ -11,6 +11,7 @@ import {
   type DfuInterfaceSettings,
   type DfuStatus,
 } from "./dfu";
+import type { UsbTransport } from "./transport";
 
 export const DFUSE_COMMAND = {
   GET_COMMANDS: 0x00,
@@ -90,7 +91,7 @@ export class DfuseDevice extends DfuDevice {
   memoryInfo: MemoryInfo | null = null;
   startAddress: number = NaN;
 
-  constructor(device: USBDevice, settings: DfuInterfaceSettings) {
+  constructor(device: UsbTransport, settings: DfuInterfaceSettings) {
     super(device, settings);
     if (settings.name) {
       this.memoryInfo = parseMemoryDescriptor(settings.name);

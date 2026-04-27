@@ -11,7 +11,7 @@ export const SectionLabel = ({
 }: SectionLabelProps) => {
   return (
     <p
-      className={`mb-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-black/[0.38] ${className}`}
+      className={`mb-2.5 text-[10px] font-bold uppercase tracking-widest text-black/38 ${className}`}
     >
       {children}
     </p>
