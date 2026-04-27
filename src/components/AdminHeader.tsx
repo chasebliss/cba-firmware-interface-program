@@ -1,5 +1,5 @@
 import { BinaryHero } from "@/components/BinaryHero";
-import { Logo } from "@/components/Logo";
+import { Nav } from "@/components/Nav";
 
 interface AdminHeaderProps {
   flashing?: boolean;
@@ -8,37 +8,12 @@ interface AdminHeaderProps {
 export const AdminHeader = ({ flashing = false }: AdminHeaderProps) => {
   return (
     <>
-      <div className="bg-black px-[7vw]">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between py-[30px]">
-          <a
-            href="/beta"
-            className="group flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white no-underline"
-          >
-            <svg
-              className="h-4 w-4 text-white transition-transform duration-200 ease-out group-hover:-translate-x-[3px]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2.5"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            To Beta
-          </a>
-          <div className="flex items-center gap-3">
-            <Logo width={160} className="text-white" />
-            <span className="block h-4 w-px bg-white" />
-            <span className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white">
-              Admin
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="border-b border-black/10  bg-cream px-[7vw]">
+      <Nav
+        variant="dark"
+        rightLabel="Admin"
+        backLink={{ href: "/beta", label: "To Beta" }}
+      />
+      <div className="border-b border-black/10 bg-cream px-[7vw]">
         <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-4 py-5 md:flex-row md:items-center md:justify-between md:gap-8 md:py-[22px]">
           <h1
             className="text-center font-bold tracking-[-0.02em] md:text-left"

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BinaryHero } from "@/components/BinaryHero";
 import { CbaButton } from "@/components/CbaButton";
 import { InstructionsPanel } from "@/components/Instructions";
-import { Nav } from "@/components/Nav";
+import { Nav, type NavProps } from "@/components/Nav";
 import { PedalDropdown } from "@/components/PedalDropdown";
 import { StepCard } from "@/components/StepCard";
 import { SuccessBurst } from "@/components/SuccessBurst";
@@ -31,12 +31,9 @@ interface ProgrammerProps {
   showInactive?: boolean;
   banner?: ReactNode;
   title?: string;
-  navVariant?: "light" | "dark";
-  navRightSlot?: ReactNode;
-  showNavInstructions?: boolean;
+  navProps?: NavProps;
   heroWidth?: number;
   heroOpacity?: number;
-  navBgClass?: string;
 }
 
 export const Programmer = ({
@@ -44,12 +41,9 @@ export const Programmer = ({
   showInactive = false,
   banner,
   title = "Bliss Programmer.",
-  navVariant = "light",
-  navRightSlot,
-  showNavInstructions = true,
+  navProps,
   heroWidth = 500,
   heroOpacity = 1,
-  navBgClass = "",
 }: ProgrammerProps) => {
   const [catalogue, setCatalogue] = useState<FirmwareEntry[]>([]);
   const [catalogueLoading, setCatalogueLoading] = useState(true);
@@ -249,13 +243,7 @@ export const Programmer = ({
     <div className="min-h-screen animate-cba-fade-in bg-cream">
       <SuccessBurst trigger={burstTrigger} />
       {banner}
-      <div className={`px-[7vw] ${navBgClass}`}>
-        <Nav
-          variant={navVariant}
-          showInstructions={showNavInstructions}
-          rightSlot={navRightSlot}
-        />
-      </div>
+      <Nav {...navProps} />
       <div
         className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-[7vw] md:grid-cols-[1fr_1px_300px] md:gap-0"
         style={{ minHeight: "calc(100vh - 80px)" }}

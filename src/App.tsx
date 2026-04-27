@@ -1,5 +1,4 @@
 import { Route, Routes, useLocation } from "react-router";
-import { BetaBanner } from "@/components/BetaBanner";
 import { MouseTrail } from "@/components/MouseTrail";
 import { UnsupportedNotice } from "@/components/UnsupportedNotice";
 import { BETA_SOURCES, PRODUCTION_SOURCES } from "@/data/sources";
@@ -18,17 +17,15 @@ const IS_MOBILE_DEVICE = (() => {
   if (/Android|iPhone|iPad|iPod|BlackBerry|webOS|Windows Phone/i.test(ua)) {
     return true;
   }
-  if (ua.includes("Mac") && typeof document !== "undefined" && "ontouchend" in document) {
+  if (
+    ua.includes("Mac") &&
+    typeof document !== "undefined" &&
+    "ontouchend" in document
+  ) {
     return true;
   }
   return false;
 })();
-
-const BetaRightSlot = () => (
-  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-cream/35">
-    internal · not for customers
-  </span>
-);
 
 const TrailOnNonDemoRoutes = () => {
   const { pathname } = useLocation();
@@ -48,29 +45,20 @@ const App = () => {
     <>
       <TrailOnNonDemoRoutes />
       <Routes>
-          <Route
-            path="/"
-            element={<Programmer sources={PRODUCTION_SOURCES} />}
-          />
-          <Route
-            path="/beta"
-            element={
-              <Programmer
-                sources={BETA_SOURCES}
-                title="Beta Programmer."
-                banner={<BetaBanner />}
-                navVariant="dark"
-                navBgClass="bg-black"
-                showNavInstructions={false}
-                navRightSlot={<BetaRightSlot />}
-                heroWidth={500}
-                heroOpacity={1}
-              />
-            }
-          />
-          <Route path="/admin" element={<LocalFlasher />} />
-          <Route path="/logo-demo" element={<LogoDemo />} />
-        </Routes>
+        <Route path="/" element={<Programmer sources={PRODUCTION_SOURCES} />} />
+        <Route
+          path="/beta"
+          element={
+            <Programmer
+              sources={BETA_SOURCES}
+              title="Beta Programmer."
+              navProps={{ variant: "dark", rightLabel: "Beta" }}
+            />
+          }
+        />
+        <Route path="/admin" element={<LocalFlasher />} />
+        <Route path="/logo-demo" element={<LogoDemo />} />
+      </Routes>
     </>
   );
 };
