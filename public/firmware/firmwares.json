@@ -18,5 +18,16 @@
     "bgColor": "#b48ecf",
     "active": true,
     "uploadedAt": "2026-04-23T23:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "name": "BIG TIME 1.0.0",
+    "platform": "models",
+    "filepath": "./BIGTIME_Audio_1.0.0.hex",
+    "description": "Initial production release",
+    "bgColor": "#ba8e51",
+    "active": true,
+    "uploadedAt": "2026-06-17T16:10:49.620Z",
+    "updatedAt": "2026-06-17T16:10:49.620Z"
   }
 ]
