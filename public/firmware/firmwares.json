@@ -26,9 +26,9 @@
     "filepath": "./BIGTIME_Audio_1.0.0.hex",
     "description": "Initial production release",
     "bgColor": "#ba8e51",
-    "active": true,
+    "active": false,
     "uploadedAt": "2026-06-17T16:10:49.620Z",
-    "updatedAt": "2026-06-17T16:10:49.620Z"
+    "updatedAt": "2026-07-29T18:49:51.532Z"
   },
   {
     "id": 3,
