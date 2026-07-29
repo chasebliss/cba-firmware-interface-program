@@ -19,5 +19,16 @@
     "active": false,
     "uploadedAt": "2026-04-23T23:34:45.982Z",
     "updatedAt": "2026-05-06T17:29:43.839Z"
+  },
+  {
+    "id": 2,
+    "name": "LOST AND FOUND 0.2.0",
+    "platform": "models",
+    "filepath": "./lostAndFound_daughter_0.2.0.bin",
+    "description": "A new hidden option under the 4,5,6 toggle that changes the voicing of the resonator.",
+    "bgColor": "#50b98c",
+    "active": true,
+    "uploadedAt": "2026-07-29T17:16:51.152Z",
+    "updatedAt": "2026-07-29T17:16:51.152Z"
   }
 ]
