@@ -6,8 +6,9 @@
     "filepath": "./combo_test.hex",
     "description": "Combo Test",
     "bgColor": "#ba8e51",
-    "active": true,
-    "uploadedAt": "2026-04-23T23:00:00.000Z"
+    "active": false,
+    "uploadedAt": "2026-04-23T23:00:00.000Z",
+    "updatedAt": "2026-07-29T18:50:46.114Z"
   },
   {
     "id": 1,
