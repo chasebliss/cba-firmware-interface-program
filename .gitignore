@@ -31,3 +31,4 @@ coverage
 # Local agent/tool scratch
 .claude/
 .playwright-mcp/
+.env*
