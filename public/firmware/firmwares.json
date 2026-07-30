@@ -37,8 +37,8 @@
     "filepath": "./lostAndFound_daughter_0.2.0.bin",
     "description": "A new hidden option under the 4,5,6 toggle that changes the voicing of the resonator.",
     "bgColor": "#50b98c",
-    "active": false,
+    "active": true,
     "uploadedAt": "2026-07-29T16:41:34.137Z",
-    "updatedAt": "2026-07-29T18:32:40.768Z"
+    "updatedAt": "2026-07-30T03:34:19.254Z"
   }
 ]
