@@ -11,17 +11,6 @@
     "updatedAt": "2026-07-29T18:50:46.114Z"
   },
   {
-    "id": 1,
-    "name": "This is test",
-    "platform": "models",
-    "filepath": "./aweerasdff.bin",
-    "description": "big time test here bro",
-    "bgColor": "#ff0aca",
-    "active": false,
-    "uploadedAt": "2026-04-23T23:34:45.982Z",
-    "updatedAt": "2026-05-06T17:29:43.839Z"
-  },
-  {
     "id": 2,
     "name": "LOST AND FOUND 0.2.0",
     "platform": "models",
