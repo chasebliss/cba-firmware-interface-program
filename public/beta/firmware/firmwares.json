@@ -1,16 +1,5 @@
 [
   {
-    "id": 0,
-    "name": "Combo Test",
-    "platform": "models",
-    "filepath": "./combo_test.hex",
-    "description": "Combo Test",
-    "bgColor": "#ba8e51",
-    "active": false,
-    "uploadedAt": "2026-04-23T23:00:00.000Z",
-    "updatedAt": "2026-07-29T18:50:46.114Z"
-  },
-  {
     "id": 2,
     "name": "LOST AND FOUND 0.2.0",
     "platform": "models",
