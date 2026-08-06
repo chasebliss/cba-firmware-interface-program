@@ -6,6 +6,8 @@
 // Required env vars (same as upload-firmware.js):
 //   ADMIN_PASSWORD, GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH (optional)
 
+import { dirFor, isValidTarget, TARGET_ERROR } from "./channels.js";
+
 const COOKIE_NAME = "admin_auth";
 
 export default async function handler(req, res) {
@@ -60,8 +62,7 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: err }));
   }
 
-  const prefix =
-    target === "beta" ? "public/beta/firmware" : "public/firmware";
+  const prefix = dirFor(target);
   const filePath = `${prefix}/${filename}`;
   const manifestPath = `${prefix}/firmwares.json`;
   const entryFilepath = `./${filename}`;
@@ -140,8 +141,7 @@ function validate({ filename, target }) {
     return "filename contains illegal characters";
   if (!/\.(bin|hex)$/i.test(filename))
     return "filename must end in .bin or .hex";
-  if (target !== "production" && target !== "beta")
-    return "target must be 'production' or 'beta'";
+  if (!isValidTarget(target)) return TARGET_ERROR;
   return null;
 }
 

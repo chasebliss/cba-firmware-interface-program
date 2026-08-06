@@ -1,20 +1,29 @@
 import { AdminFirmwareListSkeleton } from "@/components/AdminFirmwareListSkeleton";
 import { AdminFirmwareRow } from "@/components/AdminFirmwareRow";
 import { SectionLabel } from "@/components/SectionLabel";
-import {
-  GOLD,
-  type AdminFirmware,
-  type DeployStatus,
+import type {
+  AdminFirmware,
+  DeployStatus,
+  SaveTarget,
 } from "@/lib/admin-firmware";
+
+export interface FirmwareSection {
+  id: string;
+  label: string;
+  color: string;
+  rows: AdminFirmware[];
+  // Page that serves this channel. Undefined for the mock section, which has
+  // no public page — that header stays plain text.
+  route?: string;
+}
 
 interface AdminFirmwareListProps {
   loading: boolean;
   error: string | null;
   showMockRow: boolean;
   catalogueEmpty: boolean;
-  cachedCounts: { production: number; beta: number };
-  productionRows: AdminFirmware[];
-  betaRows: AdminFirmware[];
+  cachedCounts: Partial<Record<SaveTarget, number>>;
+  sections: FirmwareSection[];
   deployStatus: Record<string, DeployStatus>;
   deleting: string | null;
   toggling: string | null;
@@ -30,8 +39,7 @@ export const AdminFirmwareList = ({
   showMockRow,
   catalogueEmpty,
   cachedCounts,
-  productionRows,
-  betaRows,
+  sections,
   deployStatus,
   deleting,
   toggling,
@@ -40,19 +48,6 @@ export const AdminFirmwareList = ({
   onToggleActive,
   onDelete,
 }: AdminFirmwareListProps) => {
-  const sections = [
-    {
-      label: "Production" as const,
-      color: "var(--color-green)",
-      rows: productionRows,
-    },
-    {
-      label: "Beta" as const,
-      color: GOLD,
-      rows: betaRows,
-    },
-  ];
-
   return (
     <div className="pb-20 pt-0 md:pl-9 md:pt-9">
       <div className="mb-5">
@@ -82,14 +77,41 @@ export const AdminFirmwareList = ({
           sections
             .filter((s) => s.rows.length > 0)
             .map((section) => (
-              <section key={section.label}>
+              <section key={section.id}>
                 <div className="mb-2 flex items-baseline gap-2">
-                  <span
-                    className="text-[9px] font-bold uppercase tracking-widest"
-                    style={{ color: section.color }}
-                  >
-                    {section.label}
-                  </span>
+                  {section.route ? (
+                    <a
+                      href={section.route}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={`Open ${section.route} in a new tab`}
+                      className="group flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest no-underline hover:underline"
+                      style={{ color: section.color }}
+                    >
+                      {section.label}
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        className="h-2 w-2 opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M7 17L17 7M17 7H8M17 7v9"
+                        />
+                      </svg>
+                    </a>
+                  ) : (
+                    <span
+                      className="text-[9px] font-bold uppercase tracking-widest"
+                      style={{ color: section.color }}
+                    >
+                      {section.label}
+                    </span>
+                  )}
                   <span className="text-[9px] font-bold tracking-widest text-black/35">
                     {section.rows.length}
                   </span>

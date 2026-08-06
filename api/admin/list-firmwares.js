@@ -1,11 +1,16 @@
-// Vercel Node.js serverless function. Returns the production + beta firmware
-// manifests straight from the GitHub Contents API (auth'd with GITHUB_TOKEN)
+// Vercel Node.js serverless function. Returns every channel's firmware
+// manifest straight from the GitHub Contents API (auth'd with GITHUB_TOKEN)
 // so the /admin view can show live repo state without waiting for a Vercel
 // redeploy to refresh the served public/ bundle. The repo is private, so the
 // client can't hit raw.githubusercontent.com directly — this proxy is the
 // only way to read live manifest state from the browser.
 //
 // Auth-gated on the admin_auth cookie (ADMIN_PASSWORD), same as upload/delete.
+//
+// Response shape is one key per channel: { production: [...], beta: [...],
+// nightly: [...] }. Adding a channel to the registry adds a key here.
+
+import { CHANNELS } from "./channels.js";
 
 const COOKIE_NAME = "admin_auth";
 
@@ -35,27 +40,32 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [productionRaw, betaRaw] = await Promise.all([
-      fetchManifest(repo, "public/firmware/firmwares.json", branch, token),
-      fetchManifest(repo, "public/beta/firmware/firmwares.json", branch, token),
-    ]);
-    // Fill in uploadedAt for entries missing it (older uploads pre-dating the
-    // field) by asking GitHub for the most recent commit that touched the
-    // corresponding binary. One extra API call per such entry; fine for small N.
-    const [production, beta] = await Promise.all([
-      backfillUploadedAt(productionRaw, "public/firmware", branch, token, repo),
-      backfillUploadedAt(
-        betaRaw,
-        "public/beta/firmware",
-        branch,
-        token,
-        repo,
-      ),
-    ]);
+    // One manifest fetch per channel, then backfill uploadedAt for entries
+    // missing it (older uploads pre-dating the field) by asking GitHub for the
+    // most recent commit that touched the corresponding binary. One extra API
+    // call per such entry; fine for small N.
+    const byChannel = await Promise.all(
+      CHANNELS.map(async (channel) => {
+        const raw = await fetchManifest(
+          repo,
+          `${channel.dir}/firmwares.json`,
+          branch,
+          token,
+        );
+        const entries = await backfillUploadedAt(
+          raw,
+          channel.dir,
+          branch,
+          token,
+          repo,
+        );
+        return [channel.id, entries];
+      }),
+    );
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Cache-Control", "no-store");
-    return res.end(JSON.stringify({ production, beta }));
+    return res.end(JSON.stringify(Object.fromEntries(byChannel)));
   } catch (e) {
     res.statusCode = 502;
     res.setHeader("Content-Type", "application/json");

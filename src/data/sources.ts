@@ -30,3 +30,16 @@ export const BETA_SOURCES: FirmwareSource[] = [
     repo_url: "/beta/firmware/",
   },
 ];
+
+// Nightly firmware for power users who want in-progress builds. Unlike /beta
+// this route is NOT password-gated — middleware's matcher doesn't cover
+// /nightly, so both the page and the .bin files under public/nightly/firmware/
+// are publicly fetchable. That's intentional; don't put anything here that
+// shouldn't be public.
+export const NIGHTLY_SOURCES: FirmwareSource[] = [
+  {
+    name: "Nightly",
+    data_url: "/nightly/firmware/firmwares.json",
+    repo_url: "/nightly/firmware/",
+  },
+];

@@ -1,9 +1,10 @@
 import { CbaButton } from "@/components/CbaButton";
 import { SectionLabel } from "@/components/SectionLabel";
-import type {
-  AdminFirmware,
-  SaveStatus,
-  SaveTarget,
+import {
+  CHANNELS,
+  type AdminFirmware,
+  type SaveStatus,
+  type SaveTarget,
 } from "@/lib/admin-firmware";
 
 interface AdminSaveFormProps {
@@ -162,20 +163,20 @@ export const AdminSaveForm = ({
               Target
             </label>
             <div className="flex gap-4">
-              {(["beta", "production"] as const).map((t) => (
+              {CHANNELS.map((channel) => (
                 <label
-                  key={t}
+                  key={channel.id}
                   className="flex cursor-pointer items-center gap-1.5 text-[13px] font-bold"
                 >
                   <input
                     type="radio"
                     name="saveTarget"
-                    value={t}
-                    checked={saveTarget === t}
-                    onChange={() => onSaveTargetChange(t)}
+                    value={channel.id}
+                    checked={saveTarget === channel.id}
+                    onChange={() => onSaveTargetChange(channel.id)}
                     style={{ accentColor: "#000" }}
                   />
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {channel.label}
                 </label>
               ))}
             </div>

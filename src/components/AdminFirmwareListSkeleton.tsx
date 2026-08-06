@@ -1,31 +1,25 @@
-import { GOLD } from "@/lib/admin-firmware";
+import { CHANNELS, type SaveTarget } from "@/lib/admin-firmware";
 
 interface AdminFirmwareListSkeletonProps {
-  cachedCounts: { production: number; beta: number };
+  cachedCounts: Partial<Record<SaveTarget, number>>;
 }
 
 export const AdminFirmwareListSkeleton = ({
   cachedCounts,
 }: AdminFirmwareListSkeletonProps) => {
-  const sections = [
-    {
-      label: "Production",
-      color: "var(--color-green)",
-      count: cachedCounts.production,
-    },
-    {
-      label: "Beta",
-      color: GOLD,
-      count: cachedCounts.beta,
-    },
-  ] as const;
+  const sections = CHANNELS.map((channel) => ({
+    id: channel.id,
+    label: channel.label,
+    color: channel.color,
+    count: cachedCounts[channel.id] ?? 0,
+  }));
 
   return (
     <>
       {sections
         .filter((s) => s.count > 0)
         .map((section) => (
-          <section key={`skel-${section.label}`}>
+          <section key={`skel-${section.id}`}>
             <div className="mb-2 flex items-baseline gap-2">
               <span
                 className="text-[9px] font-bold uppercase tracking-widest"

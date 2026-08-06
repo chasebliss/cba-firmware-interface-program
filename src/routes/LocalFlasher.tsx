@@ -7,11 +7,16 @@ import { AdminSaveForm } from "@/components/AdminSaveForm";
 import { SectionLabel } from "@/components/SectionLabel";
 import { SuccessBurst } from "@/components/SuccessBurst";
 import {
+  CHANNELS,
   DEFAULT_TRANSFER_SIZE,
+  FAKE_BG_COLOR,
   FAKE_ENTRY,
   FAKE_FILENAME,
   FAKE_PAYLOAD_BYTES,
   GOLD,
+  MOCK_TARGET,
+  isRealFirmware,
+  publicBaseFor,
   type AdminFirmware,
   type ConnectStatus,
   type DeployStatus,
@@ -38,6 +43,20 @@ type ConnectedDevice = Awaited<
 type LocalPayload =
   | { kind: "bin"; buffer: ArrayBuffer }
   | { kind: "hex"; segments: FirmwareSegment[] };
+
+const COUNTS_STORAGE_KEY = "cba-admin-firmware-counts-v2";
+
+// What the save-form target defaults to for a fresh upload. Deliberately not
+// production — an accidental save should land somewhere harmless.
+const DEFAULT_SAVE_TARGET: SaveTarget = "beta";
+
+// Skeleton row counts before the first load lands. Only a first-paint guess —
+// real counts replace these as soon as list-firmwares responds.
+const DEFAULT_COUNTS: Partial<Record<SaveTarget, number>> = {
+  production: 2,
+  beta: 1,
+  nightly: 1,
+};
 
 export const LocalFlasher = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -70,7 +89,7 @@ export const LocalFlasher = () => {
   const [saveName, setSaveName] = useState("");
   const [saveDescription, setSaveDescription] = useState("");
   const [saveBgColor, setSaveBgColor] = useState(GOLD);
-  const [saveTarget, setSaveTarget] = useState<SaveTarget>("beta");
+  const [saveTarget, setSaveTarget] = useState<SaveTarget>(DEFAULT_SAVE_TARGET);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   // When non-null, the form is in "edit mode" — Load was clicked on this
@@ -88,31 +107,29 @@ export const LocalFlasher = () => {
   const [catalogue, setCatalogue] = useState<AdminFirmware[]>([]);
   const [catalogueLoading, setCatalogueLoading] = useState(true);
   // Cached per-section counts from the last successful load, persisted in
-  // localStorage so the skeleton mirrors the real layout (Production section
-  // + Beta section, each with the right number of rows) on first render.
-  const [cachedCounts, setCachedCounts] = useState<{
-    production: number;
-    beta: number;
-  }>(() => {
-    if (typeof window === "undefined") return { production: 2, beta: 1 };
+  // localStorage so the skeleton mirrors the real layout (one section per
+  // channel, each with the right number of rows) on first render. Storage key
+  // is versioned — v2 dropped the fixed {production, beta} shape for a
+  // per-channel record, and a stale v1 value would fail validation anyway.
+  const [cachedCounts, setCachedCounts] = useState<
+    Partial<Record<SaveTarget, number>>
+  >(() => {
+    if (typeof window === "undefined") return DEFAULT_COUNTS;
     try {
-      const raw = window.localStorage.getItem("cba-admin-firmware-counts");
+      const raw = window.localStorage.getItem(COUNTS_STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as {
-          production?: number;
-          beta?: number;
-        };
-        if (
-          typeof parsed.production === "number" &&
-          typeof parsed.beta === "number"
-        ) {
-          return { production: parsed.production, beta: parsed.beta };
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        const counts: Partial<Record<SaveTarget, number>> = {};
+        for (const channel of CHANNELS) {
+          const v = parsed[channel.id];
+          if (typeof v === "number") counts[channel.id] = v;
         }
+        if (Object.keys(counts).length > 0) return counts;
       }
     } catch {
       // fall through to default
     }
-    return { production: 2, beta: 1 };
+    return DEFAULT_COUNTS;
   });
   const [catalogueError, setCatalogueError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -132,11 +149,9 @@ export const LocalFlasher = () => {
       const resp = await fetch(`/api/admin/list-firmwares?t=${token}`, {
         cache: "no-store",
       });
-      const data = (await resp.json().catch(() => ({}))) as {
-        production?: ManifestEntry[];
-        beta?: ManifestEntry[];
-        error?: string;
-      };
+      const data = (await resp.json().catch(() => ({}))) as Partial<
+        Record<SaveTarget, ManifestEntry[]>
+      > & { error?: string };
       if (!resp.ok) {
         throw new Error(data.error ?? `HTTP ${resp.status}`);
       }
@@ -154,19 +169,20 @@ export const LocalFlasher = () => {
           updatedAt: e.updatedAt ?? null,
           active: e.active !== false,
         }));
-      const merged = [
-        ...toAdmin(data.production, "production"),
-        ...toAdmin(data.beta, "beta"),
-      ].sort((a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1));
+      const merged = CHANNELS.flatMap((channel) =>
+        toAdmin(data[channel.id], channel.id),
+      ).sort((a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1));
       setCatalogue(merged);
-      const nextCounts = {
-        production: merged.filter((m) => m.target === "production").length,
-        beta: merged.filter((m) => m.target === "beta").length,
-      };
+      const nextCounts = Object.fromEntries(
+        CHANNELS.map((channel) => [
+          channel.id,
+          merged.filter((m) => m.target === channel.id).length,
+        ]),
+      ) as Partial<Record<SaveTarget, number>>;
       setCachedCounts(nextCounts);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
-          "cba-admin-firmware-counts",
+          COUNTS_STORAGE_KEY,
           JSON.stringify(nextCounts),
         );
       }
@@ -180,16 +196,19 @@ export const LocalFlasher = () => {
 
   const probeDeployStatus = async (entries: AdminFirmware[]) => {
     const token = refreshTokenRef.current;
+    // The mock row has no CDN presence — skip it rather than probing a URL
+    // that can't exist.
+    const real = entries.filter(isRealFirmware);
     setDeployStatus((prev) => {
       const next = { ...prev };
-      for (const e of entries) {
+      for (const e of real) {
         next[`${e.target}:${e.filename}`] = "checking";
       }
       return next;
     });
     await Promise.all(
-      entries.map(async (entry) => {
-        const base = entry.target === "beta" ? "/beta/firmware/" : "/firmware/";
+      real.map(async (entry) => {
+        const base = publicBaseFor(entry.target);
         const url = `${base}${entry.filename}?t=${token}`;
         try {
           const resp = await fetch(url, { method: "HEAD", cache: "no-store" });
@@ -284,7 +303,8 @@ export const LocalFlasher = () => {
       );
       if (!ok) return;
     }
-    const base = entry.target === "beta" ? "/beta/firmware/" : "/firmware/";
+    if (!isRealFirmware(entry)) return;
+    const base = publicBaseFor(entry.target);
     const url = `${base}${entry.filename}`;
     try {
       const resp = await fetch(url, { cache: "no-store" });
@@ -317,7 +337,7 @@ export const LocalFlasher = () => {
     setSaveName("");
     setSaveDescription("");
     setSaveBgColor(GOLD);
-    setSaveTarget("beta");
+    setSaveTarget(DEFAULT_SAVE_TARGET);
     setSaveStatus("idle");
     setSaveMessage(null);
     setEditingEntry(null);
@@ -339,7 +359,7 @@ export const LocalFlasher = () => {
       saveName.trim().length > 0 ||
       saveDescription.trim().length > 0 ||
       saveBgColor !== GOLD ||
-      saveTarget !== "beta"
+      saveTarget !== DEFAULT_SAVE_TARGET
     );
   };
 
@@ -655,12 +675,28 @@ export const LocalFlasher = () => {
     if (at !== bt) return bt - at;
     return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
   };
-  const productionRows = catalogue
-    .filter((f) => f.target === "production")
-    .sort(sortForSection);
-  const betaRows = [
-    ...(showMockRow ? [FAKE_ENTRY] : []),
-    ...catalogue.filter((f) => f.target === "beta").sort(sortForSection),
+  // One section per channel, in registry order. The mock (when enabled) gets
+  // its own trailing section rather than squatting in a real channel's list.
+  const sections = [
+    ...CHANNELS.map((channel) => ({
+      id: channel.id as string,
+      label: channel.label,
+      color: channel.color,
+      route: channel.route,
+      rows: catalogue
+        .filter((f) => f.target === channel.id)
+        .sort(sortForSection),
+    })),
+    ...(showMockRow
+      ? [
+          {
+            id: MOCK_TARGET as string,
+            label: "Mock",
+            color: FAKE_BG_COLOR,
+            rows: [FAKE_ENTRY],
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -730,8 +766,7 @@ export const LocalFlasher = () => {
           showMockRow={showMockRow}
           catalogueEmpty={catalogue.length === 0}
           cachedCounts={cachedCounts}
-          productionRows={productionRows}
-          betaRows={betaRows}
+          sections={sections}
           deployStatus={deployStatus}
           deleting={deleting}
           toggling={toggling}

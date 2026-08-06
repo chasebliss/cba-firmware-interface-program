@@ -1,7 +1,11 @@
 import { Route, Routes, useLocation } from "react-router";
 import { MouseTrail } from "@/components/MouseTrail";
 import { UnsupportedNotice } from "@/components/UnsupportedNotice";
-import { BETA_SOURCES, PRODUCTION_SOURCES } from "@/data/sources";
+import {
+  BETA_SOURCES,
+  NIGHTLY_SOURCES,
+  PRODUCTION_SOURCES,
+} from "@/data/sources";
 import { LocalFlasher } from "@/routes/LocalFlasher";
 import { LogoDemo } from "@/routes/LogoDemo";
 import { Programmer } from "@/routes/Programmer";
@@ -54,6 +58,21 @@ const App = () => {
               title="Beta Programmer."
               navProps={{ variant: "dark", rightLabel: "Beta" }}
             />
+          }
+        />
+        {/* data-nightly scopes the restyle — cold slate palette and rounded
+            corners — to this page only. See the [data-nightly] block in
+            index.css; no component code branches on it. */}
+        <Route
+          path="/nightly"
+          element={
+            <div data-nightly="">
+              <Programmer
+                sources={NIGHTLY_SOURCES}
+                title="Nightly Programmer."
+                navProps={{ variant: "dark", rightLabel: "Nightly" }}
+              />
+            </div>
           }
         />
         <Route path="/admin" element={<LocalFlasher />} />
