@@ -60,6 +60,110 @@
   }
 }
 
+/* Scoped restyle for /nightly. Not a theme and not switchable — one page that
+ * looks different. Tailwind v4 compiles every black/cream utility (including
+ * the /NN opacity variants, via color-mix) down to var(--color-black) and
+ * var(--color-cream), so redefining those two inside the wrapper recolors the
+ * whole subtree without touching a single component. / and /beta are
+ * unaffected by construction.
+ *
+ * Overriding --color-black is deliberately literal: "black" here means "the
+ * ink color", and on this page the ink is light. */
+
+[data-nightly] {
+  /* Cold slate: neutral blue-grey surface, light blue-tinted ink. */
+  --color-cream: #14171c;
+  --color-gray-50: #14171c;
+  --color-black: #e6ebf2;
+  --shadow-cba: 0 4px 14px -2px rgb(186 142 81 / 0.35);
+  --shadow-cba-xl: 0 25px 50px -12px rgb(0 0 0 / 0.6);
+
+  /* Corner radius. The light pages are deliberately square — there is zero
+   * border-radius anywhere in the public UI — so this softens /nightly only.
+   * Two steps: the main one for cards and controls, a tighter one for the
+   * 28px step badge, which looks mushy at the larger value. */
+  --nightly-radius: 10px;
+  --nightly-radius-sm: 5px;
+
+  background: var(--color-cream);
+  color: var(--color-black);
+}
+
+/* Nav ships its own dark variant (bg-black + text-cream), which our swapped
+ * variables invert straight back to light. Pin those two utilities inside the
+ * wrapper so the bar stays dark. Only reachable under [data-nightly] — the
+ * /beta nav that uses the same variant is untouched. */
+[data-nightly] nav.bg-black {
+  background-color: var(--color-cream);
+}
+[data-nightly] nav .text-cream {
+  color: var(--color-black);
+}
+[data-nightly] nav .bg-cream {
+  background-color: var(--color-black);
+}
+
+/* The red callout badges (Note, NIGHTLY) set text-black for contrast against
+ * red. Our override makes that light-on-red, which fails legibility — force
+ * them back to actual black. */
+[data-nightly] .bg-red.text-black,
+[data-nightly] .bg-red .text-black {
+  color: #000;
+}
+
+/* BinaryHero's illustrations are white-filled shapes sized for a cream page.
+ * Knock them back so they read as line art on dark instead of glowing slabs. */
+[data-nightly] svg [fill="#fff"],
+[data-nightly] svg [fill="#ffffff"],
+[data-nightly] svg [fill="white"] {
+  fill: var(--color-cream);
+}
+
+/* Rounding, scoped to [data-nightly] so / and /beta keep their hard edges.
+ *
+ * StepCards stack with -mb-[2px] so their 2px borders overlap into a single
+ * continuous seam down the group. Rounding each card would break that seam
+ * into separate floating boxes, so the group is rounded at its ends only —
+ * first card's top corners, last card's bottom corners, middles left square.
+ * The seam survives and the stack reads as one rounded panel. */
+[data-nightly] .cba-step-stack > div:first-of-type {
+  border-top-left-radius: var(--nightly-radius);
+  border-top-right-radius: var(--nightly-radius);
+}
+[data-nightly] .cba-step-stack > div:last-of-type {
+  border-bottom-left-radius: var(--nightly-radius);
+  border-bottom-right-radius: var(--nightly-radius);
+}
+
+/* Buttons and the dropdown trigger. */
+[data-nightly] button {
+  border-radius: var(--nightly-radius);
+}
+
+/* Step number badge — 28px square, so it takes the tighter radius. */
+[data-nightly] .cba-step-badge {
+  border-radius: var(--nightly-radius-sm);
+}
+
+/* Dropdown menu portal. It renders into document.body and carries its own
+ * data-nightly, so it IS the scoped element rather than a descendant of one —
+ * hence the attribute directly on the selector, not an ancestor combinator.
+ *
+ * Only the bottom rounds; the top butts against the trigger. The menu already
+ * has overflow-y-auto for its max-height scroll, and that clips children to
+ * the border radius on its own, so no overflow override is needed here. */
+ul[role="listbox"][data-nightly] {
+  border-bottom-left-radius: var(--nightly-radius);
+  border-bottom-right-radius: var(--nightly-radius);
+}
+
+/* The trigger's bottom corners must go square while the menu is open, so the
+ * two read as one connected shape. */
+[data-nightly] button[aria-expanded="true"] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 html,
 body {
   margin: 0;

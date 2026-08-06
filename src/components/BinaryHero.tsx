@@ -25,6 +25,9 @@ interface BinaryHeroProps {
   width?: number | string;
   opacity?: number;
   className?: string;
+  // Color of the illustration's detail strokes when the hero sits inside a
+  // restyling wrapper. The surface color is read from CSS, not passed.
+  ink?: string;
 }
 
 export const BinaryHero = ({
@@ -32,6 +35,7 @@ export const BinaryHero = ({
   width = 500,
   opacity = 1,
   className = "",
+  ink = "#ba8e51",
 }: BinaryHeroProps) => {
   const objectRef = useRef<HTMLObjectElement>(null);
   const configsRef = useRef<DigitConfig[]>([]);
@@ -87,6 +91,30 @@ export const BinaryHero = ({
       }
 
       initialized = true;
+
+      // binary.svg loads via <object>, so it's a separate document that page
+      // CSS can't reach. Its embedded stylesheet paints the illustration
+      // bodies cream (.st0) and their details near-black (.st1) — on a dark
+      // page those read as glowing white slabs. Inject a counter-stylesheet.
+      //
+      // The surface color is read from --color-cream on our own element rather
+      // than passed in, so the palette lives in exactly one place (the
+      // [data-nightly] block in index.css). Only applied when a restyling
+      // wrapper is present; the light pages keep the original artwork.
+      if (obj.closest("[data-nightly]")) {
+        const surface = getComputedStyle(obj)
+          .getPropertyValue("--color-cream")
+          .trim();
+        if (surface) {
+          const styleEl = doc.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "style",
+          );
+          styleEl.textContent = `.st0{fill:${surface};}.st1{fill:${ink};}`;
+          doc.documentElement.appendChild(styleEl);
+        }
+      }
+
       const svgNs = "http://www.w3.org/2000/svg";
       const configs: DigitConfig[] = [];
       for (const g of groups) {
@@ -142,7 +170,9 @@ export const BinaryHero = ({
       configsRef.current = [];
     };
     // flashing intentionally omitted — we want the setup to run only once;
-    // the other effect handles rate changes.
+    // the other effect handles rate changes. surface/ink are likewise omitted:
+    // they're fixed per route, so re-running setup for them would only tear
+    // down and rebuild the identical animation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

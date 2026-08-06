@@ -10,7 +10,7 @@ interface StepBadgeProps {
 export const StepBadge = ({ n, done }: StepBadgeProps) => {
   return (
     <span
-      className={`flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black text-[13px] font-bold transition-colors duration-[250ms] ${
+      className={`cba-step-badge flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black text-[13px] font-bold transition-colors duration-[250ms] ${
         done ? "bg-black text-cream" : "bg-cream text-black"
       }`}
     >

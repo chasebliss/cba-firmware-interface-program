@@ -263,6 +263,10 @@ export const Programmer = ({
             />
           </div>
 
+          {/* Wrapper exists purely as a styling hook — /nightly rounds the
+              stack's outer corners while leaving the cards' shared border
+              seam intact. Layout-neutral everywhere else. */}
+          <div className="cba-step-stack">
           <StepCard
             n={1}
             label="Select firmware"
@@ -403,6 +407,7 @@ export const Programmer = ({
               )}
             </div>
           </StepCard>
+          </div>
         </div>
 
         <div className="self-stretch bg-black/9" />

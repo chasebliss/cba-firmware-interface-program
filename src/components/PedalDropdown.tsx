@@ -24,6 +24,7 @@ export const PedalDropdown = ({
     top: number;
     left: number;
     width: number;
+    nightly: boolean;
   } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
@@ -57,6 +58,12 @@ export const PedalDropdown = ({
         top: rect.bottom,
         left: rect.left,
         width: rect.width,
+        // The menu portals to document.body, landing outside any page-level
+        // styling wrapper. Record whether the trigger sits inside one so the
+        // portal can re-flag itself and scoped CSS still reaches it. Captured
+        // here, with the measurement, rather than read from the ref during
+        // render.
+        nightly: el.closest("[data-nightly]") != null,
       });
     };
     update();
@@ -108,12 +115,13 @@ export const PedalDropdown = ({
           <ul
             ref={menuRef}
             role="listbox"
+            data-nightly={menuRect.nightly ? "" : undefined}
             style={{
               position: "fixed",
               top: menuRect.top,
               left: menuRect.left,
               width: menuRect.width,
-              backgroundColor: "#fefbf6",
+              backgroundColor: "var(--color-cream)",
               boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
               zIndex: 1000,
             }}
@@ -134,7 +142,8 @@ export const PedalDropdown = ({
                   i < firmwares.length - 1 ? "border-b border-black" : ""
                 }`}
                 style={{
-                  backgroundColor: hovered === fw.id ? fw.bgColor : "#fefbf6",
+                  backgroundColor:
+                    hovered === fw.id ? fw.bgColor : "var(--color-cream)",
                   animationDelay: `${i * 20}ms`,
                 }}
               >
