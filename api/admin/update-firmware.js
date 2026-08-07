@@ -126,6 +126,12 @@ export default async function handler(req, res) {
         : "update";
     const commitMessage = `admin: ${verb} ${target} firmware ${next.name}`;
 
+    // The binary move gets its own verb. Reusing the manifest's would produce
+    // "unlist … (copy)" for the commit that copies the file INTO the archive,
+    // which describes the request rather than what happened to the file.
+    const moveVerb = patch.active === false ? "archive" : "restore";
+    const moveMessage = `admin: ${moveVerb} ${target} firmware ${next.name}`;
+
     const io = {
       get: (path) => githubGetFile(repo, path, branch, token),
       put: (path, content, message, sha) =>
@@ -160,7 +166,7 @@ export default async function handler(req, res) {
         ...io,
         from: servedPath,
         to: archivedPath,
-        message: commitMessage,
+        message: moveMessage,
       });
     } else {
       if (patch.active === true) {
@@ -168,7 +174,7 @@ export default async function handler(req, res) {
           ...io,
           from: archivedPath,
           to: servedPath,
-          message: commitMessage,
+          message: moveMessage,
         });
       }
       await writeManifests({

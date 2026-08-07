@@ -175,15 +175,19 @@ export async function writeManifests({ put, target, entries, message, shas = {} 
     await put(path, encode(value), msg, shas[path]);
   };
 
+  // Both manifests name themselves. The public one used to take the bare
+  // message, which only read as "the public one" by contrast with the
+  // "(admin)" commit next to it — and told you nothing at all when the admin
+  // write failed and its commit never appeared.
   await write(
     `${dirFor(target)}/${PUBLIC_MANIFEST}`,
     publicEntries(entries),
-    message,
+    `${message} (public manifest)`,
   );
   await write(
     `${archiveDirFor(target)}/${ADMIN_MANIFEST}`,
     entries,
-    `${message} (admin)`,
+    `${message} (admin manifest)`,
   );
 }
 
@@ -194,6 +198,11 @@ export async function writeManifests({ put, target, entries, message, shas = {} 
 // write the destination first, verify it landed, then delete the source. A
 // failure between the two leaves the file in both places — recoverable and
 // visible — rather than in neither.
+//
+// The copy and the delete get distinct commit messages. The ordering IS the
+// safety property here, so the git log is the forensic record when a move
+// fails partway — and four near-identical messages force a `git show` on each
+// one to work out which step is which. Each commit names its own step instead.
 //
 // Returns true if a move happened, false if there was nothing at `from`
 // (already moved, or a manifest entry whose binary is missing).
@@ -224,7 +233,7 @@ export async function moveBinary({ get, put, del, from, to, message }) {
   const existingTarget = await get(to);
 
   if (!existingTarget) {
-    await put(to, content, message);
+    await put(to, content, `${message} (copy)`);
   } else if (existingTarget.sha !== source.sha) {
     // Something else is already sitting at the destination. Refuse rather than
     // overwrite it or delete the source — both destroy a file someone may want.
@@ -245,6 +254,6 @@ export async function moveBinary({ get, put, del, from, to, message }) {
     );
   }
 
-  await del(from, source.sha, message);
+  await del(from, source.sha, `${message} (remove old copy)`);
   return true;
 }
