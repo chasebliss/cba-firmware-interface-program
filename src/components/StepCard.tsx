@@ -2,6 +2,12 @@ import { useEffect, useState, type ReactNode } from "react";
 
 const BODY_TRANSITION_MS = 300;
 
+// Selecting a firmware animates several things at once: this card's background
+// tint, the step badge's colours, and the dropdown trigger's shadow. They ran
+// at 500/300/250ms, and three unsynchronised fades around one control read as
+// a flicker rather than a single settling motion. All three are 300ms now —
+// keep them aligned if you change one.
+
 interface StepBadgeProps {
   n: number;
   done: boolean;
@@ -10,7 +16,7 @@ interface StepBadgeProps {
 export const StepBadge = ({ n, done }: StepBadgeProps) => {
   return (
     <span
-      className={`cba-step-badge flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black text-[13px] font-bold transition-colors duration-[250ms] ${
+      className={`cba-step-badge flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black text-[13px] font-bold transition-colors duration-300 ${
         done ? "bg-black text-cream" : "bg-cream text-black"
       }`}
     >
@@ -62,7 +68,7 @@ export const StepCard = ({
 
   return (
     <div
-      className="relative -mb-[2px] border-2 border-black transition-[background,opacity] duration-500"
+      className="relative -mb-[2px] border-2 border-black transition-[background,opacity] duration-300"
       style={{
         opacity: locked ? 0.28 : 1,
         zIndex: isOpen ? 20 : 1,
@@ -86,7 +92,14 @@ export const StepCard = ({
         aria-hidden={!isOpen}
       >
         <div className={overflowVisible ? "overflow-visible" : "overflow-hidden"}>
-          <div className="px-5 py-[14px]">{children}</div>
+          {/* Body contents are centred: the controls inside a step (the
+              picker, the Connect/Update buttons) are fixed-width and would
+              otherwise hang against the left edge of a much wider card. Done
+              here rather than per-step so every step — and any future one —
+              lines up the same way. */}
+          <div className="flex flex-col items-center px-5 py-[14px] text-center">
+            {children}
+          </div>
         </div>
       </div>
     </div>

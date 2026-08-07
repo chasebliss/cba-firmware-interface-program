@@ -85,6 +85,13 @@
   --nightly-radius: 10px;
   --nightly-radius-sm: 5px;
 
+  /* The streaming binary digits in the hero. White reads as data in flight
+   * against the slate surface (17.9:1) where the gold outlines read as the
+   * static illustration — the two carry different meanings, so they get
+   * different colours. Only set here: on the cream pages white would be
+   * invisible (1.03:1), so those keep the gold. */
+  --hero-digit: #ffffff;
+
   background: var(--color-cream);
   color: var(--color-black);
 }

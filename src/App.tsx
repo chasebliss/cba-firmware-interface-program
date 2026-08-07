@@ -31,9 +31,14 @@ const IS_MOBILE_DEVICE = (() => {
   return false;
 })();
 
+// The trail is atmosphere for the public pages. /admin is a work tool where
+// someone is reading dense rows and clicking small destructive buttons, and
+// gold digits drifting across the catalogue read as rendering artefacts there.
+const TRAIL_FREE_ROUTES = ["/logo-demo", "/admin"];
+
 const TrailOnNonDemoRoutes = () => {
   const { pathname } = useLocation();
-  if (pathname.startsWith("/logo-demo")) return null;
+  if (TRAIL_FREE_ROUTES.some((r) => pathname.startsWith(r))) return null;
   return <MouseTrail />;
 };
 
@@ -71,6 +76,29 @@ const App = () => {
                 sources={NIGHTLY_SOURCES}
                 title="Nightly Programmer."
                 navProps={{ variant: "dark", rightLabel: "Nightly" }}
+                channelNotice={
+                  // Compact by design: this sits inside the active step card,
+                  // so a paragraph of body text competes with the picker it's
+                  // meant to annotate. One line, muted, with the escape hatch
+                  // as the only emphasis.
+                  // w-96 + mx-auto matches PedalDropdown, so the notice lines
+                  // up under the picker rather than spanning the whole card.
+                  <p className="mx-auto mt-2.5 flex w-96 max-w-full flex-wrap items-baseline gap-x-1.5 text-[11px] leading-[1.5] text-black/45">
+                    <span className="font-bold uppercase tracking-[0.08em] text-gold">
+                      Unreleased
+                    </span>
+                    <span>
+                      Less tested than production.{" "}
+                      <a
+                        href="/"
+                        className="font-semibold text-black/70 underline underline-offset-2 hover:text-black"
+                      >
+                        Use stable instead
+                      </a>
+                      .
+                    </span>
+                  </p>
+                }
               />
             </div>
           }

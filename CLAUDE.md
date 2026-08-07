@@ -33,18 +33,28 @@ Built from `npm create vite@latest bliss-programmer -- --template react-ts`, the
 - `git init` run locally. No commits, no remote.
 - `npm run build` passes clean.
 
-## Next up (port plan)
+## Current shape
 
-Jake is providing design files (he uses "Claude Design" — format TBD, could be HTML/CSS, React, Figma export, or screenshots). Don't port UI until those land.
+The port is done. What exists now:
 
-Port order, rough:
+**Routes** ([`src/App.tsx`](src/App.tsx)) — `/` (production), `/beta` (password-gated), `/nightly` (public), `/admin` (password-gated dashboard). `/` and `/beta` and `/nightly` all render the same [`Programmer`](src/routes/Programmer.tsx) with different `sources`.
 
-1. **DFU library → TypeScript**. Files to port: [`dfu/dfu.js`](../cba-firmware-interface-program/dfu/dfu.js), [`dfu/dfuse.js`](../cba-firmware-interface-program/dfu/dfuse.js), [`dfu/FileSaver.js`](../cba-firmware-interface-program/dfu/FileSaver.js) (only if upload/save is needed — the current UI hides upload). Target: `src/lib/dfu/` as a pure, no-DOM module. **Keep the byte flow identical** — it works on real pedals.
-2. **Intel HEX parser** from [`app/app.js`](../cba-firmware-interface-program/app/app.js) (`parseIntelHex`). Already clean, just move it to `src/lib/dfu/intel-hex.ts`.
-3. **Firmware catalogue fetcher**. Replicate `importfirmwares()` in [`app/app.js`](../cba-firmware-interface-program/app/app.js). Type the firmware record shape.
-4. **UI shell**. Once design files are in, wire up the pedal picker, connect button, update button, progress bar, instruction popovers, browser warning.
-5. **Beta route**. Use `react-router` for `/` and `/beta`. The beta route uses a different `sources.json` and shows a beta banner.
-6. **Auth middleware + API**. Port [`middleware.js`](../cba-firmware-interface-program/middleware.js) and [`api/beta-login.js`](../cba-firmware-interface-program/api/beta-login.js) as-is to repo root — Vercel detects them independent of the Vite build. See cleanups below.
+**Channels.** Firmware lives in one of three channels, defined by a registry that exists in two copies:
+
+- [`src/lib/admin-firmware.ts`](src/lib/admin-firmware.ts) — browser bundle. Carries URL and presentation fields (`publicBase`, `route`, `color`).
+- [`api/admin/channels.js`](api/admin/channels.js) — serverless functions. Carries repo paths (`dir`, `archiveDir`).
+
+They are duplicated because Vercel's Node runtime has no TypeScript transpile step and cannot import from `src/`. **[`api/admin/channels.test.mjs`](api/admin/channels.test.mjs) asserts they stay in sync** — run `node api/admin/channels.test.mjs` after touching either.
+
+**Two manifests per channel.** `<dir>/firmwares.json` is public and lists only listed firmware. `<archiveDir>/firmwares.admin.json` is the full record and is **not served**. Unlisting removes the entry from the public manifest *and* moves the binary from `dir` (built into `dist/`) to `archiveDir` (outside `public/`, so no URL), which is what makes "unlisted" mean "not downloadable". Listing reverses it. Delete removes both copies.
+
+**Ordering rules that must hold** — there is no transaction across GitHub commits, so the invariant is *if the manifest lists it, the file is there*:
+
+- Unlist: write manifests, **then** archive the binary.
+- List: restore the binary, **then** write manifests.
+- Within `writeManifests`: public copy first, admin copy second.
+
+**Admin API** ([`api/admin/`](api/admin/)) commits to GitHub via the Contents API; Vercel auto-deploys the commit. Uploads therefore do **not** touch the local working tree — after uploading through the admin, `git pull` before working locally.
 
 ## DFU gotchas to preserve (do not break these)
 
@@ -74,7 +84,8 @@ The middleware.js / `api/*.js` file convention works on Vercel regardless of fra
 
 - Hosted on Vercel. Current domain: firmware.chasebliss.com.
 - **Never run `vercel`, `vercel deploy`, or `git push` to a branch wired to auto-deploy without explicit per-push approval.** Jake handles all deploys himself. Build and test locally only.
-- `vercel.json` not yet created. Add one only if we need rewrites/headers (likely not — `public/` serves static fine).
+- [`vercel.json`](vercel.json) exists and holds SPA rewrites for `/beta`, `/nightly`, and `/admin`. Each non-root route needs a pair: one for the bare path, one with a `((?!firmware/).*)` negative lookahead so the channel's firmware assets are served as files instead of being swallowed by the SPA fallback. **Adding a channel means adding its rewrite pair here** or the page 404s on refresh and its manifest fetch breaks.
+- `archive/` is a top-level directory holding unlisted firmware and the admin manifests. It is deliberately **outside `public/`** so Vite never copies it into `dist/`. Do not move it under `public/` — that would republish everything unlisting is meant to withdraw.
 
 ## Jake's conventions (from `~/.claude/CLAUDE.md`)
 

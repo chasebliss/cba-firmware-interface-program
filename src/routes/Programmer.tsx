@@ -34,6 +34,10 @@ interface ProgrammerProps {
   navProps?: NavProps;
   heroWidth?: number;
   heroOpacity?: number;
+  // Shown inside step 1, directly under the firmware picker. Sits at the
+  // moment of choosing rather than at the top of the page, where a channel
+  // warning is scrolled past before it matters.
+  channelNotice?: ReactNode;
 }
 
 export const Programmer = ({
@@ -44,6 +48,7 @@ export const Programmer = ({
   navProps,
   heroWidth = 500,
   heroOpacity = 1,
+  channelNotice,
 }: ProgrammerProps) => {
   const [catalogue, setCatalogue] = useState<FirmwareEntry[]>([]);
   const [catalogueLoading, setCatalogueLoading] = useState(true);
@@ -265,7 +270,8 @@ export const Programmer = ({
 
           {/* Wrapper exists purely as a styling hook — /nightly rounds the
               stack's outer corners while leaving the cards' shared border
-              seam intact. Layout-neutral everywhere else. */}
+              seam intact. Layout-neutral everywhere else. Width comes from the
+              column above. */}
           <div className="cba-step-stack">
           <StepCard
             n={1}
@@ -299,6 +305,7 @@ export const Programmer = ({
                 Could not load firmware list: {catalogueError}
               </p>
             )}
+            {channelNotice}
           </StepCard>
 
           <StepCard
@@ -315,7 +322,7 @@ export const Programmer = ({
               ) : undefined
             }
           >
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col items-center gap-2.5">
               <p className="text-sm leading-[1.6] text-black/[0.42]">
                 Connect via data-transfer micro USB, then connect power supply.
               </p>
@@ -370,11 +377,11 @@ export const Programmer = ({
                 </CbaButton>
               )}
               {flashing && (
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col items-center gap-2.5">
                   <progress
                     value={progressPct}
                     max={100}
-                    className="block h-[5px] w-full appearance-none border-none [&::-webkit-progress-bar]:bg-black/10"
+                    className="block h-[5px] w-96 max-w-full appearance-none border-none [&::-webkit-progress-bar]:bg-black/10"
                   />
                   <style>{`progress::-webkit-progress-value{background:${barColor};transition:width .4s ease;}progress::-moz-progress-bar{background:${barColor};}`}</style>
                   <div className="animate-cba-pulse text-[14px] font-bold text-green">
@@ -385,11 +392,11 @@ export const Programmer = ({
                 </div>
               )}
               {errored && (
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col items-center gap-2.5">
                   <progress
                     value={progressPct}
                     max={100}
-                    className="block h-[5px] w-full appearance-none border-none [&::-webkit-progress-bar]:bg-black/10"
+                    className="block h-[5px] w-96 max-w-full appearance-none border-none [&::-webkit-progress-bar]:bg-black/10"
                   />
                   <style>{`progress::-webkit-progress-value{background:var(--color-red);transition:width .4s ease;}progress::-moz-progress-bar{background:var(--color-red);}`}</style>
                   <p className="text-[14px] font-bold text-red">

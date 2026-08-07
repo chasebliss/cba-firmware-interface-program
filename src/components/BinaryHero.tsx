@@ -48,6 +48,9 @@ export const BinaryHero = ({
     let cancelled = false;
     let initialized = false;
     let interval = 0;
+    // Defaults to the prop; the restyling branch below may override it from
+    // --hero-digit once the SVG document is reachable.
+    let digitColor = ink;
 
     const startAnimations = (rate: number) => {
       for (const a of animationsRef.current) a.cancel();
@@ -97,14 +100,17 @@ export const BinaryHero = ({
       // bodies cream (.st0) and their details near-black (.st1) — on a dark
       // page those read as glowing white slabs. Inject a counter-stylesheet.
       //
-      // The surface color is read from --color-cream on our own element rather
+      // Colors are read from CSS custom properties on our own element rather
       // than passed in, so the palette lives in exactly one place (the
       // [data-nightly] block in index.css). Only applied when a restyling
       // wrapper is present; the light pages keep the original artwork.
       if (obj.closest("[data-nightly]")) {
-        const surface = getComputedStyle(obj)
-          .getPropertyValue("--color-cream")
-          .trim();
+        const styles = getComputedStyle(obj);
+        const surface = styles.getPropertyValue("--color-cream").trim();
+        // --hero-digit lets a page recolor the streaming digits independently
+        // of the illustration outlines. Falls back to `ink` where unset.
+        const digitOverride = styles.getPropertyValue("--hero-digit").trim();
+        if (digitOverride) digitColor = digitOverride;
         if (surface) {
           const styleEl = doc.createElementNS(
             "http://www.w3.org/2000/svg",
@@ -134,7 +140,7 @@ export const BinaryHero = ({
         );
         text.setAttribute("font-size", "11");
         text.setAttribute("font-weight", "700");
-        text.setAttribute("fill", "#ba8e51");
+        text.setAttribute("fill", digitColor);
         text.textContent = Math.random() < 0.5 ? "0" : "1";
         g.appendChild(text);
 

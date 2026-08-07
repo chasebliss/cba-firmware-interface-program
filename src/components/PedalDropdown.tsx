@@ -20,6 +20,8 @@ export const PedalDropdown = ({
 }: PedalDropdownProps) => {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
+  // False while the menu's rows are still doing their staggered entry.
+  const [hasEntered, setHasEntered] = useState(false);
   const [menuRect, setMenuRect] = useState<{
     top: number;
     left: number;
@@ -45,9 +47,24 @@ export const PedalDropdown = ({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
+  // Enable hover cross-fades only after every row has finished its staggered
+  // pop-in: 220ms animation plus 20ms of delay per row.
+  useEffect(() => {
+    if (!open) return;
+    const settle = 220 + firmwares.length * 20;
+    const id = window.setTimeout(() => setHasEntered(true), settle);
+    return () => window.clearTimeout(id);
+  }, [open, firmwares.length]);
+
   useLayoutEffect(() => {
     if (!open) {
       setMenuRect(null);
+      // Clear the hovered row on close. Without this the last-hovered item
+      // keeps its accent background in state, so reopening paints that row
+      // highlighted for a frame before the pointer re-registers — reads as a
+      // flicker.
+      setHovered(null);
+      setHasEntered(false);
       return;
     }
     const update = () => {
@@ -75,6 +92,11 @@ export const PedalDropdown = ({
     };
   }, [open]);
 
+  // Keep the shadow while the menu is open OR something is selected. Without
+  // the `selected` half, closing the menu after a re-selection would fade the
+  // shadow out over 300ms while the step card is simultaneously re-tinting —
+  // two unsynchronised animations around the same control, which reads as a
+  // flicker rather than one settling motion.
   const triggerShadow = open || selected ? "shadow-cba" : "shadow-none";
   const triggerLabel = loading
     ? "Loading pedals…"
@@ -84,7 +106,7 @@ export const PedalDropdown = ({
   const isDisabled = disabled || loading || firmwares.length === 0;
 
   return (
-    <div className="relative w-96 max-w-full">
+    <div className="relative mx-auto w-96 max-w-full">
       <button
         ref={triggerRef}
         type="button"
@@ -135,12 +157,22 @@ export const PedalDropdown = ({
                 onMouseEnter={() => setHovered(fw.id)}
                 onMouseLeave={() => setHovered(null)}
                 onClick={() => {
-                  onSelect(fw);
+                  // Close first, then propagate. onSelect re-renders the parent
+                  // (the step card takes the firmware's accent tint), and if the
+                  // menu were still mounted and still flagged as hovered, that
+                  // render would cross-fade this row to its accent colour for a
+                  // frame on the way out — a visible flash on every selection.
+                  setHovered(null);
                   setOpen(false);
+                  onSelect(fw);
                 }}
-                className={`animate-cba-pop-in flex cursor-pointer flex-col gap-0.5 px-4 py-3 transition-colors duration-150 ${
-                  i < firmwares.length - 1 ? "border-b border-black" : ""
-                }`}
+                className={`animate-cba-pop-in flex cursor-pointer flex-col gap-0.5 px-4 py-3 ${
+                  // Colour transitions only once the row has finished its
+                  // staggered entry. Transitioning during the pop-in makes a
+                  // row under the cursor cross-fade while it's still animating
+                  // in, which reads as a flicker on open.
+                  hasEntered ? "transition-colors duration-150" : ""
+                } ${i < firmwares.length - 1 ? "border-b border-black" : ""}`}
                 style={{
                   backgroundColor:
                     hovered === fw.id ? fw.bgColor : "var(--color-cream)",
