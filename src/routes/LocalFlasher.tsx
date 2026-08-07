@@ -196,9 +196,10 @@ export const LocalFlasher = () => {
 
   const probeDeployStatus = async (entries: AdminFirmware[]) => {
     const token = refreshTokenRef.current;
-    // The mock row has no CDN presence — skip it rather than probing a URL
-    // that can't exist.
-    const real = entries.filter(isRealFirmware);
+    // Skip rows with no served URL to probe: the mock has no CDN presence, and
+    // unlisted firmware has been moved out of public/ on purpose — a 404 there
+    // is the correct state, not a deploy still in flight.
+    const real = entries.filter(isRealFirmware).filter((e) => e.active);
     setDeployStatus((prev) => {
       const next = { ...prev };
       for (const e of real) {
@@ -583,7 +584,7 @@ export const LocalFlasher = () => {
       };
       if (!resp.ok) {
         window.alert(
-          `${nextActive ? "Show" : "Hide"} failed: ${data.error ?? resp.status}`,
+          `${nextActive ? "List" : "Unlist"} failed: ${data.error ?? resp.status}`,
         );
         return;
       }
@@ -598,7 +599,7 @@ export const LocalFlasher = () => {
   const handleDelete = async (entry: AdminFirmware) => {
     if (
       !window.confirm(
-        `Delete ${entry.name} (${entry.filename}) from ${entry.target}? This can't be undone.`,
+        `Permanently delete ${entry.name} (${entry.filename}) from ${entry.target}?\n\nIt's already unlisted, so it's off the site. This removes the archived copy too, so it can't be restored from here.`,
       )
     ) {
       return;

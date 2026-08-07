@@ -138,29 +138,6 @@ export const AdminFirmwareList = ({
             ))}
       </div>
 
-      <ul className="mt-3.5 flex flex-col gap-1.5 text-[12px] leading-[1.6] text-black/45">
-        <li className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="h-2 w-2 shrink-0 rounded-full bg-green"
-          />
-          Green — live in environment.
-        </li>
-        <li className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="h-2 w-2 shrink-0 rounded-full bg-yellow"
-          />
-          Yellow — saved, site is still updating (usually under a 30 seconds).
-        </li>
-        <li className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="h-2 w-2 shrink-0 rounded-full bg-red"
-          />
-          Red — disabled, hidden from environment.
-        </li>
-      </ul>
     </div>
   );
 };

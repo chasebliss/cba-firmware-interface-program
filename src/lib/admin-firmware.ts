@@ -72,7 +72,32 @@ export type ConnectStatus = "disconnected" | "connecting" | "connected";
 
 export type SaveStatus = "idle" | "saving" | "success" | "error";
 
+// Publish progress. This is ONE axis only: where the file is in the
+// commit → build → CDN pipeline. It deliberately says nothing about whether
+// users can see the firmware — that's the listing axis below.
+//
+// The old model collapsed both into a single coloured dot, where red meant
+// "you unlisted this on purpose" and so read as an error. Every tool surveyed
+// in docs/research/release-channel-ux-patterns.md keeps these separate and
+// names the states rather than colouring them.
 export type DeployStatus = "checking" | "live" | "pending";
+
+// Deliberately NOT "Published" — that reads as a synonym for "Listed", so a
+// row saying "Published · Unlisted" looks self-contradictory. This axis is
+// about the file reaching the site at all, so it's phrased as the upload
+// finishing: "Uploading…" while the build runs, nothing once it's done.
+export const DEPLOY_STATUS_LABEL: Record<DeployStatus, string> = {
+  checking: "Checking…",
+  pending: "Uploading…",
+  live: "On site",
+};
+
+export const DEPLOY_STATUS_HELP: Record<DeployStatus, string> = {
+  checking: "Checking whether the file has reached the site yet.",
+  pending:
+    "Saved. The site is rebuilding and the file will be downloadable in about 30 seconds.",
+  live: "The file is on the site and can be downloaded.",
+};
 
 export interface ManifestEntry {
   name: string;
@@ -100,8 +125,30 @@ export interface AdminFirmware {
   description: string;
   uploadedAt: string | null;
   updatedAt: string | null;
+  // Whether the channel's public page lists this firmware. Stored as `active`
+  // in the manifest (unchanged on disk — renaming the field would break every
+  // existing entry), but presented as listed/unlisted throughout the UI.
   active: boolean;
 }
+
+// The listing axis: is this firmware offered to users on its channel's page?
+// Independent of DeployStatus — a firmware can be published-but-unlisted (file
+// is served, page doesn't offer it) or listed-but-publishing (page will offer
+// it once the build lands).
+//
+// "Unlist" over "hide" is deliberate: it names what actually happens (it drops
+// out of the page's dropdown) and pairs with a visible "List" undo. None of the
+// seven tools surveyed use "hide" for this; the ones that soft-remove all use a
+// verb that says what still works afterward.
+export const LISTING_LABEL = {
+  listed: "Listed",
+  unlisted: "Unlisted",
+} as const;
+
+export const listingHelp = (listed: boolean, channelLabel: string): string =>
+  listed
+    ? `Shown in the firmware picker on the ${channelLabel} page.`
+    : `Removed from the ${channelLabel} page. Unlisting also takes the file off the site, so the direct link stops working. It's kept in the repo, so listing it again restores it.`;
 
 // Narrows a catalogue row to one that lives in a real channel — i.e. not the
 // mock. Use before anything that resolves a repo path or CDN URL, since the

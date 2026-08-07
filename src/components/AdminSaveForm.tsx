@@ -63,11 +63,11 @@ export const AdminSaveForm = ({
           ? targetChanged
             ? `Copy to ${saveTarget}`
             : "Update firmware"
-          : "Save firmware"}
+          : "Publish firmware"}
         {!isEditing && (
           <span className="font-medium normal-case tracking-normal text-black/30">
             {" "}
-            (optional)
+            (optional — flashing above doesn't require this)
           </span>
         )}
       </SectionLabel>
@@ -160,25 +160,43 @@ export const AdminSaveForm = ({
           </div>
           <div>
             <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-black/38">
-              Target
+              {isEditing ? "Save to channel" : "Channel"}
             </label>
             <div className="flex gap-4">
-              {CHANNELS.map((channel) => (
-                <label
-                  key={channel.id}
-                  className="flex cursor-pointer items-center gap-1.5 text-[13px] font-bold"
-                >
-                  <input
-                    type="radio"
-                    name="saveTarget"
-                    value={channel.id}
-                    checked={saveTarget === channel.id}
-                    onChange={() => onSaveTargetChange(channel.id)}
-                    style={{ accentColor: "#000" }}
-                  />
-                  {channel.label}
-                </label>
-              ))}
+              {CHANNELS.map((channel) => {
+                // While editing, picking a channel other than the entry's own
+                // turns Save into a copy — it creates a second entry rather
+                // than moving the first. That used to be invisible until after
+                // the click, so each option now says which it is.
+                const isCopyDestination =
+                  isEditing && editingEntry?.target !== channel.id;
+                return (
+                  <label
+                    key={channel.id}
+                    title={
+                      isCopyDestination
+                        ? `Copy to ${channel.label} — creates a second entry; the original stays in ${editingEntry?.target}.`
+                        : undefined
+                    }
+                    className="flex cursor-pointer items-center gap-1.5 text-[13px] font-bold"
+                  >
+                    <input
+                      type="radio"
+                      name="saveTarget"
+                      value={channel.id}
+                      checked={saveTarget === channel.id}
+                      onChange={() => onSaveTargetChange(channel.id)}
+                      style={{ accentColor: "#000" }}
+                    />
+                    {channel.label}
+                    {isCopyDestination && (
+                      <span className="font-normal text-[10px] uppercase tracking-[0.06em] text-black/35">
+                        copy
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
             </div>
           </div>
         </div>
