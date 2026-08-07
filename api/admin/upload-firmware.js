@@ -9,7 +9,13 @@
 //   GITHUB_REPO    — "owner/name" of this repo (e.g. "chasebliss/cba-firmware-interface-program")
 //   GITHUB_BRANCH  — optional, defaults to "main"
 
-import { dirFor, isValidTarget, TARGET_ERROR } from "./channels.js";
+import {
+  dirFor,
+  isValidTarget,
+  readManifest,
+  TARGET_ERROR,
+  writeManifests,
+} from "./channels.js";
 
 const COOKIE_NAME = "admin_auth";
 const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10MB hard cap
@@ -62,7 +68,6 @@ export default async function handler(req, res) {
 
   const prefix = dirFor(target);
   const filePath = `${prefix}/${filename}`;
-  const manifestPath = `${prefix}/firmwares.json`;
   const entryFilepath = `./${filename}`;
 
   try {
@@ -70,17 +75,14 @@ export default async function handler(req, res) {
     // client explicitly signalled this is an in-place update via
     // `overwrite: true`). Duplicate `filepath` entries would otherwise alias
     // on delete and blow away multiple manifest rows pointing to the same bin.
-    const existingManifest = await githubGetFile(
-      repo,
-      manifestPath,
-      branch,
-      token,
+    //
+    // readManifest reads the ADMIN copy: the public one omits unlisted
+    // entries, so checking against it would miss a collision with an unlisted
+    // firmware and create exactly the duplicate this guard exists to stop.
+    const { entries, shas } = await readManifest(
+      (path) => githubGetFile(repo, path, branch, token),
+      target,
     );
-    const entries = existingManifest
-      ? JSON.parse(
-          Buffer.from(existingManifest.content, "base64").toString("utf8"),
-        )
-      : [];
     const existingIdx = entries.findIndex(
       (e) => e.filepath === entryFilepath,
     );
@@ -139,18 +141,15 @@ export default async function handler(req, res) {
         updatedAt: now,
       });
     }
-    const newContent = Buffer.from(
-      JSON.stringify(entries, null, 2) + "\n",
-    ).toString("base64");
-    await githubPutFile(
-      repo,
-      manifestPath,
-      newContent,
-      branch,
-      token,
-      `admin: update ${target} manifest for ${name}`,
-      existingManifest?.sha,
-    );
+    await writeManifests({
+      get: (path) => githubGetFile(repo, path, branch, token),
+      put: (path, content, message, sha) =>
+        githubPutFile(repo, path, content, branch, token, message, sha),
+      target,
+      entries,
+      message: `admin: update ${target} manifest for ${name}`,
+      shas,
+    });
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");

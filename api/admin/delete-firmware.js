@@ -6,7 +6,14 @@
 // Required env vars (same as upload-firmware.js):
 //   ADMIN_PASSWORD, GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH (optional)
 
-import { dirFor, isValidTarget, TARGET_ERROR } from "./channels.js";
+import {
+  archiveDirFor,
+  dirFor,
+  isValidTarget,
+  readManifest,
+  TARGET_ERROR,
+  writeManifests,
+} from "./channels.js";
 
 const COOKIE_NAME = "admin_auth";
 
@@ -64,7 +71,6 @@ export default async function handler(req, res) {
 
   const prefix = dirFor(target);
   const filePath = `${prefix}/${filename}`;
-  const manifestPath = `${prefix}/firmwares.json`;
   const entryFilepath = `./${filename}`;
 
   try {
@@ -72,17 +78,14 @@ export default async function handler(req, res) {
     // filepath. New uploads are guarded against duplicates, but historical
     // manifests may still contain aliased entries — deleting one would nuke
     // the shared binary and wipe every matching entry.
-    const existingManifest = await githubGetFile(
-      repo,
-      manifestPath,
-      branch,
-      token,
+    //
+    // Reads the admin manifest: deletion targets unlisted entries by design
+    // (delete is only offered once unlisted), and those are absent from the
+    // public copy.
+    const { file: existingManifest, entries, shas } = await readManifest(
+      (path) => githubGetFile(repo, path, branch, token),
+      target,
     );
-    const entries = existingManifest
-      ? JSON.parse(
-          Buffer.from(existingManifest.content, "base64").toString("utf8"),
-        )
-      : [];
     const matches = entries.filter((e) => e.filepath === entryFilepath);
     if (matches.length > 1) {
       res.statusCode = 409;
@@ -94,34 +97,38 @@ export default async function handler(req, res) {
       );
     }
 
-    // 2. Delete the firmware binary
-    const existingFile = await githubGetFile(repo, filePath, branch, token);
-    if (existingFile) {
-      await githubDeleteFile(
-        repo,
-        filePath,
-        existingFile.sha,
-        branch,
-        token,
-        `admin: remove ${target} firmware ${filename}`,
-      );
+    // 2. Delete the firmware binary from BOTH the served directory and the
+    // archive. Delete is only offered on unlisted entries, so the archive is
+    // the usual case — but moveBinary deliberately leaves the file in both
+    // places when a move fails partway, so checking only one would strand a
+    // copy that the manifest no longer references.
+    const archivedPath = `${archiveDirFor(target)}/${filename}`;
+    for (const path of [filePath, archivedPath]) {
+      const existingFile = await githubGetFile(repo, path, branch, token);
+      if (existingFile) {
+        await githubDeleteFile(
+          repo,
+          path,
+          existingFile.sha,
+          branch,
+          token,
+          `admin: remove ${target} firmware ${filename}`,
+        );
+      }
     }
 
     // 3. Strip the manifest entry
     if (existingManifest && matches.length === 1) {
       const filtered = entries.filter((e) => e.filepath !== entryFilepath);
-      const newContent = Buffer.from(
-        JSON.stringify(filtered, null, 2) + "\n",
-      ).toString("base64");
-      await githubPutFile(
-        repo,
-        manifestPath,
-        newContent,
-        branch,
-        token,
-        `admin: update ${target} manifest to remove ${filename}`,
-        existingManifest.sha,
-      );
+      await writeManifests({
+        get: (path) => githubGetFile(repo, path, branch, token),
+        put: (path, content, message, sha) =>
+          githubPutFile(repo, path, content, branch, token, message, sha),
+        target,
+        entries: filtered,
+        message: `admin: update ${target} manifest to remove ${filename}`,
+        shas,
+      });
     }
 
     res.statusCode = 200;

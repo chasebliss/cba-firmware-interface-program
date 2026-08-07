@@ -10,7 +10,7 @@
 // Response shape is one key per channel: { production: [...], beta: [...],
 // nightly: [...] }. Adding a channel to the registry adds a key here.
 
-import { CHANNELS } from "./channels.js";
+import { CHANNELS, readManifest } from "./channels.js";
 
 const COOKIE_NAME = "admin_auth";
 
@@ -46,11 +46,9 @@ export default async function handler(req, res) {
     // call per such entry; fine for small N.
     const byChannel = await Promise.all(
       CHANNELS.map(async (channel) => {
-        const raw = await fetchManifest(
-          repo,
-          `${channel.dir}/firmwares.json`,
-          branch,
-          token,
+        const { entries: raw } = await readManifest(
+          (path) => githubGetFile(repo, path, branch, token),
+          channel.id,
         );
         const entries = await backfillUploadedAt(
           raw,
@@ -110,7 +108,12 @@ async function fetchLastCommitDate(repo, path, branch, token) {
   }
 }
 
-async function fetchManifest(repo, path, branch, token) {
+// Returns the raw Contents API record, or null on 404 — the same shape the
+// other admin functions use, so readManifest() can tell "file is absent" from
+// "file exists and is empty". Distinguishing those is the whole point: an
+// empty admin manifest is a legitimate state (every entry unlisted) and must
+// not fall back to the stale public copy.
+async function githubGetFile(repo, path, branch, token) {
   const res = await fetch(
     `https://api.github.com/repos/${repo}/contents/${encodeURIPath(path)}?ref=${branch}`,
     {
@@ -121,14 +124,12 @@ async function fetchManifest(repo, path, branch, token) {
       },
     },
   );
-  if (res.status === 404) return [];
+  if (res.status === 404) return null;
   if (!res.ok) {
     const msg = await res.text().catch(() => "");
     throw new Error(`GET ${path} -> ${res.status}: ${msg}`);
   }
-  const data = await res.json();
-  const decoded = Buffer.from(data.content, "base64").toString("utf8");
-  return JSON.parse(decoded);
+  return await res.json();
 }
 
 function encodeURIPath(path) {

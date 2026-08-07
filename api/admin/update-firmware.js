@@ -5,7 +5,15 @@
 // Required env vars (same as upload-firmware.js):
 //   ADMIN_PASSWORD, GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH (optional)
 
-import { dirFor, isValidTarget, TARGET_ERROR } from "./channels.js";
+import {
+  archiveDirFor,
+  dirFor,
+  isValidTarget,
+  moveBinary,
+  readManifest,
+  TARGET_ERROR,
+  writeManifests,
+} from "./channels.js";
 
 const COOKIE_NAME = "admin_auth";
 
@@ -70,24 +78,18 @@ export default async function handler(req, res) {
   }
 
   const prefix = dirFor(target);
-  const manifestPath = `${prefix}/firmwares.json`;
   const entryFilepath = `./${filename}`;
 
   try {
-    const existingManifest = await githubGetFile(
-      repo,
-      manifestPath,
-      branch,
-      token,
+    const { file: existingManifest, entries, shas } = await readManifest(
+      (path) => githubGetFile(repo, path, branch, token),
+      target,
     );
     if (!existingManifest) {
       res.statusCode = 404;
       res.setHeader("Content-Type", "application/json");
       return res.end(JSON.stringify({ error: `${target} manifest not found` }));
     }
-    const entries = JSON.parse(
-      Buffer.from(existingManifest.content, "base64").toString("utf8"),
-    );
     const idx = entries.findIndex((e) => e.filepath === entryFilepath);
     if (idx === -1) {
       res.statusCode = 404;
@@ -118,22 +120,65 @@ export default async function handler(req, res) {
     entries[idx] = next;
 
     const verb = patch.active === false
-      ? "hide"
+      ? "unlist"
       : patch.active === true
-        ? "show"
+        ? "list"
         : "update";
-    const newContent = Buffer.from(
-      JSON.stringify(entries, null, 2) + "\n",
-    ).toString("base64");
-    await githubPutFile(
-      repo,
-      manifestPath,
-      newContent,
-      branch,
-      token,
-      `admin: ${verb} ${target} firmware ${next.name}`,
-      existingManifest.sha,
-    );
+    const commitMessage = `admin: ${verb} ${target} firmware ${next.name}`;
+
+    const io = {
+      get: (path) => githubGetFile(repo, path, branch, token),
+      put: (path, content, message, sha) =>
+        githubPutFile(repo, path, content, branch, token, message, sha),
+      del: (path, sha, message) =>
+        githubDeleteFile(repo, path, sha, branch, token, message),
+    };
+    const servedPath = `${prefix}/${filename}`;
+    const archivedPath = `${archiveDirFor(target)}/${filename}`;
+
+    // Order both directions so the invariant "if the manifest lists it, the
+    // file is there" always holds, even if the second step never runs:
+    //
+    //   unlist — drop it from the manifest, THEN archive the binary. A failure
+    //            in between leaves an unlisted-but-still-served file: not yet
+    //            the requested state, but nothing is broken and a retry
+    //            finishes it.
+    //   list   — restore the binary, THEN add it to the manifest. A failure in
+    //            between leaves a served-but-unlisted file: same benign shape.
+    //
+    // The reverse of either would publish a manifest entry pointing at a file
+    // that isn't there, so the picker would offer a firmware that 404s.
+    if (patch.active === false) {
+      await writeManifests({
+        ...io,
+        target,
+        entries,
+        message: commitMessage,
+        shas,
+      });
+      await moveBinary({
+        ...io,
+        from: servedPath,
+        to: archivedPath,
+        message: commitMessage,
+      });
+    } else {
+      if (patch.active === true) {
+        await moveBinary({
+          ...io,
+          from: archivedPath,
+          to: servedPath,
+          message: commitMessage,
+        });
+      }
+      await writeManifests({
+        ...io,
+        target,
+        entries,
+        message: commitMessage,
+        shas,
+      });
+    }
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
@@ -200,6 +245,27 @@ async function githubPutFile(repo, path, contentBase64, branch, token, message, 
   if (!res.ok) {
     const msg = await res.text().catch(() => "");
     throw new Error(`PUT ${path} -> ${res.status}: ${msg}`);
+  }
+  return await res.json();
+}
+
+async function githubDeleteFile(repo, path, sha, branch, token, message) {
+  const res = await fetch(
+    `https://api.github.com/repos/${repo}/contents/${encodeURIPath(path)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message, sha, branch }),
+    },
+  );
+  if (!res.ok) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(`DELETE ${path} -> ${res.status}: ${msg}`);
   }
   return await res.json();
 }
