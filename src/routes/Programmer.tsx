@@ -38,6 +38,15 @@ interface ProgrammerProps {
   // moment of choosing rather than at the top of the page, where a channel
   // warning is scrolled past before it matters.
   channelNotice?: ReactNode;
+  // Explainer block above the step stack, below the title. For orienting a
+  // reader who landed on a non-default channel ("what is this page?") before
+  // they start picking firmware.
+  intro?: ReactNode;
+  // When set, step 3 requires ticking an acknowledgement before Update
+  // enables. Lives in step 3 rather than step 1 so the consent sits at the
+  // irreversible action, not two steps upstream where it gets scrolled past.
+  // Resets on "Flash again" — one acknowledgement per flash.
+  disclaimer?: ReactNode;
 }
 
 export const Programmer = ({
@@ -49,6 +58,8 @@ export const Programmer = ({
   heroWidth = 500,
   heroOpacity = 1,
   channelNotice,
+  intro,
+  disclaimer,
 }: ProgrammerProps) => {
   const [catalogue, setCatalogue] = useState<FirmwareEntry[]>([]);
   const [catalogueLoading, setCatalogueLoading] = useState(true);
@@ -92,6 +103,7 @@ export const Programmer = ({
   );
   const [flashError, setFlashError] = useState<string | null>(null);
   const [burstTrigger, setBurstTrigger] = useState(0);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,6 +157,7 @@ export const Programmer = ({
     const device = deviceRef.current;
     const firmware = selected;
     if (!device || !firmware) return;
+    if (disclaimer && !acknowledged) return;
 
     setFlashStatus("preparing");
     setFlashMessage(null);
@@ -226,6 +239,7 @@ export const Programmer = ({
     setFlashMessage(null);
     setFlashError(null);
     setFlashProgress({ done: 0, total: 0 });
+    setAcknowledged(false);
   };
 
   const s3 = flashStatus === "complete";
@@ -267,6 +281,8 @@ export const Programmer = ({
               flashing={flashing}
             />
           </div>
+
+          {intro}
 
           {/* Wrapper exists purely as a styling hook — /nightly rounds the
               stack's outer corners while leaving the cards' shared border
@@ -367,14 +383,37 @@ export const Programmer = ({
               className="animate-tab-fade"
             >
               {!flashing && !s3 && !errored && (
-                <CbaButton
-                  disabled={!s1 || !s2}
-                  variant={s1 && s2 ? "success" : "default"}
-                  onClick={handleUpdate}
-                  style={{ width: 180 }}
-                >
-                  Update
-                </CbaButton>
+                <div className="flex flex-col items-center gap-3.5">
+                  {disclaimer && (
+                    // w-96 + mx-auto matches PedalDropdown and the channel
+                    // notice, so the consent block lines up with the rest of
+                    // the stack instead of spanning the whole card.
+                    <label className="mx-auto flex w-96 max-w-full cursor-pointer select-none items-start gap-2.5 border-2 border-black/15 bg-black/[0.03] px-3.5 py-3 text-left transition-colors duration-200 hover:border-black/30">
+                      <input
+                        type="checkbox"
+                        checked={acknowledged}
+                        disabled={!s1 || !s2}
+                        onChange={(e) => setAcknowledged(e.target.checked)}
+                        className="mt-[2px] h-[15px] w-[15px] shrink-0 accent-black disabled:cursor-not-allowed"
+                      />
+                      <span className="text-[11px] leading-[1.5] text-black/60">
+                        {disclaimer}
+                      </span>
+                    </label>
+                  )}
+                  <CbaButton
+                    disabled={!s1 || !s2 || (!!disclaimer && !acknowledged)}
+                    variant={
+                      s1 && s2 && (!disclaimer || acknowledged)
+                        ? "success"
+                        : "default"
+                    }
+                    onClick={handleUpdate}
+                    style={{ width: 180 }}
+                  >
+                    Update
+                  </CbaButton>
+                </div>
               )}
               {flashing && (
                 <div className="flex flex-col items-center gap-2.5">

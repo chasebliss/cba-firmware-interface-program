@@ -76,28 +76,44 @@ const App = () => {
                 sources={NIGHTLY_SOURCES}
                 title="Nightly Programmer."
                 navProps={{ variant: "dark", rightLabel: "Nightly" }}
-                channelNotice={
-                  // Compact by design: this sits inside the active step card,
-                  // so a paragraph of body text competes with the picker it's
-                  // meant to annotate. One line, muted, with the escape hatch
-                  // as the only emphasis.
-                  // w-96 + mx-auto matches PedalDropdown, so the notice lines
-                  // up under the picker rather than spanning the whole card.
-                  <p className="mx-auto mt-2.5 flex w-96 max-w-full flex-wrap items-baseline gap-x-1.5 text-[11px] leading-[1.5] text-black/45">
-                    <span className="font-bold uppercase tracking-[0.08em] text-gold">
-                      Unreleased
-                    </span>
-                    <span>
-                      Less tested than production.{" "}
+                intro={
+                  // The "what am I looking at" explainer. Sits above the step
+                  // stack because it's page-level orientation, not an
+                  // annotation on any one control — the step 3 tick is what
+                  // actually gates flashing.
+                  <div className="mb-8 border-2 border-black/15 bg-black/[0.03] px-5 py-4 text-left">
+                    <h2 className="text-[15px] font-bold">
+                      What is nightly firmware?
+                    </h2>
+                    <p className="mt-2 text-[13px] leading-[1.65] text-black/60">
+                      On this page you will find firmware that has not completed
+                      our internal testing process yet. It will not harm your
+                      pedals, but it could include bugs. Use this code if you
+                      want access to the latest bug fixes as quickly as
+                      possible.
+                    </p>
+                    <p className="mt-2.5 text-[13px] leading-[1.65] text-black/60">
+                      You can find official production code{" "}
                       <a
                         href="/"
-                        className="font-semibold text-black/70 underline underline-offset-2 hover:text-black"
+                        className="font-semibold text-black/80 underline underline-offset-2 hover:text-black"
                       >
-                        Use stable instead
+                        here
                       </a>
                       .
-                    </span>
-                  </p>
+                    </p>
+                  </div>
+                }
+                disclaimer={
+                  // Short on purpose: the intro above carries the explanation,
+                  // so this only has to be the thing they affirm.
+                  <>
+                    <span className="font-bold uppercase tracking-[0.08em] text-gold">
+                      I understand
+                    </span>{" "}
+                    this firmware has not completed internal testing and may
+                    include bugs.
+                  </>
                 }
               />
             </div>
