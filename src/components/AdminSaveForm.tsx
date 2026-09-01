@@ -1,70 +1,44 @@
 import { CbaButton } from "@/components/CbaButton";
 import { SectionLabel } from "@/components/SectionLabel";
-import {
-  CHANNELS,
-  type AdminFirmware,
-  type SaveStatus,
-  type SaveTarget,
-} from "@/lib/admin-firmware";
+import { CHANNELS } from "@/lib/admin-firmware";
+import type { SaveDraft } from "@/lib/save-draft";
 
 // Sentinel option value. Selecting it switches the control to free text
 // rather than storing anything.
 const NEW_PEDAL = "__new__";
 
 interface AdminSaveFormProps {
-  hasFile: boolean;
+  // The whole form edits this one draft; everything below is context the
+  // draft can't know about (the loaded file, the catalogue, flash state).
+  draft: SaveDraft;
   file: File | null;
-  saveName: string;
-  savePedal: string;
   knownPedals: string[];
-  saveDescription: string;
-  saveBgColor: string;
-  saveTarget: SaveTarget;
-  onSaveNameChange: (v: string) => void;
-  onSavePedalChange: (v: string) => void;
-  onSaveDescriptionChange: (v: string) => void;
-  onSaveBgColorChange: (v: string) => void;
-  onSaveTargetChange: (v: SaveTarget) => void;
-  editingEntry: AdminFirmware | null;
-  targetChanged: boolean;
   duplicateInTarget: boolean;
   canSave: boolean;
-  saveStatus: SaveStatus;
-  saveMessage: string | null;
-  saveButtonLabel: string;
   onSave: () => void;
   onCancelEdit: () => void;
 }
 
 export const AdminSaveForm = ({
-  hasFile,
+  draft,
   file,
-  saveName,
-  savePedal,
   knownPedals,
-  saveDescription,
-  saveBgColor,
-  saveTarget,
-  onSaveNameChange,
-  onSavePedalChange,
-  onSaveDescriptionChange,
-  onSaveBgColorChange,
-  onSaveTargetChange,
-  editingEntry,
-  targetChanged,
   duplicateInTarget,
   canSave,
-  saveStatus,
-  saveMessage,
-  saveButtonLabel,
   onSave,
   onCancelEdit,
 }: AdminSaveFormProps) => {
-  const isEditing = editingEntry !== null;
+  const { fields, editingEntry, isEditing, targetChanged } = draft;
+  const hasFile = file !== null;
   // A pedal not yet in any channel puts the field into free-text mode. The
   // select alone can't express "first firmware for a new product", and a
   // second control is clearer than an editable combobox.
-  const addingPedal = savePedal !== "" && !knownPedals.includes(savePedal);
+  const addingPedal = fields.pedal !== "" && !knownPedals.includes(fields.pedal);
+  const saveButtonLabel = isEditing
+    ? targetChanged
+      ? `Copy to ${fields.target}`
+      : "Update firmware"
+    : "Save firmware";
 
   return (
     <div
@@ -75,7 +49,7 @@ export const AdminSaveForm = ({
         3.{" "}
         {isEditing
           ? targetChanged
-            ? `Copy to ${saveTarget}`
+            ? `Copy to ${fields.target}`
             : "Update firmware"
           : "Publish firmware"}
         {!isEditing && (
@@ -101,7 +75,7 @@ export const AdminSaveForm = ({
               <span className="font-normal text-text/60">
                 {" "}
                 {targetChanged
-                  ? `(${editingEntry.target} → ${saveTarget})`
+                  ? `(${editingEntry.target} → ${fields.target})`
                   : `in ${editingEntry.target}`}
               </span>
             </p>
@@ -127,8 +101,8 @@ export const AdminSaveForm = ({
           </label>
           <input
             type="text"
-            value={saveName}
-            onChange={(e) => onSaveNameChange(e.target.value)}
+            value={fields.name}
+            onChange={(e) => draft.set("name", e.target.value)}
             placeholder="e.g. MOOD MKII v1.2"
             className="w-full border-2 border-border bg-surface px-3 py-2.5 text-body font-bold outline-none"
           />
@@ -148,15 +122,15 @@ export const AdminSaveForm = ({
             <div className="flex gap-2">
               <input
                 type="text"
-                value={savePedal}
-                onChange={(e) => onSavePedalChange(e.target.value)}
+                value={fields.pedal}
+                onChange={(e) => draft.set("pedal", e.target.value)}
                 placeholder="e.g. MOOD MKII"
                 className="w-full border-2 border-border bg-surface px-3 py-2.5 text-body font-bold outline-none"
               />
               {knownPedals.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => onSavePedalChange("")}
+                  onClick={() => draft.set("pedal", "")}
                   className="shrink-0 cursor-pointer border-2 border-border bg-surface px-3 text-meta font-bold uppercase tracking-[0.08em] text-text/55"
                 >
                   Pick
@@ -165,12 +139,13 @@ export const AdminSaveForm = ({
             </div>
           ) : (
             <select
-              value={savePedal}
+              value={fields.pedal}
               onChange={(e) =>
                 // The sentinel never reaches state. Picking it clears the
                 // field, and an empty value with no match flips the branch
                 // above into the free-text input.
-                onSavePedalChange(
+                draft.set(
+                  "pedal",
                   e.target.value === NEW_PEDAL ? " " : e.target.value,
                 )
               }
@@ -200,11 +175,36 @@ export const AdminSaveForm = ({
               public picker, so a plain list of changes needs no markup. Left
               empty, the public page shows nothing at all. */}
           <textarea
-            value={saveDescription}
-            onChange={(e) => onSaveDescriptionChange(e.target.value)}
+            value={fields.description}
+            onChange={(e) => draft.set("description", e.target.value)}
             rows={4}
             placeholder={"What changed in this version?\nOne change per line."}
             className="w-full resize-y border-2 border-border bg-surface px-3 py-2.5 text-body-sm font-medium leading-[1.5] outline-none"
+          />
+          <p className="mt-1 text-caption text-text/45">
+            One change per line. Indent two spaces to nest a sub-point.{" "}
+            <span className="font-mono">**bold**</span>,{" "}
+            <span className="font-mono">*italic*</span>,{" "}
+            <span className="font-mono">`code`</span> and{" "}
+            <span className="font-mono">[text](url)</span> render.
+          </p>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-meta font-bold uppercase tracking-[0.1em] text-text/38">
+            Internal notes{" "}
+            <span className="font-normal normal-case tracking-normal">
+              (never shown publicly)
+            </span>
+          </label>
+          {/* Stored in the admin manifest only — publicEntries() strips this
+              field before the served firmwares.json is written. The "just for
+              us" lines from the firmware team live here. */}
+          <textarea
+            value={fields.internalNotes}
+            onChange={(e) => draft.set("internalNotes", e.target.value)}
+            rows={3}
+            placeholder={"Notes for the team only.\nHardware configs, things to vet, caveats."}
+            className="w-full resize-y border-2 border-dashed border-border/60 bg-surface px-3 py-2.5 text-body-sm font-medium leading-[1.5] outline-none"
           />
         </div>
         <div className="flex items-center gap-4">
@@ -215,12 +215,12 @@ export const AdminSaveForm = ({
             <div className="flex items-center gap-2.5">
               <input
                 type="color"
-                value={saveBgColor}
-                onChange={(e) => onSaveBgColorChange(e.target.value)}
+                value={fields.bgColor}
+                onChange={(e) => draft.set("bgColor", e.target.value)}
                 className="h-9 w-10 cursor-pointer border-2 border-border bg-surface p-0.5"
               />
               <span className="font-mono text-caption font-bold text-text/50">
-                {saveBgColor}
+                {fields.bgColor}
               </span>
             </div>
           </div>
@@ -250,8 +250,8 @@ export const AdminSaveForm = ({
                       type="radio"
                       name="saveTarget"
                       value={channel.id}
-                      checked={saveTarget === channel.id}
-                      onChange={() => onSaveTargetChange(channel.id)}
+                      checked={fields.target === channel.id}
+                      onChange={() => draft.set("target", channel.id)}
                       style={{ accentColor: "var(--text)" }}
                     />
                     {channel.label}
@@ -268,7 +268,7 @@ export const AdminSaveForm = ({
         </div>
         <div className="relative mt-10 flex items-center gap-4">
           <CbaButton disabled={!canSave} onClick={onSave} fullWidth>
-            {saveStatus === "saving" ? "Saving…" : saveButtonLabel}
+            {draft.status === "saving" ? "Saving…" : saveButtonLabel}
           </CbaButton>
           {duplicateInTarget && (
             <div
@@ -276,7 +276,7 @@ export const AdminSaveForm = ({
               className="animate-tab-fade absolute left-1/2 top-full z-20 mt-2 w-[280px] -translate-x-1/2 border-2 border-border bg-surface px-3 py-2 shadow-cba"
             >
               <p className="text-caption font-bold leading-[1.4]">
-                Already in {saveTarget} as{" "}
+                Already in {fields.target} as{" "}
                 <span className="font-mono">{file?.name}</span>.
               </p>
               <p className="mt-0.5 text-caption text-text/55">
@@ -284,11 +284,11 @@ export const AdminSaveForm = ({
               </p>
             </div>
           )}
-          {!duplicateInTarget && saveMessage && (
+          {!duplicateInTarget && draft.message && (
             <p
-              className={`max-w-[200px] text-body-sm font-bold leading-[1.4] ${saveStatus === "error" ? "text-bad" : "text-ok"}`}
+              className={`max-w-[200px] text-body-sm font-bold leading-[1.4] ${draft.status === "error" ? "text-bad" : "text-ok"}`}
             >
-              {saveMessage}
+              {draft.message}
             </p>
           )}
         </div>

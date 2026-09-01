@@ -113,6 +113,9 @@ export default async function handler(req, res) {
     if (typeof patch.description === "string") {
       next.description = patch.description.trim();
     }
+    if (typeof patch.internalNotes === "string") {
+      next.internalNotes = patch.internalNotes.trim();
+    }
     if (typeof patch.bgColor === "string" && /^#[0-9a-fA-F]{6}$/.test(patch.bgColor)) {
       next.bgColor = patch.bgColor;
     }

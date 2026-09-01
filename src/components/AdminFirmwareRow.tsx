@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   channelFor,
   DEPLOY_STATUS_HELP,
@@ -9,6 +10,8 @@ import {
   type AdminFirmware,
   type DeployStatus,
 } from "@/lib/admin-firmware";
+import { NoteList } from "@/components/NoteList";
+import { noteItems } from "@/lib/firmware-catalogue";
 import { formatRelativeTime } from "@/lib/format";
 
 interface AdminFirmwareRowProps {
@@ -32,8 +35,18 @@ export const AdminFirmwareRow = ({
   onToggleActive,
   onDelete,
 }: AdminFirmwareRowProps) => {
+  const [expanded, setExpanded] = useState(false);
   const isFake = firmware.filename === FAKE_FILENAME;
   const status = rawStatus ?? "checking";
+
+  // Entries written before release notes existed stored the firmware name as
+  // their description, so a description equal to the name carries nothing.
+  const publicNotes =
+    firmware.description.trim() === firmware.name.trim()
+      ? []
+      : noteItems(firmware.description);
+  const internalNotes = noteItems(firmware.internalNotes);
+  const hasNotes = publicNotes.length > 0 || internalNotes.length > 0;
   // Derived from the row's own target rather than passed down — the label is a
   // property of the channel, and the row already knows which channel it's in.
   const channelLabel = isRealFirmware(firmware)
@@ -51,7 +64,7 @@ export const AdminFirmwareRow = ({
 
   return (
     <li
-      className="relative flex items-center gap-3 bg-surface px-3.5 py-3 transition-opacity duration-200"
+      className="relative bg-surface transition-opacity duration-200"
       style={{
         opacity: busy ? 0.4 : firmware.active ? 1 : 0.55,
       }}
@@ -61,126 +74,185 @@ export const AdminFirmwareRow = ({
         className="pointer-events-none absolute -bottom-px -top-px left-0 z-1 w-[4px]"
         style={{ background: firmware.bgColor }}
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex items-center gap-2">
-          {isFake && (
+      <div className="flex items-center gap-3 px-3.5 py-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            {isFake && (
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ background: FAKE_BG_COLOR }}
+              />
+            )}
             <span
-              aria-hidden="true"
-              className="h-2 w-2 shrink-0 rounded-full"
-              style={{ background: FAKE_BG_COLOR }}
-            />
-          )}
-          <span
-            title={firmware.name}
-            className="truncate text-body font-bold"
-          >
-            {firmware.name}
-          </span>
-          {/* Only exceptions get a chip. On-site and in the picker is the
+              title={firmware.name}
+              className="truncate text-body font-bold"
+            >
+              {firmware.name}
+            </span>
+            {/* Only exceptions get a chip. On-site and in the picker is the
               resting state of almost every row, so labelling it would make the
               commonest case the loudest thing on screen. Silence means normal;
               a chip means something is mid-flight or deliberately held back.
               Each chip's tooltip explains itself, so no legend is needed. */}
-          {!isFake && firmware.active && status === "pending" && (
-            <span
-              title={DEPLOY_STATUS_HELP[status]}
-              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-accent/12 px-2 py-px text-micro font-bold uppercase tracking-[0.08em] text-accent"
-            >
+            {!isFake && firmware.active && status === "pending" && (
               <span
-                aria-hidden="true"
-                className="animate-cba-pulse h-1 w-1 shrink-0 rounded-full"
-                style={{ background: publishColor }}
-              />
-              {DEPLOY_STATUS_LABEL[status]}
-            </span>
-          )}
-          {!isFake && !firmware.active && (
-            <span
-              title={listingHelp(false, channelLabel)}
-              className="shrink-0 whitespace-nowrap rounded-full bg-text/8 px-2 py-px text-micro font-bold uppercase tracking-[0.08em] text-text/55"
-            >
-              Unlisted
-            </span>
-          )}
-        </div>
-        <div className="flex items-baseline gap-2">
-          <span
-            title={firmware.filename}
-            className="truncate font-mono text-caption text-text/45"
-          >
-            {firmware.filename}
-          </span>
-          {(() => {
-            // Show last edit (updatedAt) for admin verification. Falls back to
-            // uploadedAt for older rows that pre-date the field.
-            const ts = firmware.updatedAt ?? firmware.uploadedAt;
-            if (!ts) return null;
-            return (
-              <span
-                title={new Date(ts).toLocaleString()}
-                className="shrink-0 text-meta text-text/35"
+                title={DEPLOY_STATUS_HELP[status]}
+                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-accent/12 px-2 py-px text-micro font-bold uppercase tracking-[0.08em] text-accent"
               >
-                · {formatRelativeTime(ts)}
+                <span
+                  aria-hidden="true"
+                  className="animate-cba-pulse h-1 w-1 shrink-0 rounded-full"
+                  style={{ background: publishColor }}
+                />
+                {DEPLOY_STATUS_LABEL[status]}
               </span>
-            );
-          })()}
+            )}
+            {!isFake && !firmware.active && (
+              <span
+                title={listingHelp(false, channelLabel)}
+                className="shrink-0 whitespace-nowrap rounded-full bg-text/8 px-2 py-px text-micro font-bold uppercase tracking-[0.08em] text-text/55"
+              >
+                Unlisted
+              </span>
+            )}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span
+              title={firmware.filename}
+              className="truncate font-mono text-caption text-text/45"
+            >
+              {firmware.filename}
+            </span>
+            {(() => {
+              // Show last edit (updatedAt) for admin verification. Falls back to
+              // uploadedAt for older rows that pre-date the field.
+              const ts = firmware.updatedAt ?? firmware.uploadedAt;
+              if (!ts) return null;
+              return (
+                <span
+                  title={new Date(ts).toLocaleString()}
+                  className="shrink-0 text-meta text-text/35"
+                >
+                  · {formatRelativeTime(ts)}
+                </span>
+              );
+            })()}
+          </div>
         </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onLoad}
-          disabled={
-            busy ||
-            flashing ||
-            (!isFake && (!firmware.active || status !== "live"))
-          }
-          title={
-            isFake
-              ? "Load mock — runs the flash flow without hardware"
-              : !firmware.active
-                ? "Unlisted firmware isn't on the site, so it can't be loaded. List it first."
-                : status !== "live"
-                  ? "Available once the file finishes uploading"
-                  : "Open this firmware — fills in the edit form and loads the file into the flasher"
-          }
-          className="cursor-pointer border border-border bg-transparent px-2.5 py-1 text-meta font-bold uppercase tracking-[0.06em] text-text transition-colors duration-200 ease-out hover:bg-text hover:text-on-accent disabled:cursor-not-allowed disabled:border-dashed disabled:border-border/30 disabled:text-text/30"
-        >
-          Load
-        </button>
-        {!isFake && (
-          <>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {/* Notes are opt-in per row. Showing every note inline would triple
+            the height of the list and bury the names you scan by. */}
+          {!isFake && hasNotes && (
             <button
               type="button"
-              onClick={onToggleActive}
-              disabled={busy || toggling || flashing}
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
               title={
-                firmware.active
-                  ? `Unlist — take this off the ${channelLabel} page and off the site. The file is kept, so this is reversible.`
-                  : `List — put this back on the ${channelLabel} page and make it downloadable again.`
+                expanded ? "Hide notes" : "Show release and internal notes"
               }
-              className="cursor-pointer border border-border/40 bg-transparent px-2.5 py-1 text-meta font-bold uppercase tracking-[0.06em] text-text/70 transition-colors duration-200 ease-out hover:border-border hover:bg-text hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer border border-border/40 bg-transparent px-2.5 py-1 text-meta font-bold uppercase tracking-[0.06em] text-text/70 transition-colors duration-200 ease-out hover:border-border hover:bg-text hover:text-on-accent"
             >
-              {toggling ? "…" : firmware.active ? "Unlist" : "List"}
+              Notes
+              {internalNotes.length > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="ml-1.5 inline-block h-1 w-1 rounded-full align-middle"
+                  style={{ background: "var(--accent)" }}
+                />
+              )}
             </button>
-            {/* Delete is only reachable once a firmware is unlisted. Two
+          )}
+          <button
+            type="button"
+            onClick={onLoad}
+            disabled={
+              busy ||
+              flashing ||
+              (!isFake && (!firmware.active || status !== "live"))
+            }
+            title={
+              isFake
+                ? "Load mock — runs the flash flow without hardware"
+                : !firmware.active
+                  ? "Unlisted firmware isn't on the site, so it can't be loaded. List it first."
+                  : status !== "live"
+                    ? "Available once the file finishes uploading"
+                    : "Open this firmware — fills in the edit form and loads the file into the flasher"
+            }
+            className="cursor-pointer border border-border bg-transparent px-2.5 py-1 text-meta font-bold uppercase tracking-[0.06em] text-text transition-colors duration-200 ease-out hover:bg-text hover:text-on-accent disabled:cursor-not-allowed disabled:border-dashed disabled:border-border/30 disabled:text-text/30"
+          >
+            Load
+          </button>
+          {!isFake && (
+            <>
+              <button
+                type="button"
+                onClick={onToggleActive}
+                disabled={busy || toggling || flashing}
+                title={
+                  firmware.active
+                    ? `Unlist — take this off the ${channelLabel} page and off the site. The file is kept, so this is reversible.`
+                    : `List — put this back on the ${channelLabel} page and make it downloadable again.`
+                }
+                className="cursor-pointer border border-border/40 bg-transparent px-2.5 py-1 text-meta font-bold uppercase tracking-[0.06em] text-text/70 transition-colors duration-200 ease-out hover:border-border hover:bg-text hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {toggling ? "…" : firmware.active ? "Unlist" : "List"}
+              </button>
+              {/* Delete is only reachable once a firmware is unlisted. Two
                 deliberate steps from live, so the destructive action can't sit
                 one stray click away from a firmware users are downloading —
                 the pattern every surveyed tool follows. */}
-            {!firmware.active && (
-              <button
-                type="button"
-                onClick={onDelete}
-                disabled={busy}
-                title="Delete permanently. The file is removed from the site and can't be recovered here."
-                className="cursor-pointer border border-bad bg-transparent px-2.5 py-1 text-meta font-bold uppercase tracking-[0.06em] text-bad transition-colors duration-200 ease-out hover:bg-bad hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {busy ? "…" : "Delete"}
-              </button>
-            )}
-          </>
-        )}
+              {!firmware.active && (
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  disabled={busy}
+                  title="Delete permanently. The file is removed from the site and can't be recovered here."
+                  className="cursor-pointer border border-bad bg-transparent px-2.5 py-1 text-meta font-bold uppercase tracking-[0.06em] text-bad transition-colors duration-200 ease-out hover:bg-bad hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busy ? "…" : "Delete"}
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
+      {expanded && (
+        <div className="animate-cba-pop-in border-t border-border/15 px-3.5 pb-3.5 pt-3">
+          {publicNotes.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-micro font-bold uppercase tracking-[0.08em] text-text/38">
+                Release notes
+              </p>
+              <NoteList
+                items={publicNotes}
+                tone="text-text/70"
+                subTone="text-text/50"
+              />
+            </div>
+          )}
+          {internalNotes.length > 0 && (
+            <div
+              className={`border-l-2 border-dashed border-accent/40 pl-3 ${
+                publicNotes.length > 0 ? "mt-3.5" : ""
+              }`}
+            >
+              <p className="mb-1.5 text-micro font-bold uppercase tracking-[0.08em] text-accent">
+                Internal{" "}
+                <span className="font-medium normal-case tracking-normal text-text/38">
+                  (never shown publicly)
+                </span>
+              </p>
+              <NoteList
+                items={internalNotes}
+                tone="text-text/70"
+                subTone="text-text/50"
+              />
+            </div>
+          )}
+        </div>
+      )}
     </li>
   );
 };

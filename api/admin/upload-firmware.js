@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     );
   }
 
-  const { filename, contentBase64, target, name, pedal, description, bgColor, overwrite } = body;
+  const { filename, contentBase64, target, name, pedal, description, internalNotes, bgColor, overwrite } = body;
   const err = validate({ filename, contentBase64, target, name, pedal });
   if (err) {
     res.statusCode = 400;
@@ -122,6 +122,7 @@ export default async function handler(req, res) {
         name,
         pedal: (pedal || "").trim(),
         description: description || "",
+        internalNotes: internalNotes || "",
         bgColor: bgColor || entries[existingIdx].bgColor || "#ba8e51",
         // Preserve uploadedAt — that's the original release date, surfaced to
         // public users via the firmware dropdown. Bump updatedAt instead so
@@ -137,6 +138,7 @@ export default async function handler(req, res) {
         platform: "models",
         filepath: entryFilepath,
         description: description || "",
+        internalNotes: internalNotes || "",
         bgColor: bgColor || "#ba8e51",
         active: true,
         uploadedAt: now,
