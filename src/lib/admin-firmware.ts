@@ -2,6 +2,8 @@
 // the AdminFirmware* components so they don't have to ferry these through
 // props or redefine them.
 
+import { byName, filenameOf } from "@/lib/firmware-catalogue";
+
 export type FlashStatus =
   | "idle"
   | "preparing"
@@ -105,6 +107,9 @@ export interface ManifestEntry {
   filepath: string;
   bgColor?: string;
   description?: string;
+  // Admin-manifest only — publicEntries() in api/admin/channels.js strips it
+  // before the public firmwares.json is written, so it is never served.
+  internalNotes?: string;
   uploadedAt?: string;
   updatedAt?: string;
   active?: boolean;
@@ -125,6 +130,8 @@ export interface AdminFirmware {
   target: RowTarget;
   bgColor: string;
   description: string;
+  // Internal release notes — lives only in the admin manifest, never served.
+  internalNotes: string;
   uploadedAt: string | null;
   updatedAt: string | null;
   // Whether the channel's public page lists this firmware. Stored as `active`
@@ -152,14 +159,42 @@ export const listingHelp = (listed: boolean, channelLabel: string): string =>
     ? `Shown in the firmware picker on the ${channelLabel} page.`
     : `Removed from the ${channelLabel} page. Unlisting also takes the file off the site, so the direct link stops working. It's kept in the repo, so listing it again restores it.`;
 
+// A catalogue row that lives in a real channel — i.e. not the mock. Only
+// these have a repo path and a CDN URL, and only these are editable.
+export type SavedFirmware = AdminFirmware & { target: SaveTarget };
+
 // Narrows a catalogue row to one that lives in a real channel — i.e. not the
 // mock. Use before anything that resolves a repo path or CDN URL, since the
 // mock has neither.
-export const isRealFirmware = (
-  fw: AdminFirmware,
-): fw is AdminFirmware & { target: SaveTarget } => isSaveTarget(fw.target);
+export const isRealFirmware = (fw: AdminFirmware): fw is SavedFirmware =>
+  isSaveTarget(fw.target);
 
 export const GOLD = GOLD_HEX;
+
+// One catalogue mapper for the admin dashboard: the list-firmwares response
+// in, AdminFirmware[] out, sorted by name. The manifest defaults here are the
+// admin view of the same rules the public loader applies in
+// firmware-catalogue.ts — filenameOf and byName are shared so they can't
+// drift apart again.
+export const adminCatalogueFrom = (
+  data: Partial<Record<SaveTarget, ManifestEntry[]>>,
+): AdminFirmware[] =>
+  CHANNELS.flatMap((channel) =>
+    (data[channel.id] ?? []).map(
+      (e): AdminFirmware => ({
+        name: e.name,
+        pedal: e.pedal ?? "",
+        filename: filenameOf(e.filepath),
+        target: channel.id,
+        bgColor: e.bgColor ?? GOLD_HEX,
+        description: e.description ?? "",
+        internalNotes: e.internalNotes ?? "",
+        uploadedAt: e.uploadedAt ?? null,
+        updatedAt: e.updatedAt ?? null,
+        active: e.active !== false,
+      }),
+    ),
+  ).sort(byName);
 
 export const DEFAULT_TRANSFER_SIZE = 1024;
 
@@ -179,6 +214,7 @@ export const FAKE_ENTRY: AdminFirmware = {
   target: MOCK_TARGET,
   bgColor: FAKE_BG_COLOR,
   description: "In-memory fake — runs the full flash flow without a real pedal.",
+  internalNotes: "",
   uploadedAt: null,
   updatedAt: null,
   active: true,

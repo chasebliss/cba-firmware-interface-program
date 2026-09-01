@@ -35,6 +35,78 @@ export type FirmwarePayload =
   | { kind: "bin"; buffer: ArrayBuffer }
   | { kind: "hex"; segments: FirmwareSegment[] };
 
+// Manifests store filepaths as "./<basename>"; everything downstream wants
+// the bare basename. One spelling of the rule — the admin mapper and this
+// loader both use it.
+export const filenameOf = (filepath: string): string =>
+  filepath.replace(/^\.\//, "");
+
+// Case-insensitive name order. Returns 0 on equal names so the sort is
+// genuinely stable — two earlier inline copies returned 1 there, which let
+// equal names swap between loads.
+export const byName = (a: { name: string }, b: { name: string }): number => {
+  const an = a.name.toLowerCase();
+  const bn = b.name.toLowerCase();
+  return an < bn ? -1 : an > bn ? 1 : 0;
+};
+
+// A note line plus how deep it sits. Depth 0 is a top-level change, depth 1
+// is a sub-point under it. Deeper indentation is clamped to 1: a sidebar
+// column has no room for a third level, and pasted text arrives with all
+// sorts of leading whitespace.
+export interface NoteItem {
+  text: string;
+  depth: 0 | 1;
+}
+
+// Structured form of a notes field. One change per line is the only
+// structure notes have, and an indent nests one line under the previous.
+// Split rather than rendering with whitespace-pre-line: blank lines from
+// pasted text would otherwise show as gaps. Both the leading bullet marker
+// and the indent are optional, so a plain unindented list still parses,
+// which is what every note written before markdown support looks like.
+// Used for public release notes and the admin-only internal notes alike.
+export const noteItems = (notes: string | undefined): NoteItem[] => {
+  const TAB_WIDTH = 4;
+  return (notes ?? "")
+    .split("\n")
+    .map((raw) => {
+      const expanded = raw.replace(/\t/g, " ".repeat(TAB_WIDTH));
+      const indent = expanded.length - expanded.trimStart().length;
+      // Strip one leading bullet marker if present. The marker is optional,
+      // so "- foo" and "foo" produce the same item.
+      const text = expanded
+        .trim()
+        .replace(/^[-*+]\s+/, "")
+        .trim();
+      // Two spaces is the shallowest indent that reads as deliberate. Below
+      // that, treat it as a stray space rather than a nesting intent.
+      return { text, depth: (indent >= 2 ? 1 : 0) as 0 | 1 };
+    })
+    .filter((item) => item.text.length > 0);
+};
+
+// Every distinct pedal across `entries`, trimmed and sorted. Entries from
+// before the pedal backfill carry "" and are skipped.
+export const pedalsIn = (entries: Array<{ pedal: string }>): string[] => {
+  const names = entries.map((e) => e.pedal.trim()).filter((p) => p.length > 0);
+  return Array.from(new Set(names)).sort((a, b) =>
+    byName({ name: a }, { name: b }),
+  );
+};
+
+// Every version of one pedal, newest release first. uploadedAt is the
+// original release date and survives edits, so it stays stable as a sort key.
+export const versionsOf = <
+  T extends { pedal: string; uploadedAt: string | null },
+>(
+  entries: T[],
+  pedal: string,
+): T[] =>
+  entries
+    .filter((e) => e.pedal.trim() === pedal.trim())
+    .sort((a, b) => (b.uploadedAt ?? "").localeCompare(a.uploadedAt ?? ""));
+
 export const loadFirmwareCatalogue = async (
   sources: FirmwareSource[],
 ): Promise<FirmwareEntry[]> => {
@@ -51,7 +123,7 @@ export const loadFirmwareCatalogue = async (
         ? source.repo_url
         : new URL(source.repo_url, window.location.origin).toString();
       return raw.map((r): FirmwareEntry => {
-        const filename = r.filepath.replace(/^\.\//, "");
+        const filename = filenameOf(r.filepath);
         return {
           id: r.id,
           name: r.name,
@@ -69,11 +141,7 @@ export const loadFirmwareCatalogue = async (
     }),
   );
 
-  return lists
-    .flat()
-    .sort((a, b) =>
-      a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1,
-    );
+  return lists.flat().sort(byName);
 };
 
 export const fetchFirmwarePayload = async (

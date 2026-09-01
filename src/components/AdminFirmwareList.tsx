@@ -6,6 +6,7 @@ import type {
   DeployStatus,
   SaveTarget,
 } from "@/lib/admin-firmware";
+import { rowKey } from "@/lib/deploy-probe";
 
 export interface FirmwareSection {
   id: string;
@@ -118,7 +119,7 @@ export const AdminFirmwareList = ({
                 </div>
                 <ul className="flex flex-col gap-px">
                   {section.rows.map((fw) => {
-                    const key = `${fw.target}:${fw.filename}`;
+                    const key = rowKey(fw);
                     return (
                       <AdminFirmwareRow
                         key={key}
