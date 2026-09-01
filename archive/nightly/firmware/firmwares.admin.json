@@ -28,11 +28,12 @@
     "name": "BIGTIME 1.0.2",
     "platform": "models",
     "filepath": "./BIGTIME_Audio_1.0.2.hex",
-    "description": "Some minor bug fixes",
+    "description": "Sliders sometimes fully unresponsive\nPreset reset gesture can get confused if used while looper is first recording without the loop length being set\nTap subdivisions update live when adjusted via CC\nRepeated CC28 messages no longer occasionally turn off display\nLOOP will start in play going from LONG to LOOP over MIDI and from the button\n  LOOP still starts cleared when coming from SHORT or MOD\nBypass mute time much quicker\nLooper maintains midi sync when outside the main menu\nLooper attempts to undo footswitch commands that come in as part of changing menus",
     "bgColor": "#ba8e51",
     "active": true,
     "uploadedAt": "2026-08-12T16:23:12.353Z",
-    "updatedAt": "2026-08-12T16:23:12.353Z",
-    "pedal": "BIGTIME"
+    "updatedAt": "2026-09-01T21:18:49.352Z",
+    "pedal": "BIGTIME",
+    "internalNotes": "Secret aux jack hardware config midi message added\nNew implementation of tap divisions needs **serious vetting before 1.1**\nLooper menu-change undo behaviour\n  Works as advertised for PLAY, STOP and CLEARED. The pedal briefly changes state then goes back once the menu change command is recognized\n  For RECORD the pedal returns to PLAY. This prevents loops from getting degraded while in less performance oriented menus"
   }
 ]
