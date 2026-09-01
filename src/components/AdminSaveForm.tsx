@@ -7,14 +7,21 @@ import {
   type SaveTarget,
 } from "@/lib/admin-firmware";
 
+// Sentinel option value. Selecting it switches the control to free text
+// rather than storing anything.
+const NEW_PEDAL = "__new__";
+
 interface AdminSaveFormProps {
   hasFile: boolean;
   file: File | null;
   saveName: string;
+  savePedal: string;
+  knownPedals: string[];
   saveDescription: string;
   saveBgColor: string;
   saveTarget: SaveTarget;
   onSaveNameChange: (v: string) => void;
+  onSavePedalChange: (v: string) => void;
   onSaveDescriptionChange: (v: string) => void;
   onSaveBgColorChange: (v: string) => void;
   onSaveTargetChange: (v: SaveTarget) => void;
@@ -33,10 +40,13 @@ export const AdminSaveForm = ({
   hasFile,
   file,
   saveName,
+  savePedal,
+  knownPedals,
   saveDescription,
   saveBgColor,
   saveTarget,
   onSaveNameChange,
+  onSavePedalChange,
   onSaveDescriptionChange,
   onSaveBgColorChange,
   onSaveTargetChange,
@@ -51,6 +61,10 @@ export const AdminSaveForm = ({
   onCancelEdit,
 }: AdminSaveFormProps) => {
   const isEditing = editingEntry !== null;
+  // A pedal not yet in any channel puts the field into free-text mode. The
+  // select alone can't express "first firmware for a new product", and a
+  // second control is clearer than an editable combobox.
+  const addingPedal = savePedal !== "" && !knownPedals.includes(savePedal);
 
   return (
     <div
@@ -65,7 +79,7 @@ export const AdminSaveForm = ({
             : "Update firmware"
           : "Publish firmware"}
         {!isEditing && (
-          <span className="font-medium normal-case tracking-normal text-black/30">
+          <span className="font-medium normal-case tracking-normal text-text/30">
             {" "}
             (optional — flashing above doesn't require this)
           </span>
@@ -80,18 +94,18 @@ export const AdminSaveForm = ({
           }}
         >
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold leading-[1.4]">
+            <p className="text-caption font-bold leading-[1.4]">
               {targetChanged
                 ? `Copying "${editingEntry.name}"`
                 : `Editing "${editingEntry.name}"`}
-              <span className="font-normal text-black/60">
+              <span className="font-normal text-text/60">
                 {" "}
                 {targetChanged
                   ? `(${editingEntry.target} → ${saveTarget})`
                   : `in ${editingEntry.target}`}
               </span>
             </p>
-            <p className="mt-1 text-[11px] leading-[1.5] text-black/55">
+            <p className="mt-1 text-caption leading-[1.5] text-text/55">
               {targetChanged
                 ? "The original stays put — a new entry is created in the destination."
                 : "Saving overwrites the existing file and metadata."}
@@ -100,7 +114,7 @@ export const AdminSaveForm = ({
           <button
             type="button"
             onClick={onCancelEdit}
-            className="shrink-0 cursor-pointer border-none bg-transparent p-0 text-[10px] font-bold uppercase tracking-[0.08em] text-black/55 underline underline-offset-[3px]"
+            className="shrink-0 cursor-pointer border-none bg-transparent p-0 text-meta font-bold uppercase tracking-[0.08em] text-text/55 underline underline-offset-[3px]"
           >
             Cancel
           </button>
@@ -108,7 +122,7 @@ export const AdminSaveForm = ({
       )}
       <div className="flex  flex-col gap-3.5">
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-black/38">
+          <label className="mb-1.5 block text-meta font-bold uppercase tracking-[0.1em] text-text/38">
             Name
           </label>
           <input
@@ -116,10 +130,10 @@ export const AdminSaveForm = ({
             value={saveName}
             onChange={(e) => onSaveNameChange(e.target.value)}
             placeholder="e.g. MOOD MKII v1.2"
-            className="w-full border-2 border-black bg-cream px-3 py-2.5 text-[15px] font-bold outline-none"
+            className="w-full border-2 border-border bg-surface px-3 py-2.5 text-body font-bold outline-none"
           />
           {isEditing && (
-            <p className="mt-1 text-[11px] text-black/45">
+            <p className="mt-1 text-caption text-text/45">
               Filename stays as{" "}
               <span className="font-mono">{editingEntry?.filename}</span>. To
               rename, delete the entry and re-upload.
@@ -127,23 +141,75 @@ export const AdminSaveForm = ({
           )}
         </div>
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-black/38">
-            Description{" "}
+          <label className="mb-1.5 block text-meta font-bold uppercase tracking-[0.1em] text-text/38">
+            Pedal
+          </label>
+          {addingPedal || knownPedals.length === 0 ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={savePedal}
+                onChange={(e) => onSavePedalChange(e.target.value)}
+                placeholder="e.g. MOOD MKII"
+                className="w-full border-2 border-border bg-surface px-3 py-2.5 text-body font-bold outline-none"
+              />
+              {knownPedals.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onSavePedalChange("")}
+                  className="shrink-0 cursor-pointer border-2 border-border bg-surface px-3 text-meta font-bold uppercase tracking-[0.08em] text-text/55"
+                >
+                  Pick
+                </button>
+              )}
+            </div>
+          ) : (
+            <select
+              value={savePedal}
+              onChange={(e) =>
+                // The sentinel never reaches state. Picking it clears the
+                // field, and an empty value with no match flips the branch
+                // above into the free-text input.
+                onSavePedalChange(
+                  e.target.value === NEW_PEDAL ? " " : e.target.value,
+                )
+              }
+              className="w-full cursor-pointer border-2 border-border bg-surface px-3 py-2.5 text-body font-bold outline-none"
+            >
+              <option value="">Select pedal...</option>
+              {knownPedals.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+              <option value={NEW_PEDAL}>+ New pedal...</option>
+            </select>
+          )}
+          <p className="mt-1 text-caption text-text/45">
+            Groups every version of this pedal on its release-notes page.
+          </p>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-meta font-bold uppercase tracking-[0.1em] text-text/38">
+            Release notes{" "}
             <span className="font-normal normal-case tracking-normal">
               (optional)
             </span>
           </label>
-          <input
-            type="text"
+          {/* Multi-line by design. Each line renders as its own line in the
+              public picker, so a plain list of changes needs no markup. Left
+              empty, the public page shows nothing at all. */}
+          <textarea
             value={saveDescription}
             onChange={(e) => onSaveDescriptionChange(e.target.value)}
-            placeholder="Brief changelog"
-            className="w-full border-2 border-black bg-cream px-3 py-2.5 text-[15px] font-bold outline-none"
+            rows={4}
+            placeholder={"What changed in this version?\nOne change per line."}
+            className="w-full resize-y border-2 border-border bg-surface px-3 py-2.5 text-body-sm font-medium leading-[1.5] outline-none"
           />
         </div>
         <div className="flex items-center gap-4">
           <div className="flex-1">
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-black/38">
+            <label className="mb-1.5 block text-meta font-bold uppercase tracking-[0.1em] text-text/38">
               Accent color
             </label>
             <div className="flex items-center gap-2.5">
@@ -151,15 +217,15 @@ export const AdminSaveForm = ({
                 type="color"
                 value={saveBgColor}
                 onChange={(e) => onSaveBgColorChange(e.target.value)}
-                className="h-9 w-10 cursor-pointer border-2 border-black bg-cream p-0.5"
+                className="h-9 w-10 cursor-pointer border-2 border-border bg-surface p-0.5"
               />
-              <span className="font-mono text-[12px] font-bold text-black/50">
+              <span className="font-mono text-caption font-bold text-text/50">
                 {saveBgColor}
               </span>
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-black/38">
+            <label className="mb-1.5 block text-meta font-bold uppercase tracking-[0.1em] text-text/38">
               {isEditing ? "Save to channel" : "Channel"}
             </label>
             <div className="flex gap-4">
@@ -178,7 +244,7 @@ export const AdminSaveForm = ({
                         ? `Copy to ${channel.label} — creates a second entry; the original stays in ${editingEntry?.target}.`
                         : undefined
                     }
-                    className="flex cursor-pointer items-center gap-1.5 text-[13px] font-bold"
+                    className="flex cursor-pointer items-center gap-1.5 text-body-sm font-bold"
                   >
                     <input
                       type="radio"
@@ -186,11 +252,11 @@ export const AdminSaveForm = ({
                       value={channel.id}
                       checked={saveTarget === channel.id}
                       onChange={() => onSaveTargetChange(channel.id)}
-                      style={{ accentColor: "#000" }}
+                      style={{ accentColor: "var(--text)" }}
                     />
                     {channel.label}
                     {isCopyDestination && (
-                      <span className="font-normal text-[10px] uppercase tracking-[0.06em] text-black/35">
+                      <span className="font-normal text-meta uppercase tracking-[0.06em] text-text/35">
                         copy
                       </span>
                     )}
@@ -207,20 +273,20 @@ export const AdminSaveForm = ({
           {duplicateInTarget && (
             <div
               role="alert"
-              className="animate-tab-fade absolute left-1/2 top-full z-20 mt-2 w-[280px] -translate-x-1/2 border-2 border-black bg-cream px-3 py-2 shadow-cba"
+              className="animate-tab-fade absolute left-1/2 top-full z-20 mt-2 w-[280px] -translate-x-1/2 border-2 border-border bg-surface px-3 py-2 shadow-cba"
             >
-              <p className="text-[12px] font-bold leading-[1.4]">
+              <p className="text-caption font-bold leading-[1.4]">
                 Already in {saveTarget} as{" "}
                 <span className="font-mono">{file?.name}</span>.
               </p>
-              <p className="mt-0.5 text-[11px] text-black/55">
+              <p className="mt-0.5 text-caption text-text/55">
                 Delete the existing entry or switch target to save.
               </p>
             </div>
           )}
           {!duplicateInTarget && saveMessage && (
             <p
-              className={`max-w-[200px] text-[13px] font-bold leading-[1.4] ${saveStatus === "error" ? "text-red" : "text-green"}`}
+              className={`max-w-[200px] text-body-sm font-bold leading-[1.4] ${saveStatus === "error" ? "text-bad" : "text-ok"}`}
             >
               {saveMessage}
             </p>

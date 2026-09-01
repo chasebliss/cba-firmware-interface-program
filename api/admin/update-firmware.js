@@ -107,8 +107,11 @@ export default async function handler(req, res) {
     if (typeof patch.name === "string" && patch.name.trim()) {
       next.name = patch.name.trim();
     }
+    if (typeof patch.pedal === "string" && patch.pedal.trim()) {
+      next.pedal = patch.pedal.trim();
+    }
     if (typeof patch.description === "string") {
-      next.description = patch.description.trim() || next.name;
+      next.description = patch.description.trim();
     }
     if (typeof patch.bgColor === "string" && /^#[0-9a-fA-F]{6}$/.test(patch.bgColor)) {
       next.bgColor = patch.bgColor;

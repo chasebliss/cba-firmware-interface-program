@@ -4,6 +4,7 @@ import { isHexPath, parseIntelHex, type FirmwareSegment } from "./dfu";
 interface RawFirmware {
   id: number;
   name: string;
+  pedal?: string;
   platform: string;
   filepath: string;
   description: string;
@@ -15,6 +16,11 @@ interface RawFirmware {
 export interface FirmwareEntry {
   id: number;
   name: string;
+  // The product this firmware is for, e.g. "MOOD MKII". Groups versions on
+  // the release-notes page. Required on new uploads; entries written before
+  // the field existed were backfilled, so an empty string here means the
+  // firmware predates the backfill and has no history page.
+  pedal: string;
   platform: string;
   description: string;
   bgColor: string;
@@ -49,6 +55,7 @@ export const loadFirmwareCatalogue = async (
         return {
           id: r.id,
           name: r.name,
+          pedal: r.pedal ?? "",
           platform: r.platform,
           description: r.description,
           bgColor: r.bgColor,

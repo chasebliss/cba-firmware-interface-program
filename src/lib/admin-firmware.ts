@@ -30,7 +30,7 @@ export const CHANNELS = [
     dir: "public/firmware",
     publicBase: "/firmware/",
     route: "/",
-    color: "var(--color-green)",
+    color: "var(--ok)",
   },
   {
     id: "beta",
@@ -101,6 +101,7 @@ export const DEPLOY_STATUS_HELP: Record<DeployStatus, string> = {
 
 export interface ManifestEntry {
   name: string;
+  pedal?: string;
   filepath: string;
   bgColor?: string;
   description?: string;
@@ -119,6 +120,7 @@ export type RowTarget = SaveTarget | typeof MOCK_TARGET;
 
 export interface AdminFirmware {
   name: string;
+  pedal: string;
   filename: string;
   target: RowTarget;
   bgColor: string;
@@ -172,6 +174,7 @@ export const FAKE_PAYLOAD_BYTES = 256 * 1024;
 
 export const FAKE_ENTRY: AdminFirmware = {
   name: "Mock Pedal (no hardware)",
+  pedal: "",
   filename: FAKE_FILENAME,
   target: MOCK_TARGET,
   bgColor: FAKE_BG_COLOR,

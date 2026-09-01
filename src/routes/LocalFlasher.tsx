@@ -87,6 +87,7 @@ export const LocalFlasher = () => {
   const [burstTrigger, setBurstTrigger] = useState(0);
 
   const [saveName, setSaveName] = useState("");
+  const [savePedal, setSavePedal] = useState("");
   const [saveDescription, setSaveDescription] = useState("");
   const [saveBgColor, setSaveBgColor] = useState(GOLD);
   const [saveTarget, setSaveTarget] = useState<SaveTarget>(DEFAULT_SAVE_TARGET);
@@ -98,6 +99,7 @@ export const LocalFlasher = () => {
   // Snapshot of form values at load time — used to detect unsaved edits.
   const [initialSnapshot, setInitialSnapshot] = useState<{
     name: string;
+    pedal: string;
     description: string;
     bgColor: string;
     target: SaveTarget;
@@ -161,6 +163,7 @@ export const LocalFlasher = () => {
       ): AdminFirmware[] =>
         (entries ?? []).map((e) => ({
           name: e.name,
+          pedal: e.pedal ?? "",
           filename: e.filepath.replace(/^\.\//, ""),
           target,
           bgColor: e.bgColor ?? GOLD,
@@ -314,6 +317,7 @@ export const LocalFlasher = () => {
       const picked = new File([blob], entry.filename, { type: blob.type });
       await handleFile(picked);
       setSaveName(entry.name);
+      setSavePedal(entry.pedal);
       setSaveDescription(entry.description);
       setSaveBgColor(entry.bgColor);
       setSaveTarget(entry.target);
@@ -322,6 +326,7 @@ export const LocalFlasher = () => {
       setEditingEntry(entry);
       setInitialSnapshot({
         name: entry.name,
+        pedal: entry.pedal,
         description: entry.description,
         bgColor: entry.bgColor,
         target: entry.target,
@@ -336,6 +341,7 @@ export const LocalFlasher = () => {
 
   const resetSaveForm = () => {
     setSaveName("");
+    setSavePedal("");
     setSaveDescription("");
     setSaveBgColor(GOLD);
     setSaveTarget(DEFAULT_SAVE_TARGET);
@@ -351,6 +357,7 @@ export const LocalFlasher = () => {
     if (initialSnapshot) {
       return (
         saveName !== initialSnapshot.name ||
+        savePedal !== initialSnapshot.pedal ||
         saveDescription !== initialSnapshot.description ||
         saveBgColor !== initialSnapshot.bgColor ||
         saveTarget !== initialSnapshot.target
@@ -358,6 +365,7 @@ export const LocalFlasher = () => {
     }
     return (
       saveName.trim().length > 0 ||
+      savePedal.trim().length > 0 ||
       saveDescription.trim().length > 0 ||
       saveBgColor !== GOLD ||
       saveTarget !== DEFAULT_SAVE_TARGET
@@ -531,6 +539,7 @@ export const LocalFlasher = () => {
           contentBase64,
           target: saveTarget,
           name: saveName.trim(),
+          pedal: savePedal.trim(),
           description: saveDescription.trim(),
           bgColor: saveBgColor,
           overwrite,
@@ -649,9 +658,22 @@ export const LocalFlasher = () => {
           editingEntry.filename === e.filename
         ),
     );
+  // Every distinct pedal already in any channel, so the admin picks from
+  // what exists instead of retyping it. Free text let "BIG TIME" and
+  // "BIGTIME" both in, which split one product's history in two.
+  const knownPedals = Array.from(
+    new Set(
+      catalogue
+        .filter(isRealFirmware)
+        .map((fw) => fw.pedal.trim())
+        .filter((p) => p.length > 0),
+    ),
+  ).sort((a, b) => (a.toLowerCase() < b.toLowerCase() ? -1 : 1));
+
   const canSave =
     file !== null &&
     saveName.trim().length > 0 &&
+    savePedal.trim().length > 0 &&
     saveStatus !== "saving" &&
     !flashing &&
     !duplicateInTarget;
@@ -701,7 +723,7 @@ export const LocalFlasher = () => {
   ];
 
   return (
-    <div className="min-h-screen animate-cba-fade-in bg-gray-50">
+    <div className="min-h-screen animate-cba-fade-in bg-surface-2">
       <SuccessBurst trigger={burstTrigger} />
       <AdminHeader flashing={flashing} />
 
@@ -710,7 +732,7 @@ export const LocalFlasher = () => {
         style={{ minHeight: "calc(100vh - 130px)" }}
       >
         <div className="flex flex-col pb-8 pt-9 md:pb-20 md:pr-12">
-          <div className="mb-7 border-b border-black/10 pb-7">
+          <div className="mb-7 border-b border-border/10 pb-7">
             <SectionLabel>1. Load firmware file</SectionLabel>
             <AdminFirmwareDropZone
               file={file}
@@ -740,10 +762,13 @@ export const LocalFlasher = () => {
             hasFile={file !== null}
             file={file}
             saveName={saveName}
+            savePedal={savePedal}
+            knownPedals={knownPedals}
             saveDescription={saveDescription}
             saveBgColor={saveBgColor}
             saveTarget={saveTarget}
             onSaveNameChange={setSaveName}
+            onSavePedalChange={setSavePedal}
             onSaveDescriptionChange={setSaveDescription}
             onSaveBgColorChange={setSaveBgColor}
             onSaveTargetChange={setSaveTarget}
@@ -759,7 +784,7 @@ export const LocalFlasher = () => {
           />
         </div>
 
-        <div className="hidden bg-black/9 md:block md:self-stretch" />
+        <div className="hidden bg-text/9 md:block md:self-stretch" />
 
         <AdminFirmwareList
           loading={catalogueLoading}

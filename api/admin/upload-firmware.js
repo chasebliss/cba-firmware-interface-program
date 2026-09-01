@@ -58,8 +58,8 @@ export default async function handler(req, res) {
     );
   }
 
-  const { filename, contentBase64, target, name, description, bgColor, overwrite } = body;
-  const err = validate({ filename, contentBase64, target, name });
+  const { filename, contentBase64, target, name, pedal, description, bgColor, overwrite } = body;
+  const err = validate({ filename, contentBase64, target, name, pedal });
   if (err) {
     res.statusCode = 400;
     res.setHeader("Content-Type", "application/json");
@@ -120,7 +120,8 @@ export default async function handler(req, res) {
       entries[existingIdx] = {
         ...entries[existingIdx],
         name,
-        description: description || name,
+        pedal: (pedal || "").trim(),
+        description: description || "",
         bgColor: bgColor || entries[existingIdx].bgColor || "#ba8e51",
         // Preserve uploadedAt — that's the original release date, surfaced to
         // public users via the firmware dropdown. Bump updatedAt instead so
@@ -132,9 +133,10 @@ export default async function handler(req, res) {
       entries.push({
         id: nextId,
         name,
+        pedal: (pedal || "").trim(),
         platform: "models",
         filepath: entryFilepath,
-        description: description || name,
+        description: description || "",
         bgColor: bgColor || "#ba8e51",
         active: true,
         uploadedAt: now,
@@ -169,7 +171,7 @@ export default async function handler(req, res) {
   }
 }
 
-function validate({ filename, contentBase64, target, name }) {
+function validate({ filename, contentBase64, target, name, pedal }) {
   if (typeof filename !== "string" || !filename)
     return "filename is required";
   if (!/^[A-Za-z0-9_.-]+$/.test(filename))
@@ -180,6 +182,10 @@ function validate({ filename, contentBase64, target, name }) {
     return "contentBase64 is required";
   if (!isValidTarget(target)) return TARGET_ERROR;
   if (typeof name !== "string" || !name.trim()) return "name is required";
+  // Required so every entry can be grouped on the version-history page. An
+  // entry with no pedal would be invisible there while still flashing fine,
+  // which is the kind of gap nobody notices until a customer asks.
+  if (typeof pedal !== "string" || !pedal.trim()) return "pedal is required";
   return null;
 }
 

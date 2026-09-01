@@ -8,7 +8,8 @@
     "bgColor": "#ba8e51",
     "active": true,
     "uploadedAt": "2026-08-06T17:21:41.176Z",
-    "updatedAt": "2026-08-06T17:21:41.176Z"
+    "updatedAt": "2026-08-06T17:21:41.176Z",
+    "pedal": "BIGTIME"
   },
   {
     "id": 1,
@@ -19,7 +20,8 @@
     "bgColor": "#50b98c",
     "active": true,
     "uploadedAt": "2026-08-06T17:27:09.470Z",
-    "updatedAt": "2026-08-07T15:27:56.100Z"
+    "updatedAt": "2026-08-07T15:27:56.100Z",
+    "pedal": "LOST AND FOUND"
   },
   {
     "id": 2,
@@ -30,6 +32,7 @@
     "bgColor": "#ba8e51",
     "active": true,
     "uploadedAt": "2026-08-12T16:23:12.353Z",
-    "updatedAt": "2026-08-12T16:23:12.353Z"
+    "updatedAt": "2026-08-12T16:23:12.353Z",
+    "pedal": "BIGTIME"
   }
 ]
