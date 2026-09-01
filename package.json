@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:full": "FIRMWARE_STORE=local vercel dev --listen 3999 --yes",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

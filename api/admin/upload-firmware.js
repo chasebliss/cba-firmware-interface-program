@@ -7,7 +7,7 @@
 //   ADMIN_PASSWORD — shared with middleware.js, used to verify the auth cookie
 //   GITHUB_TOKEN   — fine-grained PAT with contents:write on this repo
 //   GITHUB_REPO    — "owner/name" of this repo (e.g. "chasebliss/cba-firmware-interface-program")
-//   GITHUB_BRANCH  — optional, defaults to "main"
+//   GITHUB_BRANCH  — optional override; store.js picks the deployment's own branch
 
 import {
   dirFor,
@@ -16,6 +16,7 @@ import {
   TARGET_ERROR,
   writeManifests,
 } from "./channels.js";
+import { storeOrRespond } from "./store.js";
 
 const COOKIE_NAME = "admin_auth";
 const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10MB hard cap
@@ -34,16 +35,8 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: "not authenticated" }));
   }
 
-  const token = process.env.GITHUB_TOKEN;
-  const repo = process.env.GITHUB_REPO;
-  const branch = process.env.GITHUB_BRANCH || "main";
-  if (!token || !repo) {
-    res.statusCode = 500;
-    res.setHeader("Content-Type", "application/json");
-    return res.end(
-      JSON.stringify({ error: "GITHUB_TOKEN and GITHUB_REPO must be set" }),
-    );
-  }
+  const store = storeOrRespond(res);
+  if (!store) return;
 
   let body;
   try {
@@ -79,10 +72,7 @@ export default async function handler(req, res) {
     // readManifest reads the ADMIN copy: the public one omits unlisted
     // entries, so checking against it would miss a collision with an unlisted
     // firmware and create exactly the duplicate this guard exists to stop.
-    const { entries, shas } = await readManifest(
-      (path) => githubGetFile(repo, path, branch, token),
-      target,
-    );
+    const { entries, shas } = await readManifest(store.get, target);
     const existingIdx = entries.findIndex(
       (e) => e.filepath === entryFilepath,
     );
@@ -97,19 +87,11 @@ export default async function handler(req, res) {
     }
 
     // 1. Commit the firmware binary (re-puts are fine with existing sha).
-    const existingFile = await githubGetFile(
-      repo,
-      filePath,
-      branch,
-      token,
-    );
+    const existingFile = await store.get(filePath);
     const commitVerb = existingIdx !== -1 ? "update" : "add";
-    await githubPutFile(
-      repo,
+    await store.put(
       filePath,
       contentBase64,
-      branch,
-      token,
       `admin: ${commitVerb} ${target} firmware ${name}`,
       existingFile?.sha,
     );
@@ -146,9 +128,8 @@ export default async function handler(req, res) {
       });
     }
     await writeManifests({
-      get: (path) => githubGetFile(repo, path, branch, token),
-      put: (path, content, message, sha) =>
-        githubPutFile(repo, path, content, branch, token, message, sha),
+      get: store.get,
+      put: store.put,
       target,
       entries,
       message: `admin: update ${target} manifest for ${name}`,
@@ -163,13 +144,13 @@ export default async function handler(req, res) {
         target,
         filename,
         name,
-        commitUrl: `https://github.com/${repo}/commits/${branch}`,
+        commitUrl: store.historyUrl,
       }),
     );
   } catch (e) {
     res.statusCode = 502;
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ error: `github: ${e.message}` }));
+    return res.end(JSON.stringify({ error: `${store.kind}: ${e.message}` }));
   }
 }
 
@@ -215,59 +196,6 @@ async function readJson(req) {
     });
     req.on("error", reject);
   });
-}
-
-async function githubGetFile(repo, path, branch, token) {
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${encodeURIPath(path)}?ref=${branch}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    },
-  );
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`GET ${path} -> ${res.status}: ${msg}`);
-  }
-  return await res.json();
-}
-
-async function githubPutFile(repo, path, contentBase64, branch, token, message, sha) {
-  const payload = {
-    message,
-    content: contentBase64,
-    branch,
-  };
-  if (sha) payload.sha = sha;
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${encodeURIPath(path)}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    },
-  );
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`PUT ${path} -> ${res.status}: ${msg}`);
-  }
-  return await res.json();
-}
-
-function encodeURIPath(path) {
-  return path
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
 }
 
 async function verifyAuth(req) {

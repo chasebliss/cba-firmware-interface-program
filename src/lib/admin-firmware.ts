@@ -115,6 +115,13 @@ export interface ManifestEntry {
   active?: boolean;
 }
 
+// Where the admin API is reading and writing, reported by list-firmwares in
+// its X-Firmware-Store / X-Firmware-Branch headers. See api/admin/store.js.
+export interface StoreInfo {
+  kind: "github" | "local";
+  branch: string;
+}
+
 // The mock pedal row isn't real firmware and doesn't live in any channel, so
 // it carries this sentinel instead of squatting in one. Rows tagged with it
 // render in their own section and are never sent to the upload/update/delete

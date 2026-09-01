@@ -22,6 +22,7 @@ import {
   type FlashStatus,
   type ManifestEntry,
   type SaveTarget,
+  type StoreInfo,
 } from "@/lib/admin-firmware";
 import { rowKey, useDeployProbe } from "@/lib/deploy-probe";
 import {
@@ -114,6 +115,8 @@ export const LocalFlasher = () => {
     return DEFAULT_COUNTS;
   });
   const [catalogueError, setCatalogueError] = useState<string | null>(null);
+  // Which store the admin API is talking to, from list-firmwares' headers.
+  const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
   // Row keys of in-flight mutations, so the affected row can dim and disable
   // its buttons while the API call runs.
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -131,6 +134,11 @@ export const LocalFlasher = () => {
       const resp = await fetch(`/api/admin/list-firmwares?t=${token}`, {
         cache: "no-store",
       });
+      const kind = resp.headers.get("X-Firmware-Store");
+      const branch = resp.headers.get("X-Firmware-Branch");
+      if ((kind === "github" || kind === "local") && branch) {
+        setStoreInfo({ kind, branch });
+      }
       const data = (await resp.json().catch(() => ({}))) as Partial<
         Record<SaveTarget, ManifestEntry[]>
       > & { error?: string };
@@ -571,7 +579,7 @@ export const LocalFlasher = () => {
   return (
     <div className="min-h-screen animate-cba-fade-in bg-surface-2">
       <SuccessBurst trigger={burstTrigger} />
-      <AdminHeader flashing={flashing} />
+      <AdminHeader flashing={flashing} store={storeInfo} />
 
       <div
         className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-[7vw] md:grid-cols-[1fr_1px_1fr] md:gap-0"

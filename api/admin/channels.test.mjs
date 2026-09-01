@@ -106,7 +106,7 @@ for (const name of API_FILES) {
   // immediately before the closing paren, so match that line directly rather
   // than trying to parse the whole argument list.
   const calls = [
-    ...src.matchAll(/readManifest\(\s*\([^)]*\)\s*=>[\s\S]*?,\s*\n\s*([^,\n]+),\s*\n\s*\)/g),
+    ...src.matchAll(/readManifest\(\s*store\.get,\s*([^,\s)]+)\s*\)/g),
   ].map((m) => m[1].trim());
 
   check(`${name}: readManifest call sites found`, calls.length > 0);

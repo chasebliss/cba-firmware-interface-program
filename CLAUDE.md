@@ -54,7 +54,7 @@ They are duplicated because Vercel's Node runtime has no TypeScript transpile st
 - List: restore the binary, **then** write manifests.
 - Within `writeManifests`: public copy first, admin copy second.
 
-**Admin API** ([`api/admin/`](api/admin/)) commits to GitHub via the Contents API; Vercel auto-deploys the commit. Uploads therefore do **not** touch the local working tree — after uploading through the admin, `git pull` before working locally.
+**Admin API** ([`api/admin/`](api/admin/)) reads and writes through the firmware store in [`api/admin/store.js`](api/admin/store.js): the GitHub Contents API on **the branch the deployment was built from**, or the working tree under `vercel dev`. Vercel auto-deploys the commit. Uploads therefore do **not** touch the local working tree — after uploading through the admin, `git pull` before working locally.
 
 ## Styling: the jsf token standard
 
@@ -116,6 +116,22 @@ The middleware.js / `api/*.js` file convention works on Vercel regardless of fra
 - **Never run `vercel`, `vercel deploy`, or `git push` to a branch wired to auto-deploy without explicit per-push approval.** Jake handles all deploys himself. Build and test locally only.
 - [`vercel.json`](vercel.json) exists and holds SPA rewrites for `/beta`, `/nightly`, and `/admin`. Each non-root route needs a pair: one for the bare path, one with a `((?!firmware/).*)` negative lookahead so the channel's firmware assets are served as files instead of being swallowed by the SPA fallback. **Adding a channel means adding its rewrite pair here** or the page 404s on refresh and its manifest fetch breaks.
 - `archive/` is a top-level directory holding unlisted firmware and the admin manifests. It is deliberately **outside `public/`** so Vite never copies it into `dist/`. Do not move it under `public/` — that would republish everything unlisting is meant to withdraw.
+
+### Environments
+
+Three environments, each self-consistent: the admin and the public pages on a given site always describe the same branch.
+
+| Environment | Site | Branch | Admin writes to |
+| --- | --- | --- | --- |
+| Production | firmware.chasebliss.com | `main` | `main` on GitHub |
+| Staging | the `staging` branch preview on Vercel | `staging` | `staging` on GitHub |
+| Local | `npm run dev:full` (port 3999) | working tree | the working tree |
+
+The admin API takes its branch from `VERCEL_GIT_COMMIT_REF`, which Vercel sets on every deployment, so **every preview's admin writes to that preview's own branch** and Vercel redeploys it. No per-environment env var is needed. `GITHUB_BRANCH` is an override, `FIRMWARE_STORE=local|github` forces an adapter. The admin header shows where a save will land.
+
+Flow: edit locally under `npm run dev:full` (saves land in the working tree, `git diff` reviews them) → push to `staging` to test on a real site → merge `staging` to `main` to release. Plain `npm run dev` (Vite only) has no admin API.
+
+`npm run dev:full` is `vercel dev` with `FIRMWARE_STORE=local`. A bare `vercel dev` injects no `VERCEL_*` variables, so without the flag the local admin talks to GitHub `main`. It is not on the wired list above: it deploys nothing.
 
 ## Jake's conventions (from `~/.claude/CLAUDE.md`)
 
