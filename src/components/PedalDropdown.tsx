@@ -21,7 +21,6 @@ export const PedalDropdown = ({
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
   // False while the menu's rows are still doing their staggered entry.
-  const [hasEntered, setHasEntered] = useState(false);
   const [menuRect, setMenuRect] = useState<{
     top: number;
     left: number;
@@ -30,6 +29,22 @@ export const PedalDropdown = ({
   } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
+
+  // `settled` tracks only the timer; hasEntered derives it together with
+  // `open`, so closing resets it during render instead of via a synchronous
+  // setState in the layout effect below.
+  const [settled, setSettled] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    setSettled(false);
+    // Cleared on both edges. On close it drops the stale position and the
+    // last-hovered row, which would otherwise paint highlighted for a frame
+    // when the menu reopens.
+    setMenuRect(null);
+    setHovered(null);
+  }
+  const hasEntered = open && settled;
 
   useEffect(() => {
     if (!open) return;
@@ -52,21 +67,12 @@ export const PedalDropdown = ({
   useEffect(() => {
     if (!open) return;
     const settle = 220 + firmwares.length * 20;
-    const id = window.setTimeout(() => setHasEntered(true), settle);
+    const id = window.setTimeout(() => setSettled(true), settle);
     return () => window.clearTimeout(id);
   }, [open, firmwares.length]);
 
   useLayoutEffect(() => {
-    if (!open) {
-      setMenuRect(null);
-      // Clear the hovered row on close. Without this the last-hovered item
-      // keeps its accent background in state, so reopening paints that row
-      // highlighted for a frame before the pointer re-registers — reads as a
-      // flicker.
-      setHovered(null);
-      setHasEntered(false);
-      return;
-    }
+    if (!open) return;
     const update = () => {
       const el = triggerRef.current;
       if (!el) return;

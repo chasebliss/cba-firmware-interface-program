@@ -53,16 +53,20 @@ export const StepCard = ({
   // Clip during the open/close transition so the grid-rows animation looks
   // right, then switch to visible so absolute-positioned descendants (like the
   // PedalDropdown menu) can escape the card bounds.
-  const [overflowVisible, setOverflowVisible] = useState(false);
+  const [settled, setSettled] = useState(false);
+  // Reset during render rather than synchronously inside the effect: a closed
+  // card is never overflow-visible, so that fact is derivable and does not
+  // need a second render pass to apply.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    setSettled(false);
+  }
+  const overflowVisible = isOpen && settled;
+
   useEffect(() => {
-    if (!isOpen) {
-      setOverflowVisible(false);
-      return;
-    }
-    const id = window.setTimeout(
-      () => setOverflowVisible(true),
-      BODY_TRANSITION_MS,
-    );
+    if (!isOpen) return;
+    const id = window.setTimeout(() => setSettled(true), BODY_TRANSITION_MS);
     return () => window.clearTimeout(id);
   }, [isOpen]);
 

@@ -108,8 +108,15 @@ export const Programmer = ({
 
   useEffect(() => {
     let cancelled = false;
-    setCatalogueLoading(true);
-    setCatalogueError(null);
+    // Deferred so the loading reset doesn't run synchronously inside the
+    // effect, which would cascade an extra render. The same `cancelled` flag
+    // that guards the fetch result guards this, so a rerun with new sources
+    // can't have a superseded load flip the flags back.
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      setCatalogueLoading(true);
+      setCatalogueError(null);
+    });
 
     loadFirmwareCatalogue(sources)
       .then((entries) => {
