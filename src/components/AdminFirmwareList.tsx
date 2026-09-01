@@ -57,17 +57,17 @@ export const AdminFirmwareList = ({
       <div data-no-trail className="flex flex-col gap-6">
         {loading && <AdminFirmwareListSkeleton cachedCounts={cachedCounts} />}
         {error && (
-          <p className="px-6 py-6 text-center text-sm font-semibold text-red">
+          <p className="px-6 py-6 text-center text-sm font-semibold text-bad">
             Could not load: {error}
           </p>
         )}
         {!loading && !error && catalogueEmpty && !showMockRow && (
-          <p className="px-6 py-6 text-center text-[14px] text-black/35">
+          <p className="px-6 py-6 text-center text-body text-text/35">
             Nothing uploaded yet.
           </p>
         )}
         {!loading && !error && catalogueEmpty && showMockRow && (
-          <p className="px-3.5 pt-1 text-[11px] text-black/35">
+          <p className="px-3.5 pt-1 text-caption text-text/35">
             No real firmwares uploaded yet — the mock below runs the flow
             without hardware.
           </p>
@@ -85,7 +85,7 @@ export const AdminFirmwareList = ({
                       target="_blank"
                       rel="noreferrer"
                       title={`Open ${section.route} in a new tab`}
-                      className="group flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest no-underline hover:underline"
+                      className="group flex items-center gap-1 text-micro font-bold uppercase tracking-widest no-underline hover:underline"
                       style={{ color: section.color }}
                     >
                       {section.label}
@@ -106,13 +106,13 @@ export const AdminFirmwareList = ({
                     </a>
                   ) : (
                     <span
-                      className="text-[9px] font-bold uppercase tracking-widest"
+                      className="text-micro font-bold uppercase tracking-widest"
                       style={{ color: section.color }}
                     >
                       {section.label}
                     </span>
                   )}
-                  <span className="text-[9px] font-bold tracking-widest text-black/35">
+                  <span className="text-micro font-bold tracking-widest text-text/35">
                     {section.rows.length}
                   </span>
                 </div>

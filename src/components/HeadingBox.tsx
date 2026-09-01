@@ -18,7 +18,7 @@ export const HeadingBox = ({ children }: { children: string }) => {
 
   return (
     <h1
-      className="w-fit border-2 border-black bg-cream px-5 py-4 font-bold shadow-cba"
+      className="w-fit border-2 border-border bg-surface px-5 py-4 font-bold shadow-cba"
       style={{ fontSize: "calc((2 - 1) * 1.2vw + 1rem)" }}
     >
       <span aria-label={children}>{shown}</span>

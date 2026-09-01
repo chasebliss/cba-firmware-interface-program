@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { GOLD } from "@/lib/admin-firmware";
 
 interface AdminFirmwareDropZoneProps {
   file: File | null;
@@ -21,14 +20,20 @@ export const AdminFirmwareDropZone = ({
   return (
     <>
       <label
-        className="flex  cursor-pointer items-center justify-center gap-2.5 px-6 py-5 text-[15px] font-bold transition-[border-color,background] duration-200"
+        className="flex  cursor-pointer items-center justify-center gap-2.5 px-6 py-5 text-body font-bold transition-[border-color,background] duration-200"
         style={{
-          border: `2px dashed ${dragging ? GOLD : file ? "#000" : "rgba(0,0,0,0.2)"}`,
+          border: `2px dashed ${
+            dragging
+              ? "var(--accent)"
+              : file
+                ? "var(--text)"
+                : "color-mix(in oklab, var(--text) 20%, transparent)"
+          }`,
           background: dragging
-            ? "rgba(186,142,81,0.12)"
+            ? "color-mix(in oklab, var(--accent) 12%, transparent)"
             : file
-              ? "rgba(186,142,81,0.06)"
-              : "var(--color-cream)",
+              ? "color-mix(in oklab, var(--accent) 6%, transparent)"
+              : "var(--surface)",
         }}
         onDragEnter={(e) => {
           e.preventDefault();
@@ -62,7 +67,11 @@ export const AdminFirmwareDropZone = ({
           width="18"
           height="18"
           fill="none"
-          stroke={file ? GOLD : "rgba(0,0,0,0.3)"}
+          stroke={
+            file
+              ? "var(--accent)"
+              : "color-mix(in oklab, var(--text) 30%, transparent)"
+          }
           viewBox="0 0 24 24"
           aria-hidden="true"
         >
@@ -75,7 +84,11 @@ export const AdminFirmwareDropZone = ({
         </svg>
         <span
           className="max-w-[280px] truncate"
-          style={{ color: file ? "#000" : "rgba(0,0,0,0.4)" }}
+          style={{
+            color: file
+              ? "var(--text)"
+              : "color-mix(in oklab, var(--text) 40%, transparent)",
+          }}
         >
           {file ? file.name : "Choose .bin or .hex file"}
         </span>
@@ -91,14 +104,14 @@ export const AdminFirmwareDropZone = ({
         />
       </label>
       {parseError && (
-        <p className="mt-2 text-sm font-semibold text-red">
+        <p className="mt-2 text-sm font-semibold text-bad">
           Could not parse file: {parseError}
         </p>
       )}
       {file && (
         <div className="mt-2.5 flex items-center gap-2.5">
           <div
-            className="flex-1 border px-3 py-2 font-mono text-[12px]"
+            className="flex-1 border px-3 py-2 font-mono text-caption"
             style={{
               borderColor: "rgba(0,0,0,0.1)",
               background: "rgba(0,0,0,0.02)",
@@ -110,7 +123,7 @@ export const AdminFirmwareDropZone = ({
           <button
             type="button"
             onClick={onRemove}
-            className="cursor-pointer whitespace-nowrap border-none bg-transparent p-0 text-[12px] font-bold text-black/35 underline underline-offset-[3px]"
+            className="cursor-pointer whitespace-nowrap border-none bg-transparent p-0 text-caption font-bold text-text/35 underline underline-offset-[3px]"
           >
             Remove
           </button>

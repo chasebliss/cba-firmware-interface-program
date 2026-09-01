@@ -26,7 +26,8 @@ interface BinaryHeroProps {
   opacity?: number;
   className?: string;
   // Color of the illustration's detail strokes when the hero sits inside a
-  // restyling wrapper. The surface color is read from CSS, not passed.
+  // theme wrapper. Optional: left unset, it is read from --accent alongside
+  // the surface colour, so the palette stays in index.css.
   ink?: string;
 }
 
@@ -35,7 +36,7 @@ export const BinaryHero = ({
   width = 500,
   opacity = 1,
   className = "",
-  ink = "#ba8e51",
+  ink,
 }: BinaryHeroProps) => {
   const objectRef = useRef<HTMLObjectElement>(null);
   const configsRef = useRef<DigitConfig[]>([]);
@@ -48,9 +49,11 @@ export const BinaryHero = ({
     let cancelled = false;
     let initialized = false;
     let interval = 0;
-    // Defaults to the prop; the restyling branch below may override it from
-    // --hero-digit once the SVG document is reachable.
-    let digitColor = ink;
+    // The prop wins if given. Otherwise --accent, read from our own element,
+    // which is the same value the untinted pages' artwork already uses. The
+    // themed branch below may replace it with --hero-digit.
+    let digitColor =
+      ink ?? getComputedStyle(obj).getPropertyValue("--accent").trim();
 
     const startAnimations = (rate: number) => {
       for (const a of animationsRef.current) a.cancel();
@@ -102,21 +105,25 @@ export const BinaryHero = ({
       //
       // Colors are read from CSS custom properties on our own element rather
       // than passed in, so the palette lives in exactly one place (the
-      // [data-nightly] block in index.css). Only applied when a restyling
-      // wrapper is present; the light pages keep the original artwork.
-      if (obj.closest("[data-nightly]")) {
+      // [data-theme] block in index.css). Only applied when a theme wrapper is
+      // present; the untinted pages keep the original artwork.
+      if (obj.closest("[data-theme]")) {
         const styles = getComputedStyle(obj);
-        const surface = styles.getPropertyValue("--color-cream").trim();
+        const surface = styles.getPropertyValue("--surface").trim();
+        // The injected stylesheet lives in the SVG document, which cannot see
+        // the page's custom properties — so the values are resolved here and
+        // written in as literals. The prop wins where a caller passes one.
+        const strokes = ink ?? styles.getPropertyValue("--accent").trim();
         // --hero-digit lets a page recolor the streaming digits independently
-        // of the illustration outlines. Falls back to `ink` where unset.
+        // of the illustration outlines. Falls back to the stroke colour.
         const digitOverride = styles.getPropertyValue("--hero-digit").trim();
-        if (digitOverride) digitColor = digitOverride;
-        if (surface) {
+        digitColor = digitOverride || strokes;
+        if (surface && strokes) {
           const styleEl = doc.createElementNS(
             "http://www.w3.org/2000/svg",
             "style",
           );
-          styleEl.textContent = `.st0{fill:${surface};}.st1{fill:${ink};}`;
+          styleEl.textContent = `.st0{fill:${surface};}.st1{fill:${strokes};}`;
           doc.documentElement.appendChild(styleEl);
         }
       }

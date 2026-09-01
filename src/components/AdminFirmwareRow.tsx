@@ -44,14 +44,14 @@ export const AdminFirmwareRow = ({
   // never the only signal, and it never encodes listing state.
   const publishColor =
     status === "live"
-      ? "var(--color-green)"
+      ? "var(--ok)"
       : status === "pending"
-        ? "var(--color-gold)"
+        ? "var(--accent)"
         : "rgba(0,0,0,0.25)";
 
   return (
     <li
-      className="relative flex items-center gap-3 bg-cream px-3.5 py-3 transition-opacity duration-200"
+      className="relative flex items-center gap-3 bg-surface px-3.5 py-3 transition-opacity duration-200"
       style={{
         opacity: busy ? 0.4 : firmware.active ? 1 : 0.55,
       }}
@@ -72,7 +72,7 @@ export const AdminFirmwareRow = ({
           )}
           <span
             title={firmware.name}
-            className="truncate text-[14px] font-bold"
+            className="truncate text-body font-bold"
           >
             {firmware.name}
           </span>
@@ -84,7 +84,7 @@ export const AdminFirmwareRow = ({
           {!isFake && firmware.active && status === "pending" && (
             <span
               title={DEPLOY_STATUS_HELP[status]}
-              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-gold/12 px-2 py-px text-[9px] font-bold uppercase tracking-[0.08em] text-gold"
+              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-accent/12 px-2 py-px text-micro font-bold uppercase tracking-[0.08em] text-accent"
             >
               <span
                 aria-hidden="true"
@@ -97,7 +97,7 @@ export const AdminFirmwareRow = ({
           {!isFake && !firmware.active && (
             <span
               title={listingHelp(false, channelLabel)}
-              className="shrink-0 whitespace-nowrap rounded-full bg-black/8 px-2 py-px text-[9px] font-bold uppercase tracking-[0.08em] text-black/55"
+              className="shrink-0 whitespace-nowrap rounded-full bg-text/8 px-2 py-px text-micro font-bold uppercase tracking-[0.08em] text-text/55"
             >
               Unlisted
             </span>
@@ -106,7 +106,7 @@ export const AdminFirmwareRow = ({
         <div className="flex items-baseline gap-2">
           <span
             title={firmware.filename}
-            className="truncate font-mono text-[11px] text-black/45"
+            className="truncate font-mono text-caption text-text/45"
           >
             {firmware.filename}
           </span>
@@ -118,7 +118,7 @@ export const AdminFirmwareRow = ({
             return (
               <span
                 title={new Date(ts).toLocaleString()}
-                className="shrink-0 text-[10px] text-black/35"
+                className="shrink-0 text-meta text-text/35"
               >
                 · {formatRelativeTime(ts)}
               </span>
@@ -144,7 +144,7 @@ export const AdminFirmwareRow = ({
                   ? "Available once the file finishes uploading"
                   : "Open this firmware — fills in the edit form and loads the file into the flasher"
           }
-          className="cursor-pointer border border-black bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-black transition-colors duration-200 ease-out hover:bg-black hover:text-cream disabled:cursor-not-allowed disabled:border-dashed disabled:border-black/30 disabled:text-black/30"
+          className="cursor-pointer border border-border bg-transparent px-2.5 py-1 text-meta font-bold uppercase tracking-[0.06em] text-text transition-colors duration-200 ease-out hover:bg-text hover:text-on-accent disabled:cursor-not-allowed disabled:border-dashed disabled:border-border/30 disabled:text-text/30"
         >
           Load
         </button>
@@ -159,7 +159,7 @@ export const AdminFirmwareRow = ({
                   ? `Unlist — take this off the ${channelLabel} page and off the site. The file is kept, so this is reversible.`
                   : `List — put this back on the ${channelLabel} page and make it downloadable again.`
               }
-              className="cursor-pointer border border-black/40 bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-black/70 transition-colors duration-200 ease-out hover:border-black hover:bg-black hover:text-cream disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer border border-border/40 bg-transparent px-2.5 py-1 text-meta font-bold uppercase tracking-[0.06em] text-text/70 transition-colors duration-200 ease-out hover:border-border hover:bg-text hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40"
             >
               {toggling ? "…" : firmware.active ? "Unlist" : "List"}
             </button>
@@ -173,7 +173,7 @@ export const AdminFirmwareRow = ({
                 onClick={onDelete}
                 disabled={busy}
                 title="Delete permanently. The file is removed from the site and can't be recovered here."
-                className="cursor-pointer border border-red bg-transparent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-red transition-colors duration-200 ease-out hover:bg-red hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
+                className="cursor-pointer border border-bad bg-transparent px-2.5 py-1 text-meta font-bold uppercase tracking-[0.06em] text-bad transition-colors duration-200 ease-out hover:bg-bad hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {busy ? "…" : "Delete"}
               </button>

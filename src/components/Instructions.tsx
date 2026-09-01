@@ -33,8 +33,9 @@ export const Instructions = ({ os }: InstructionsProps) => {
 
   return (
     <div>
-      <p className="mb-3 text-[13px] font-bold italic">
-        <span className="mr-1.5 bg-red px-[7px] py-[1px] not-italic text-white">
+      <p className="mb-3 text-body-sm font-bold italic">
+        {/* Ink on a --bad ground stays fixed across themes. See Nav. */}
+        <span className="mr-1.5 bg-bad px-[7px] py-[1px] not-italic text-text-fixed">
           Note
         </span>
         Your pedal may be damaged by uploading incorrect firmware.
@@ -52,24 +53,24 @@ export const Instructions = ({ os }: InstructionsProps) => {
           </li>
         ))}
       </ol>
-      <p className="mt-1 text-[12px] font-semibold italic text-black/40">
+      <p className="mt-1 text-caption font-semibold italic text-text/40">
         {os === "mac"
           ? "*Steps 2 & 3 must be done in this order."
           : "*Steps 3 & 4 must be done in this order."}
       </p>
       {os === "win" && (
         <div className="mt-4">
-          <p className="mb-2 text-[12px] font-bold">Driver install</p>
+          <p className="mb-2 text-caption font-bold">Driver install</p>
           <video
             src="/zadig-install.mp4"
             controls
-            className="mb-3 block w-full border-2 border-black"
+            className="mb-3 block w-full border-2 border-border"
           />
           <ol className="m-0 list-none p-0">
             {DRIVER_STEPS.map((step, i) => (
               <li
                 key={i}
-                className="pb-[5px] pl-[2em] -indent-[2em] text-[12px] leading-[1.55]"
+                className="pb-[5px] pl-[2em] -indent-[2em] text-caption leading-[1.55]"
               >
                 <span className="inline-block w-[1.5em] pr-2 text-right font-bold">
                   {String.fromCharCode(97 + i)}.
@@ -91,7 +92,7 @@ interface OSTabsProps {
 
 export const OSTabs = ({ os, onChange }: OSTabsProps) => {
   return (
-    <div className="mb-4 flex border-b border-black/[0.12]">
+    <div className="mb-4 flex border-b border-border/[0.12]">
       {(["mac", "win"] as const).map((id) => {
         const active = os === id;
         return (
@@ -99,10 +100,10 @@ export const OSTabs = ({ os, onChange }: OSTabsProps) => {
             key={id}
             type="button"
             onClick={() => onChange(id)}
-            className={`-mb-px cursor-pointer border-none bg-transparent px-4 py-1.5 font-sans text-[10px] font-bold uppercase tracking-[0.1em] transition-colors duration-150 ${
+            className={`-mb-px cursor-pointer border-none bg-transparent px-4 py-1.5 font-sans text-meta font-bold uppercase tracking-[0.1em] transition-colors duration-150 ${
               active
-                ? "border-b-2 border-black text-black"
-                : "border-b-2 border-transparent text-black/30"
+                ? "border-b-2 border-border text-text"
+                : "border-b-2 border-transparent text-text/30"
             }`}
           >
             {id === "mac" ? "macOS" : "Windows"}
@@ -117,7 +118,7 @@ export const InstructionsPanel = () => {
   const [os, setOs] = useState<"mac" | "win">("mac");
   return (
     <div>
-      <p className="mb-2.5 text-[10px] text-gold font-bold uppercase tracking-widest ">
+      <p className="mb-2.5 text-meta text-accent font-bold uppercase tracking-widest ">
         Instructions
       </p>
       <OSTabs os={os} onChange={setOs} />

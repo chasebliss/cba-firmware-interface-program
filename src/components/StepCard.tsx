@@ -16,8 +16,8 @@ interface StepBadgeProps {
 export const StepBadge = ({ n, done }: StepBadgeProps) => {
   return (
     <span
-      className={`cba-step-badge flex h-7 w-7 shrink-0 items-center justify-center border-2 border-black text-[13px] font-bold transition-colors duration-300 ${
-        done ? "bg-black text-cream" : "bg-cream text-black"
+      className={`cba-step-badge flex h-7 w-7 shrink-0 items-center justify-center border-2 border-border text-body-sm font-bold transition-colors duration-300 ${
+        done ? "bg-text text-on-accent" : "bg-surface text-text"
       }`}
     >
       {done ? "✓" : n}
@@ -68,7 +68,7 @@ export const StepCard = ({
 
   return (
     <div
-      className="relative -mb-[2px] border-2 border-black transition-[background,opacity] duration-300"
+      className="relative -mb-[2px] border-2 border-border transition-[background,opacity] duration-300"
       style={{
         opacity: locked ? 0.28 : 1,
         zIndex: isOpen ? 20 : 1,
@@ -77,12 +77,12 @@ export const StepCard = ({
     >
       <div
         className={`flex items-center justify-between px-5 py-[15px] transition-[border-color] duration-200 ${
-          isOpen ? "border-b border-black/[0.08]" : "border-b border-transparent"
+          isOpen ? "border-b border-border/[0.08]" : "border-b border-transparent"
         }`}
       >
         <div className="flex items-center gap-3">
           <StepBadge n={n} done={done} />
-          <span className="text-[15px] font-bold">{label}</span>
+          <span className="text-body font-bold">{label}</span>
         </div>
         {headerRight}
       </div>
