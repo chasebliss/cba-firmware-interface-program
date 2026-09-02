@@ -20,6 +20,10 @@ export interface FirmwareSection {
 
 interface AdminFirmwareListProps {
   loading: boolean;
+  // A list with few rows stops pretending to be a column: it drops the
+  // viewport cap and the bottom gutter and simply ends. See LocalFlasher,
+  // which owns the threshold and also drops the divider at the same point.
+  short: boolean;
   error: string | null;
   showMockRow: boolean;
   catalogueEmpty: boolean;
@@ -36,6 +40,7 @@ interface AdminFirmwareListProps {
 
 export const AdminFirmwareList = ({
   loading,
+  short,
   error,
   showMockRow,
   catalogueEmpty,
@@ -50,7 +55,11 @@ export const AdminFirmwareList = ({
   onDelete,
 }: AdminFirmwareListProps) => {
   return (
-    <div className="pb-20 pt-0 md:pl-9 md:pt-9">
+    // Scrolls with the page. This was briefly sticky with its own scroll
+    // container, which put a second scrollbar on screen and a second scroll
+    // context under the wheel: scrolling the page while the pointer sat over
+    // the list moved the list instead. One page, one scrollbar.
+    <div className={`pt-0 md:pl-9 md:pt-9 ${short ? "pb-8" : "pb-20"}`}>
       <div className="mb-5">
         <SectionLabel className="mb-0">Saved firmwares</SectionLabel>
       </div>

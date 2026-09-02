@@ -11,7 +11,7 @@ import {
   type DeployStatus,
 } from "@/lib/admin-firmware";
 import { NoteList } from "@/components/NoteList";
-import { noteItems } from "@/lib/firmware-catalogue";
+import { noteBlocks } from "@/lib/firmware-catalogue";
 import { formatRelativeTime } from "@/lib/format";
 
 interface AdminFirmwareRowProps {
@@ -44,8 +44,8 @@ export const AdminFirmwareRow = ({
   const publicNotes =
     firmware.description.trim() === firmware.name.trim()
       ? []
-      : noteItems(firmware.description);
-  const internalNotes = noteItems(firmware.internalNotes);
+      : noteBlocks(firmware.description);
+  const internalNotes = noteBlocks(firmware.internalNotes);
   const hasNotes = publicNotes.length > 0 || internalNotes.length > 0;
   // Derived from the row's own target rather than passed down — the label is a
   // property of the channel, and the row already knows which channel it's in.
@@ -226,7 +226,7 @@ export const AdminFirmwareRow = ({
                 Release notes
               </p>
               <NoteList
-                items={publicNotes}
+                blocks={publicNotes}
                 tone="text-text/70"
                 subTone="text-text/50"
               />
@@ -245,7 +245,7 @@ export const AdminFirmwareRow = ({
                 </span>
               </p>
               <NoteList
-                items={internalNotes}
+                blocks={internalNotes}
                 tone="text-text/70"
                 subTone="text-text/50"
               />

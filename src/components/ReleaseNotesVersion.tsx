@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NoteList } from "@/components/NoteList";
-import { noteItems, type FirmwareEntry } from "@/lib/firmware-catalogue";
+import { noteBlocks, type FirmwareEntry } from "@/lib/firmware-catalogue";
 
 interface ReleaseNotesVersionProps {
   firmware: FirmwareEntry;
@@ -38,7 +38,7 @@ export const ReleaseNotesVersion = ({
     setOverride(null);
   }
   const open = override ?? selected;
-  const items = noteItems(firmware.description);
+  const blocks = noteBlocks(firmware.description);
 
   return (
     <li
@@ -73,13 +73,13 @@ export const ReleaseNotesVersion = ({
         )}
         {!open && (
           <span className="text-micro font-semibold text-text/30">
-            {items.length} {items.length === 1 ? "change" : "changes"}
+            {blocks.length} {blocks.length === 1 ? "change" : "changes"}
           </span>
         )}
       </button>
       {open && (
         <div className="animate-cba-pop-in mt-1.5">
-          <NoteList items={items} />
+          <NoteList blocks={blocks} />
         </div>
       )}
     </li>

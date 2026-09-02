@@ -1,6 +1,6 @@
 import { ReleaseNotesVersion } from "@/components/ReleaseNotesVersion";
 import {
-  noteItems,
+  noteBlocks,
   versionsOf,
   type FirmwareEntry,
 } from "@/lib/firmware-catalogue";
@@ -18,7 +18,7 @@ interface ReleaseNotesProps {
 // leaves the field blank, so that check only matters for the old ones.
 const hasNotes = (fw: FirmwareEntry): boolean => {
   const d = fw.description?.trim() ?? "";
-  return d.length > 0 && d !== fw.name.trim() && noteItems(d).length > 0;
+  return d.length > 0 && d !== fw.name.trim() && noteBlocks(d).length > 0;
 };
 
 export const ReleaseNotes = ({ firmware, catalogue }: ReleaseNotesProps) => {

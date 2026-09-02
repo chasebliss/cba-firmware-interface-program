@@ -1,4 +1,5 @@
 import { CbaButton } from "@/components/CbaButton";
+import { NotesTabs } from "@/components/NotesTabs";
 import { SectionLabel } from "@/components/SectionLabel";
 import { CHANNELS } from "@/lib/admin-firmware";
 import type { SaveDraft } from "@/lib/save-draft";
@@ -164,49 +165,14 @@ export const AdminSaveForm = ({
             Groups every version of this pedal on its release-notes page.
           </p>
         </div>
-        <div>
-          <label className="mb-1.5 block text-meta font-bold uppercase tracking-[0.1em] text-text/38">
-            Release notes{" "}
-            <span className="font-normal normal-case tracking-normal">
-              (optional)
-            </span>
-          </label>
-          {/* Multi-line by design. Each line renders as its own line in the
-              public picker, so a plain list of changes needs no markup. Left
-              empty, the public page shows nothing at all. */}
-          <textarea
-            value={fields.description}
-            onChange={(e) => draft.set("description", e.target.value)}
-            rows={4}
-            placeholder={"What changed in this version?\nOne change per line."}
-            className="w-full resize-y border-2 border-border bg-surface px-3 py-2.5 text-body-sm font-medium leading-[1.5] outline-none"
-          />
-          <p className="mt-1 text-caption text-text/45">
-            One change per line. Indent two spaces to nest a sub-point.{" "}
-            <span className="font-mono">**bold**</span>,{" "}
-            <span className="font-mono">*italic*</span>,{" "}
-            <span className="font-mono">`code`</span> and{" "}
-            <span className="font-mono">[text](url)</span> render.
-          </p>
-        </div>
-        <div>
-          <label className="mb-1.5 block text-meta font-bold uppercase tracking-[0.1em] text-text/38">
-            Internal notes{" "}
-            <span className="font-normal normal-case tracking-normal">
-              (never shown publicly)
-            </span>
-          </label>
-          {/* Stored in the admin manifest only — publicEntries() strips this
-              field before the served firmwares.json is written. The "just for
-              us" lines from the firmware team live here. */}
-          <textarea
-            value={fields.internalNotes}
-            onChange={(e) => draft.set("internalNotes", e.target.value)}
-            rows={3}
-            placeholder={"Notes for the team only.\nHardware configs, things to vet, caveats."}
-            className="w-full resize-y border-2 border-dashed border-border/60 bg-surface px-3 py-2.5 text-body-sm font-medium leading-[1.5] outline-none"
-          />
-        </div>
+        {/* Public notes render in the picker's side panel; internal notes
+            are stripped by publicEntries() before the served firmwares.json
+            is written, so they never leave the admin manifest. */}
+        <NotesTabs
+          description={fields.description}
+          internalNotes={fields.internalNotes}
+          onChange={draft.set}
+        />
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <label className="mb-1.5 block text-meta font-bold uppercase tracking-[0.1em] text-text/38">

@@ -8,7 +8,7 @@ import { GOLD, adminCatalogueFrom } from "./admin-firmware";
 import {
   byName,
   filenameOf,
-  noteItems,
+  noteBlocks,
   pedalsIn,
   versionsOf,
 } from "./firmware-catalogue";
@@ -36,49 +36,50 @@ describe("byName", () => {
   });
 });
 
-describe("noteItems", () => {
-  test("one change per line, blank lines dropped", () => {
-    expect(
-      noteItems("Sliders sometimes fully unresponsive\n\nBypass mute quicker "),
-    ).toEqual([
-      { text: "Sliders sometimes fully unresponsive", depth: 0 },
-      { text: "Bypass mute quicker", depth: 0 },
+describe("noteBlocks", () => {
+  test("a dash starts a bullet, an indented dash nests", () => {
+    expect(noteBlocks("- foo\n  * bar\n+ baz")).toEqual([
+      { kind: "li", text: "foo", depth: 0 },
+      { kind: "li", text: "bar", depth: 1 },
+      { kind: "li", text: "baz", depth: 0 },
     ]);
   });
 
-  test("an indent nests the line one level", () => {
-    expect(
-      noteItems("LOOP starts in play from LONG\n  Still cleared from SHORT"),
-    ).toEqual([
-      { text: "LOOP starts in play from LONG", depth: 0 },
-      { text: "Still cleared from SHORT", depth: 1 },
+  test("plain lines are prose: consecutive lines join, a blank line splits", () => {
+    expect(noteBlocks("Initial production\nrelease.\n\nMore later.")).toEqual([
+      { kind: "p", text: "Initial production release." },
+      { kind: "p", text: "More later." },
     ]);
   });
 
-  test("bullet markers are optional and stripped", () => {
-    expect(noteItems("- foo\n  * bar\n+ baz")).toEqual([
-      { text: "foo", depth: 0 },
-      { text: "bar", depth: 1 },
-      { text: "baz", depth: 0 },
+  test("bullets and paragraphs mix", () => {
+    expect(noteBlocks("Fixes:\n- a\n- b\n\nThanks all.")).toEqual([
+      { kind: "p", text: "Fixes:" },
+      { kind: "li", text: "a", depth: 0 },
+      { kind: "li", text: "b", depth: 0 },
+      { kind: "p", text: "Thanks all." },
     ]);
   });
 
-  test("deeper indents clamp to one level", () => {
-    // A sidebar column has no room for a third level.
-    expect(noteItems("a\n        b")).toEqual([
-      { text: "a", depth: 0 },
-      { text: "b", depth: 1 },
+  test("an indented plain line continues the bullet above it", () => {
+    expect(noteBlocks("- a long change\n  that wraps\nnot indented")).toEqual([
+      { kind: "li", text: "a long change that wraps", depth: 0 },
+      { kind: "p", text: "not indented" },
     ]);
   });
 
   test("a tab counts as an indent", () => {
-    expect(noteItems("a\n\tb")[1]).toEqual({ text: "b", depth: 1 });
+    expect(noteBlocks("- a\n\t- b")[1]).toEqual({ kind: "li", text: "b", depth: 1 });
   });
 
-  test("empty and undefined give no items", () => {
-    expect(noteItems("")).toEqual([]);
-    expect(noteItems(undefined)).toEqual([]);
-    expect(noteItems("   \n  ")).toEqual([]);
+  test("a single-space indent is a stray space, not nesting", () => {
+    expect(noteBlocks("- a\n - b")[1]).toEqual({ kind: "li", text: "b", depth: 0 });
+  });
+
+  test("empty and undefined give no blocks", () => {
+    expect(noteBlocks("")).toEqual([]);
+    expect(noteBlocks(undefined)).toEqual([]);
+    expect(noteBlocks("   \n  ")).toEqual([]);
   });
 });
 

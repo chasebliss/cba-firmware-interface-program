@@ -189,6 +189,7 @@
 @theme {
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
 
+  --size-focus-ring: 2px;
   --shadow-cba: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.08);
   --shadow-cba-xl: 0 25px 50px -12px rgb(0 0 0 / 0.18);
 
@@ -315,4 +316,20 @@ body {
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Text selection. The browser default is a blue that belongs to no palette
+ * and collides with the gold on the cream pages. Tinted from --accent so it
+ * re-tints per theme; --text on that tint keeps ink legible in both. */
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--text);
+}
+
+/* Keyboard focus. Only :focus-visible, so a mouse click never draws a ring
+ * but tabbing always does. The offset keeps the ring off the 2px borders
+ * that most controls here already carry. */
+:focus-visible {
+  outline: var(--size-focus-ring) solid var(--accent);
+  outline-offset: var(--size-focus-ring);
 }

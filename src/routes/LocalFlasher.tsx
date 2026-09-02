@@ -552,6 +552,11 @@ export const LocalFlasher = () => {
 
   // Alphabetical, unlisted rows included — a row is findable by name, and
   // the Unlisted chip already marks the exceptions.
+  // Below this the list is shorter than the form by enough that a
+  // full-height divider beside it reads as empty space rather than as
+  // structure. Counted from the rows themselves, so it needs no measurement.
+  const SHORT_LIST_ROWS = 6;
+
   // One section per channel, in registry order. The mock (when enabled) gets
   // its own trailing section rather than squatting in a real channel's list.
   const sections = [
@@ -576,13 +581,28 @@ export const LocalFlasher = () => {
       : []),
   ];
 
+  // Total rows on screen, not channels: three channels of one row each still
+  // reads as a short list.
+  const listIsShort =
+    sections.reduce((n, sect) => n + sect.rows.length, 0) < SHORT_LIST_ROWS;
+
   return (
     <div className="min-h-screen animate-cba-fade-in bg-surface-2">
       <SuccessBurst trigger={burstTrigger} />
       <AdminHeader flashing={flashing} store={storeInfo} />
 
       <div
-        className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-[7vw] md:grid-cols-[1fr_1px_1fr] md:gap-0"
+        className={`mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-[7vw] md:gap-0 ${
+          // The divider's own 1px track collapses with it, so the two columns
+          // keep the same widths whether or not the rule is drawn.
+          // minmax(0,Nfr) on both columns: a bare `fr` floors at the
+          // content's max-content width, so with two short rows the list
+          // track collapsed to 36px and the rows wrapped to slivers. The
+          // floor of 0 makes the ratio hold at any content length.
+          listIsShort
+            ? "md:grid-cols-[minmax(0,1.35fr)_0_minmax(0,1fr)]"
+            : "md:grid-cols-[minmax(0,1.35fr)_1px_minmax(0,1fr)]"
+        }`}
         style={{ minHeight: "calc(100vh - 130px)" }}
       >
         <div className="flex flex-col pb-8 pt-9 md:pb-20 md:pr-12">
@@ -623,10 +643,32 @@ export const LocalFlasher = () => {
           />
         </div>
 
-        <div className="hidden bg-text/9 md:block md:self-stretch" />
+        {/* The rule runs the full height only when the list is long enough
+            to sit beside it. With two or three rows a full-height divider
+            runs alongside 700-odd px of nothing and makes the empty column
+            the loudest thing on the screen; ending it with the content reads
+            as a panel that finishes rather than a column that failed to
+            fill. */}
+        {/* The rule separates two columns of comparable weight. Beside a
+            two-row list it instead runs alongside 700-odd px of nothing and
+            makes the empty column the loudest thing on screen, so a short
+            list drops it and the list's own left padding does the separating.
+            No CSS can size one grid item to a sibling's content, and a
+            measured height would need a ref plus a resize observer for a
+            hairline, so this is a presence toggle rather than a shrink. */}
+        <div
+          aria-hidden="true"
+          // Stays in the grid flow when hidden. `display:none` would remove it
+          // from auto-placement and drop the list into the collapsed 0-width
+          // track, so the rule is made invisible rather than absent.
+          className={`hidden md:block md:self-stretch ${
+            listIsShort ? "bg-transparent" : "bg-text/9"
+          }`}
+        />
 
         <AdminFirmwareList
           loading={catalogueLoading}
+          short={listIsShort}
           error={catalogueError}
           showMockRow={showMockRow}
           catalogueEmpty={catalogue.length === 0}
