@@ -35,5 +35,18 @@
     "updatedAt": "2026-09-02T15:16:21.544Z",
     "pedal": "BIGTIME",
     "internalNotes": "- Secret aux jack hardware config midi message added\n- New implementation of tap divisions needs **serious vetting before 1.1**\n- Looper menu-change undo behaviour\n- Works as advertised for PLAY, STOP and CLEARED. The pedal briefly changes state then goes back once the menu change command is recognized\n- For RECORD the pedal returns to PLAY. This prevents loops from getting degraded while in less performance oriented menus"
+  },
+  {
+    "id": 3,
+    "name": "BIGTIME 1.0.3",
+    "pedal": "BIGTIME",
+    "platform": "models",
+    "filepath": "./BIGTIME_Audio_1.0.3.hex",
+    "description": "# Bugs Fixed\n- Sliders sometimes fully unresponsive\n- Preset reset gesture can get confused if used while looper is first recording without the loop length being set\n- Tap subdivisions update live when adjusted via CC\n- Repeated CC28 messages no longer occasionally turn off display\n- LOOP will start in play going from LONG to LOOP over MIDI and from the button\n\t- LOOP still starts cleared when coming from SHORT or MOD\n- Bypass mute time much quicker\n- Looper maintains midi sync when outside the main menu\n- Looper attempts to undo footswitch commands that come in as part of changing menus\n\t- This works as advertised for PLAY, STOP, and CLEARED. The pedal will briefly change states and then go back once the menu change command is recognized\n\t- For RECORD the pedal returns to PLAY. This prevents loops from getting degraded while in less performance oriented menu.",
+    "internalNotes": "- Secret aux jack hardware config midi message added\n- New tap subdivisions updates involve a new implementation that does need some serious vetting before 1.1",
+    "bgColor": "#ba8e51",
+    "active": true,
+    "uploadedAt": "2026-09-02T16:34:55.505Z",
+    "updatedAt": "2026-09-02T16:34:55.505Z"
   }
 ]
