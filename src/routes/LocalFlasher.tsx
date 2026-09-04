@@ -13,18 +13,24 @@ import {
   FAKE_ENTRY,
   FAKE_FILENAME,
   FAKE_PAYLOAD_BYTES,
-  GOLD,
   MOCK_TARGET,
+  adminCatalogueFrom,
   isRealFirmware,
   publicBaseFor,
   type AdminFirmware,
   type ConnectStatus,
-  type DeployStatus,
   type FlashStatus,
   type ManifestEntry,
-  type SaveStatus,
   type SaveTarget,
+  type StoreInfo,
 } from "@/lib/admin-firmware";
+import { rowKey, useDeployProbe } from "@/lib/deploy-probe";
+import {
+  byName,
+  pedalsIn,
+  type FirmwarePayload,
+} from "@/lib/firmware-catalogue";
+import { useSaveDraft } from "@/lib/save-draft";
 import {
   DfuseDevice,
   connectToFakeDevice,
@@ -32,7 +38,6 @@ import {
   parseIntelHex,
   requestAndConnectDevice,
   type DfuLogger,
-  type FirmwareSegment,
 } from "@/lib/dfu";
 import { arrayBufferToBase64 } from "@/lib/format";
 
@@ -40,15 +45,7 @@ type ConnectedDevice = Awaited<
   ReturnType<typeof requestAndConnectDevice>
 >["device"];
 
-type LocalPayload =
-  | { kind: "bin"; buffer: ArrayBuffer }
-  | { kind: "hex"; segments: FirmwareSegment[] };
-
 const COUNTS_STORAGE_KEY = "cba-admin-firmware-counts-v2";
-
-// What the save-form target defaults to for a fresh upload. Deliberately not
-// production — an accidental save should land somewhere harmless.
-const DEFAULT_SAVE_TARGET: SaveTarget = "beta";
 
 // Skeleton row counts before the first load lands. Only a first-paint guess —
 // real counts replace these as soon as list-firmwares responds.
@@ -60,7 +57,7 @@ const DEFAULT_COUNTS: Partial<Record<SaveTarget, number>> = {
 
 export const LocalFlasher = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [payload, setPayload] = useState<LocalPayload | null>(null);
+  const [payload, setPayload] = useState<FirmwarePayload | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
 
   const deviceRef = useRef<ConnectedDevice | null>(null);
@@ -86,23 +83,9 @@ export const LocalFlasher = () => {
   const [flashError, setFlashError] = useState<string | null>(null);
   const [burstTrigger, setBurstTrigger] = useState(0);
 
-  const [saveName, setSaveName] = useState("");
-  const [saveDescription, setSaveDescription] = useState("");
-  const [saveBgColor, setSaveBgColor] = useState(GOLD);
-  const [saveTarget, setSaveTarget] = useState<SaveTarget>(DEFAULT_SAVE_TARGET);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  // When non-null, the form is in "edit mode" — Load was clicked on this
-  // catalogue row. Save becomes Update/Copy; banner + confirmations kick in.
-  const [editingEntry, setEditingEntry] = useState<AdminFirmware | null>(null);
-  // Snapshot of form values at load time — used to detect unsaved edits.
-  const [initialSnapshot, setInitialSnapshot] = useState<{
-    name: string;
-    description: string;
-    bgColor: string;
-    target: SaveTarget;
-    filename: string | null;
-  } | null>(null);
+  // Fields, edit mode, dirty-checking and save status all live in the draft
+  // module — see src/lib/save-draft.ts.
+  const draft = useSaveDraft();
 
   const [catalogue, setCatalogue] = useState<AdminFirmware[]>([]);
   const [catalogueLoading, setCatalogueLoading] = useState(true);
@@ -132,13 +115,15 @@ export const LocalFlasher = () => {
     return DEFAULT_COUNTS;
   });
   const [catalogueError, setCatalogueError] = useState<string | null>(null);
+  // Which store the admin API is talking to, from list-firmwares' headers.
+  const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null);
+  // Row keys of in-flight mutations, so the affected row can dim and disable
+  // its buttons while the API call runs.
   const [deleting, setDeleting] = useState<string | null>(null);
-  // Per-row deploy state: "live" once the file is served by the CDN, "pending"
-  // if we got a 404 (uploaded but Vercel hasn't redeployed yet), "checking"
-  // while the HEAD probe is in flight.
-  const [deployStatus, setDeployStatus] = useState<
-    Record<string, DeployStatus>
-  >({});
+  const [toggling, setToggling] = useState<string | null>(null);
+  // Per-row CDN deploy state ("live" / "pending" / "checking") — owned by the
+  // probe module, see src/lib/deploy-probe.ts.
+  const deploy = useDeployProbe();
 
   const refreshTokenRef = useRef(0);
   const loadCatalogues = async () => {
@@ -149,29 +134,18 @@ export const LocalFlasher = () => {
       const resp = await fetch(`/api/admin/list-firmwares?t=${token}`, {
         cache: "no-store",
       });
+      const kind = resp.headers.get("X-Firmware-Store");
+      const branch = resp.headers.get("X-Firmware-Branch");
+      if ((kind === "github" || kind === "local") && branch) {
+        setStoreInfo({ kind, branch });
+      }
       const data = (await resp.json().catch(() => ({}))) as Partial<
         Record<SaveTarget, ManifestEntry[]>
       > & { error?: string };
       if (!resp.ok) {
         throw new Error(data.error ?? `HTTP ${resp.status}`);
       }
-      const toAdmin = (
-        entries: ManifestEntry[] | undefined,
-        target: SaveTarget,
-      ): AdminFirmware[] =>
-        (entries ?? []).map((e) => ({
-          name: e.name,
-          filename: e.filepath.replace(/^\.\//, ""),
-          target,
-          bgColor: e.bgColor ?? GOLD,
-          description: e.description ?? "",
-          uploadedAt: e.uploadedAt ?? null,
-          updatedAt: e.updatedAt ?? null,
-          active: e.active !== false,
-        }));
-      const merged = CHANNELS.flatMap((channel) =>
-        toAdmin(data[channel.id], channel.id),
-      ).sort((a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1));
+      const merged = adminCatalogueFrom(data);
       setCatalogue(merged);
       const nextCounts = Object.fromEntries(
         CHANNELS.map((channel) => [
@@ -186,7 +160,7 @@ export const LocalFlasher = () => {
           JSON.stringify(nextCounts),
         );
       }
-      void probeDeployStatus(merged);
+      deploy.probe(merged);
     } catch (err) {
       setCatalogueError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -194,56 +168,16 @@ export const LocalFlasher = () => {
     }
   };
 
-  const probeDeployStatus = async (entries: AdminFirmware[]) => {
-    const token = refreshTokenRef.current;
-    // Skip rows with no served URL to probe: the mock has no CDN presence, and
-    // unlisted firmware has been moved out of public/ on purpose — a 404 there
-    // is the correct state, not a deploy still in flight.
-    const real = entries.filter(isRealFirmware).filter((e) => e.active);
-    setDeployStatus((prev) => {
-      const next = { ...prev };
-      for (const e of real) {
-        next[`${e.target}:${e.filename}`] = "checking";
-      }
-      return next;
-    });
-    await Promise.all(
-      real.map(async (entry) => {
-        const base = publicBaseFor(entry.target);
-        const url = `${base}${entry.filename}?t=${token}`;
-        try {
-          const resp = await fetch(url, { method: "HEAD", cache: "no-store" });
-          setDeployStatus((prev) => ({
-            ...prev,
-            [`${entry.target}:${entry.filename}`]: resp.ok ? "live" : "pending",
-          }));
-        } catch {
-          setDeployStatus((prev) => ({
-            ...prev,
-            [`${entry.target}:${entry.filename}`]: "pending",
-          }));
-        }
-      }),
-    );
-  };
-
   useEffect(() => {
-    void loadCatalogues();
+    // Deferred by a frame so the first load doesn't set state synchronously
+    // during the effect, which would cascade an extra render on mount.
+    // `catalogueLoading` already starts true, so the skeleton paints either way.
+    const id = window.setTimeout(() => void loadCatalogues(), 0);
+    return () => window.clearTimeout(id);
+    // loadCatalogues is redefined every render and this must run once on
+    // mount; the refresh token inside it guards against overlapping loads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Auto-re-probe pending rows every 10s — so when Vercel finishes a redeploy
-  // the red dots flip green without the admin having to click Refresh. Stops
-  // itself the moment nothing is pending.
-  useEffect(() => {
-    const pending = catalogue.filter(
-      (e) => deployStatus[`${e.target}:${e.filename}`] === "pending",
-    );
-    if (pending.length === 0) return;
-    const id = window.setInterval(() => {
-      void probeDeployStatus(pending);
-    }, 10_000);
-    return () => window.clearInterval(id);
-  }, [catalogue, deployStatus]);
 
   useEffect(() => {
     return () => {
@@ -275,7 +209,7 @@ export const LocalFlasher = () => {
   };
 
   const handleLoadFakePedal = () => {
-    if (isDirty()) {
+    if (draft.isDirty()) {
       const ok = window.confirm(
         "You have unsaved changes in the save form. Load the mock and discard them?",
       );
@@ -290,7 +224,7 @@ export const LocalFlasher = () => {
     setPayload({ kind: "bin", buffer });
     setFakeDeviceMode(true);
     // Don't prefill the save form — the mock isn't saveable.
-    resetSaveForm();
+    draft.reset();
   };
 
   const handleLoadFromRepo = async (entry: AdminFirmware) => {
@@ -298,7 +232,7 @@ export const LocalFlasher = () => {
       handleLoadFakePedal();
       return;
     }
-    if (isDirty()) {
+    if (draft.isDirty()) {
       const ok = window.confirm(
         "You have unsaved changes in the save form. Load this firmware and discard them?",
       );
@@ -313,20 +247,7 @@ export const LocalFlasher = () => {
       const blob = await resp.blob();
       const picked = new File([blob], entry.filename, { type: blob.type });
       await handleFile(picked);
-      setSaveName(entry.name);
-      setSaveDescription(entry.description);
-      setSaveBgColor(entry.bgColor);
-      setSaveTarget(entry.target);
-      setSaveStatus("idle");
-      setSaveMessage(null);
-      setEditingEntry(entry);
-      setInitialSnapshot({
-        name: entry.name,
-        description: entry.description,
-        bgColor: entry.bgColor,
-        target: entry.target,
-        filename: entry.filename,
-      });
+      draft.beginEdit(entry);
     } catch (err) {
       setParseError(
         `Could not load ${entry.filename}: ${err instanceof Error ? err.message : String(err)}`,
@@ -334,38 +255,8 @@ export const LocalFlasher = () => {
     }
   };
 
-  const resetSaveForm = () => {
-    setSaveName("");
-    setSaveDescription("");
-    setSaveBgColor(GOLD);
-    setSaveTarget(DEFAULT_SAVE_TARGET);
-    setSaveStatus("idle");
-    setSaveMessage(null);
-    setEditingEntry(null);
-    setInitialSnapshot(null);
-  };
-
-  // True if anything the user might want to save has diverged from the
-  // snapshot — or, in new-upload mode, if any form field is non-default.
-  const isDirty = () => {
-    if (initialSnapshot) {
-      return (
-        saveName !== initialSnapshot.name ||
-        saveDescription !== initialSnapshot.description ||
-        saveBgColor !== initialSnapshot.bgColor ||
-        saveTarget !== initialSnapshot.target
-      );
-    }
-    return (
-      saveName.trim().length > 0 ||
-      saveDescription.trim().length > 0 ||
-      saveBgColor !== GOLD ||
-      saveTarget !== DEFAULT_SAVE_TARGET
-    );
-  };
-
   const handleRemoveFile = () => {
-    if (isDirty()) {
+    if (draft.isDirty()) {
       const ok = window.confirm(
         "You have unsaved changes. Remove the loaded file and discard them?",
       );
@@ -379,19 +270,19 @@ export const LocalFlasher = () => {
     setFlashMessage(null);
     setFlashError(null);
     setFlashProgress({ done: 0, total: 0 });
-    resetSaveForm();
+    draft.reset();
   };
 
   // Used by the save-form Cancel button when in edit mode, and by "Save to
   // repo" success to return to a fresh state.
   const handleCancelEdit = () => {
-    if (isDirty()) {
+    if (draft.isDirty()) {
       const ok = window.confirm(
         "Discard unsaved changes to this firmware's metadata?",
       );
       if (!ok) return;
     }
-    resetSaveForm();
+    draft.reset();
   };
 
   const handleConnect = async () => {
@@ -499,20 +390,19 @@ export const LocalFlasher = () => {
 
   const handleSave = async () => {
     if (!file) return;
+    const { editingEntry, fields } = draft;
     // Destructive overwrite confirmation: the row is edited-in-place AND it's
     // already live on the CDN, so users could briefly see the new file as soon
     // as the next Vercel deploy lands.
-    if (editingEntry && editingEntry.target === saveTarget) {
-      const key = `${editingEntry.target}:${editingEntry.filename}`;
-      if (deployStatus[key] === "live") {
+    if (editingEntry && editingEntry.target === fields.target) {
+      if (deploy.status[rowKey(editingEntry)] === "live") {
         const ok = window.confirm(
           `Overwrite "${editingEntry.name}" in ${editingEntry.target}? Users will see the new version once the site finishes updating.`,
         );
         if (!ok) return;
       }
     }
-    setSaveStatus("saving");
-    setSaveMessage(null);
+    draft.beginSave();
     try {
       const buf = await file.arrayBuffer();
       const contentBase64 = arrayBufferToBase64(buf);
@@ -521,7 +411,7 @@ export const LocalFlasher = () => {
       // fresh insert into the destination, not an overwrite.
       const overwrite =
         editingEntry !== null &&
-        editingEntry.target === saveTarget &&
+        editingEntry.target === fields.target &&
         editingEntry.filename === file.name;
       const resp = await fetch("/api/admin/upload-firmware", {
         method: "POST",
@@ -529,10 +419,12 @@ export const LocalFlasher = () => {
         body: JSON.stringify({
           filename: file.name,
           contentBase64,
-          target: saveTarget,
-          name: saveName.trim(),
-          description: saveDescription.trim(),
-          bgColor: saveBgColor,
+          target: fields.target,
+          name: fields.name.trim(),
+          pedal: fields.pedal.trim(),
+          description: fields.description.trim(),
+          internalNotes: fields.internalNotes.trim(),
+          bgColor: fields.bgColor,
           overwrite,
         }),
       });
@@ -541,12 +433,9 @@ export const LocalFlasher = () => {
         commitUrl?: string;
       };
       if (!resp.ok) {
-        setSaveStatus("error");
-        setSaveMessage(data.error ?? `Upload failed (${resp.status})`);
+        draft.failSave(data.error ?? `Upload failed (${resp.status})`);
         return;
       }
-      setSaveStatus("success");
-      setSaveMessage(null);
       setFile(null);
       setPayload(null);
       setParseError(null);
@@ -554,21 +443,19 @@ export const LocalFlasher = () => {
       setFlashMessage(null);
       setFlashError(null);
       setFlashProgress({ done: 0, total: 0 });
-      resetSaveForm();
+      draft.reset();
       void loadCatalogues();
     } catch (err) {
-      setSaveStatus("error");
-      setSaveMessage(err instanceof Error ? err.message : String(err));
+      draft.failSave(err instanceof Error ? err.message : String(err));
     }
   };
 
   // Flip active on a manifest entry. Hidden entries stay in the admin list
   // but disappear from the public /  and /beta dropdowns (Programmer filters
   // on active before rendering).
-  const [toggling, setToggling] = useState<string | null>(null);
   const handleToggleActive = async (entry: AdminFirmware) => {
     const nextActive = !entry.active;
-    setToggling(`${entry.target}:${entry.filename}`);
+    setToggling(rowKey(entry));
     try {
       const resp = await fetch("/api/admin/update-firmware", {
         method: "POST",
@@ -604,7 +491,7 @@ export const LocalFlasher = () => {
     ) {
       return;
     }
-    setDeleting(`${entry.target}:${entry.filename}`);
+    setDeleting(rowKey(entry));
     try {
       const resp = await fetch("/api/admin/delete-firmware", {
         method: "POST",
@@ -631,9 +518,6 @@ export const LocalFlasher = () => {
 
   const flashing = flashStatus === "preparing" || flashStatus === "installing";
 
-  const isEditing = editingEntry !== null;
-  const targetChanged =
-    isEditing && editingEntry !== null && editingEntry.target !== saveTarget;
   // Conflict in the destination target. If we're editing in place (target
   // unchanged) the match is self — not a conflict. If we've flipped the target
   // radio (copy) the match is a real conflict that should block the save.
@@ -641,41 +525,38 @@ export const LocalFlasher = () => {
     file !== null &&
     catalogue.some(
       (e) =>
-        e.target === saveTarget &&
+        e.target === draft.fields.target &&
         e.filename === file.name &&
         !(
-          editingEntry &&
-          editingEntry.target === e.target &&
-          editingEntry.filename === e.filename
+          draft.editingEntry &&
+          draft.editingEntry.target === e.target &&
+          draft.editingEntry.filename === e.filename
         ),
     );
+  // Every distinct pedal already in any channel, so the admin picks from
+  // what exists instead of retyping it. Free text let "BIG TIME" and
+  // "BIGTIME" both in, which split one product's history in two.
+  const knownPedals = pedalsIn(catalogue.filter(isRealFirmware));
+
   const canSave =
     file !== null &&
-    saveName.trim().length > 0 &&
-    saveStatus !== "saving" &&
+    draft.complete &&
+    draft.status !== "saving" &&
     !flashing &&
     !duplicateInTarget;
-  const saveButtonLabel = isEditing
-    ? targetChanged
-      ? `Copy to ${saveTarget}`
-      : "Update firmware"
-    : "Save firmware";
 
   const canConnect =
     payload !== null && connectStatus === "disconnected" && !flashing;
   const canUpdate =
     connectStatus === "connected" && payload !== null && !flashing;
 
-  // Active first, disabled sink to the bottom of their section. Within each
-  // active/disabled bucket: newest upload first, tiebreak alphabetically so
-  // the order is stable across loads.
-  const sortForSection = (a: AdminFirmware, b: AdminFirmware) => {
-    if (a.active !== b.active) return a.active ? -1 : 1;
-    const at = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
-    const bt = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
-    if (at !== bt) return bt - at;
-    return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
-  };
+  // Alphabetical, unlisted rows included — a row is findable by name, and
+  // the Unlisted chip already marks the exceptions.
+  // Below this the list is shorter than the form by enough that a
+  // full-height divider beside it reads as empty space rather than as
+  // structure. Counted from the rows themselves, so it needs no measurement.
+  const SHORT_LIST_ROWS = 6;
+
   // One section per channel, in registry order. The mock (when enabled) gets
   // its own trailing section rather than squatting in a real channel's list.
   const sections = [
@@ -686,7 +567,7 @@ export const LocalFlasher = () => {
       route: channel.route,
       rows: catalogue
         .filter((f) => f.target === channel.id)
-        .sort(sortForSection),
+        .sort(byName),
     })),
     ...(showMockRow
       ? [
@@ -700,17 +581,32 @@ export const LocalFlasher = () => {
       : []),
   ];
 
+  // Total rows on screen, not channels: three channels of one row each still
+  // reads as a short list.
+  const listIsShort =
+    sections.reduce((n, sect) => n + sect.rows.length, 0) < SHORT_LIST_ROWS;
+
   return (
-    <div className="min-h-screen animate-cba-fade-in bg-gray-50">
+    <div className="min-h-screen animate-cba-fade-in bg-surface-2">
       <SuccessBurst trigger={burstTrigger} />
-      <AdminHeader flashing={flashing} />
+      <AdminHeader flashing={flashing} store={storeInfo} />
 
       <div
-        className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-[7vw] md:grid-cols-[1fr_1px_1fr] md:gap-0"
+        className={`mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-[7vw] md:gap-0 ${
+          // The divider's own 1px track collapses with it, so the two columns
+          // keep the same widths whether or not the rule is drawn.
+          // minmax(0,Nfr) on both columns: a bare `fr` floors at the
+          // content's max-content width, so with two short rows the list
+          // track collapsed to 36px and the rows wrapped to slivers. The
+          // floor of 0 makes the ratio hold at any content length.
+          listIsShort
+            ? "md:grid-cols-[minmax(0,1.35fr)_0_minmax(0,1fr)]"
+            : "md:grid-cols-[minmax(0,1.35fr)_1px_minmax(0,1fr)]"
+        }`}
         style={{ minHeight: "calc(100vh - 130px)" }}
       >
         <div className="flex flex-col pb-8 pt-9 md:pb-20 md:pr-12">
-          <div className="mb-7 border-b border-black/10 pb-7">
+          <div className="mb-7 border-b border-border/10 pb-7">
             <SectionLabel>1. Load firmware file</SectionLabel>
             <AdminFirmwareDropZone
               file={file}
@@ -737,38 +633,48 @@ export const LocalFlasher = () => {
           />
 
           <AdminSaveForm
-            hasFile={file !== null}
+            draft={draft}
             file={file}
-            saveName={saveName}
-            saveDescription={saveDescription}
-            saveBgColor={saveBgColor}
-            saveTarget={saveTarget}
-            onSaveNameChange={setSaveName}
-            onSaveDescriptionChange={setSaveDescription}
-            onSaveBgColorChange={setSaveBgColor}
-            onSaveTargetChange={setSaveTarget}
-            editingEntry={editingEntry}
-            targetChanged={targetChanged}
+            knownPedals={knownPedals}
             duplicateInTarget={duplicateInTarget}
             canSave={canSave}
-            saveStatus={saveStatus}
-            saveMessage={saveMessage}
-            saveButtonLabel={saveButtonLabel}
             onSave={handleSave}
             onCancelEdit={handleCancelEdit}
           />
         </div>
 
-        <div className="hidden bg-black/9 md:block md:self-stretch" />
+        {/* The rule runs the full height only when the list is long enough
+            to sit beside it. With two or three rows a full-height divider
+            runs alongside 700-odd px of nothing and makes the empty column
+            the loudest thing on the screen; ending it with the content reads
+            as a panel that finishes rather than a column that failed to
+            fill. */}
+        {/* The rule separates two columns of comparable weight. Beside a
+            two-row list it instead runs alongside 700-odd px of nothing and
+            makes the empty column the loudest thing on screen, so a short
+            list drops it and the list's own left padding does the separating.
+            No CSS can size one grid item to a sibling's content, and a
+            measured height would need a ref plus a resize observer for a
+            hairline, so this is a presence toggle rather than a shrink. */}
+        <div
+          aria-hidden="true"
+          // Stays in the grid flow when hidden. `display:none` would remove it
+          // from auto-placement and drop the list into the collapsed 0-width
+          // track, so the rule is made invisible rather than absent.
+          className={`hidden md:block md:self-stretch ${
+            listIsShort ? "bg-transparent" : "bg-text/9"
+          }`}
+        />
 
         <AdminFirmwareList
           loading={catalogueLoading}
+          short={listIsShort}
           error={catalogueError}
           showMockRow={showMockRow}
           catalogueEmpty={catalogue.length === 0}
           cachedCounts={cachedCounts}
           sections={sections}
-          deployStatus={deployStatus}
+          deployStatus={deploy.status}
           deleting={deleting}
           toggling={toggling}
           flashing={flashing}

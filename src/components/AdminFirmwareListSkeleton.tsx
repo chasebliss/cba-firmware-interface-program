@@ -22,12 +22,12 @@ export const AdminFirmwareListSkeleton = ({
           <section key={`skel-${section.id}`}>
             <div className="mb-2 flex items-baseline gap-2">
               <span
-                className="text-[9px] font-bold uppercase tracking-widest"
+                className="text-micro font-bold uppercase tracking-widest"
                 style={{ color: section.color }}
               >
                 {section.label}
               </span>
-              <span className="text-[9px] font-bold tracking-widest text-black/35">
+              <span className="text-micro font-bold tracking-widest text-text/35">
                 {section.count}
               </span>
             </div>
@@ -35,26 +35,26 @@ export const AdminFirmwareListSkeleton = ({
               {Array.from({ length: section.count }).map((_, i) => (
                 <li
                   key={i}
-                  className="animate-cba-pulse relative flex items-center gap-3 bg-cream px-3.5 py-3"
+                  className="animate-cba-pulse relative flex items-center gap-3 bg-surface px-3.5 py-3"
                 >
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute -bottom-px -top-px left-0 z-1 w-[4px] bg-black/10"
+                    className="pointer-events-none absolute -bottom-px -top-px left-0 z-1 w-[4px] bg-text/10"
                   />
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-black/10" />
-                      <div className="h-[17px] w-36 bg-black/10" />
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-text/10" />
+                      <div className="h-[17px] w-36 bg-text/10" />
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <div className="h-[13px] w-40 bg-black/10" />
-                      <div className="h-[12px] w-12 shrink-0 bg-black/10" />
+                      <div className="h-[13px] w-40 bg-text/10" />
+                      <div className="h-[12px] w-12 shrink-0 bg-text/10" />
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    <div className="h-[24px] w-[52px] border border-black/10" />
-                    <div className="h-[24px] w-[66px] border border-black/10" />
-                    <div className="h-[24px] w-[62px] border border-black/10" />
+                    <div className="h-[24px] w-[52px] border border-border/10" />
+                    <div className="h-[24px] w-[66px] border border-border/10" />
+                    <div className="h-[24px] w-[62px] border border-border/10" />
                   </div>
                 </li>
               ))}

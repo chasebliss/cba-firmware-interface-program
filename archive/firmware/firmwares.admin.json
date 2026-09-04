@@ -7,7 +7,8 @@
     "description": "MOOD MKII 1.0",
     "bgColor": "#b48ecf",
     "active": true,
-    "uploadedAt": "2026-04-23T23:00:00.000Z"
+    "uploadedAt": "2026-04-23T23:00:00.000Z",
+    "pedal": "MOOD MKII"
   },
   {
     "id": 1,
@@ -17,7 +18,8 @@
     "description": "MOOD MKII 1.1",
     "bgColor": "#b48ecf",
     "active": true,
-    "uploadedAt": "2026-04-23T23:00:00.000Z"
+    "uploadedAt": "2026-04-23T23:00:00.000Z",
+    "pedal": "MOOD MKII"
   },
   {
     "id": 2,
@@ -28,7 +30,8 @@
     "bgColor": "#ba8e51",
     "active": false,
     "uploadedAt": "2026-06-17T16:10:49.620Z",
-    "updatedAt": "2026-07-29T18:49:51.532Z"
+    "updatedAt": "2026-07-29T18:49:51.532Z",
+    "pedal": "BIGTIME"
   },
   {
     "id": 3,
@@ -39,6 +42,7 @@
     "bgColor": "#50b98c",
     "active": true,
     "uploadedAt": "2026-07-29T16:41:34.137Z",
-    "updatedAt": "2026-07-30T15:40:33.938Z"
+    "updatedAt": "2026-07-30T15:40:33.938Z",
+    "pedal": "LOST AND FOUND"
   }
 ]

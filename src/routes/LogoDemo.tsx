@@ -63,19 +63,19 @@ export const LogoDemo = () => {
   const [replayKey, setReplayKey] = useState(0);
 
   return (
-    <div className="min-h-screen bg-cream px-[7vw] py-10">
+    <div className="min-h-screen bg-surface px-[7vw] py-10">
       <div className="mx-auto max-w-[1400px]">
-        <div className="mb-10 flex items-end justify-between border-b-2 border-black pb-6">
+        <div className="mb-10 flex items-end justify-between border-b-2 border-border pb-6">
           <div>
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-black/45">
+            <p className="mb-1 text-meta font-bold uppercase tracking-widest text-text/45">
               Playground
             </p>
-            <h1 className="text-[28px] font-bold tracking-[-0.02em]">
+            <h1 className="text-display font-bold tracking-[-0.02em]">
               Logo animation variants.
             </h1>
-            <p className="mt-1 text-[12px] text-black/60">
+            <p className="mt-1 text-caption text-text/60">
               Each logo with every animation. Tiles marked{" "}
-              <span className="mx-0.5 rounded-full border border-black/15 bg-black/5 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-black/60">
+              <span className="mx-0.5 rounded-full border border-border/15 bg-text/5 px-1.5 py-0.5 text-micro font-bold uppercase tracking-[0.1em] text-text/60">
                 loops
               </span>{" "}
               run continuously.
@@ -84,7 +84,7 @@ export const LogoDemo = () => {
           <button
             type="button"
             onClick={() => setReplayKey((k) => k + 1)}
-            className="border-2 border-black bg-cream px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] transition-all hover:italic hover:shadow-[0_8px_20px_rgba(0,0,0,0.11)]"
+            className="border-2 border-border bg-surface px-5 py-2.5 text-caption font-bold uppercase tracking-[0.14em] transition-all hover:italic hover:shadow-[0_8px_20px_rgba(0,0,0,0.11)]"
           >
             Replay all
           </button>
@@ -93,9 +93,9 @@ export const LogoDemo = () => {
         <div className="flex flex-col gap-16">
           {LOGOS.map((logo) => (
             <section key={logo.id}>
-              <div className="mb-5 flex items-baseline justify-between border-b border-black/15 pb-2">
+              <div className="mb-5 flex items-baseline justify-between border-b border-border/15 pb-2">
                 <h2 className="text-lg font-bold">{logo.label}</h2>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-black/45">
+                <p className="text-meta font-bold uppercase tracking-widest text-text/45">
                   {ANIMATIONS.length} animations
                 </p>
               </div>
@@ -103,14 +103,14 @@ export const LogoDemo = () => {
                 {ANIMATIONS.map((anim) => (
                   <div
                     key={`${logo.id}-${anim.id}`}
-                    className="flex flex-col rounded-sm border border-black/10 bg-white/60 p-4"
+                    className="flex flex-col rounded-sm border border-border/10 bg-white/60 p-4"
                   >
                     <div className="mb-3 flex items-center justify-between">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-black/55">
+                      <p className="text-meta font-bold uppercase tracking-widest text-text/55">
                         {anim.label}
                       </p>
                       {anim.continuous && (
-                        <span className="rounded-full border border-black/15 bg-black/5 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-black/60">
+                        <span className="rounded-full border border-border/15 bg-text/5 px-1.5 py-0.5 text-micro font-bold uppercase tracking-[0.1em] text-text/60">
                           loops
                         </span>
                       )}

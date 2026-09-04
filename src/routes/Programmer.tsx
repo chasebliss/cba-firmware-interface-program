@@ -4,6 +4,7 @@ import { CbaButton } from "@/components/CbaButton";
 import { InstructionsPanel } from "@/components/Instructions";
 import { Nav, type NavProps } from "@/components/Nav";
 import { PedalDropdown } from "@/components/PedalDropdown";
+import { ReleaseNotes } from "@/components/ReleaseNotes";
 import { StepCard } from "@/components/StepCard";
 import { SuccessBurst } from "@/components/SuccessBurst";
 import type { FirmwareSource } from "@/data/sources";
@@ -107,8 +108,15 @@ export const Programmer = ({
 
   useEffect(() => {
     let cancelled = false;
-    setCatalogueLoading(true);
-    setCatalogueError(null);
+    // Deferred so the loading reset doesn't run synchronously inside the
+    // effect, which would cascade an extra render. The same `cancelled` flag
+    // that guards the fetch result guards this, so a rerun with new sources
+    // can't have a superseded load flip the flags back.
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      setCatalogueLoading(true);
+      setCatalogueError(null);
+    });
 
     loadFirmwareCatalogue(sources)
       .then((entries) => {
@@ -254,12 +262,12 @@ export const Programmer = ({
       ? Math.min(1, flashProgress.done / flashProgress.total)
       : 0;
   const progressPct = Math.round(progressRatio * 100);
-  const barColor = selected?.bgColor ?? "#10b981";
+  const barColor = selected?.bgColor ?? "var(--ok)";
 
-  const card1Background = s1 ? `${selected!.bgColor}10` : "var(--color-cream)";
+  const card1Background = s1 ? `${selected!.bgColor}10` : "var(--surface)";
 
   return (
-    <div className="min-h-screen animate-cba-fade-in bg-cream">
+    <div className="min-h-screen animate-cba-fade-in bg-surface">
       <SuccessBurst trigger={burstTrigger} />
       {banner}
       <Nav {...navProps} />
@@ -302,7 +310,7 @@ export const Programmer = ({
                     className="h-[9px] w-[9px] shrink-0"
                     style={{ background: selected?.bgColor }}
                   />
-                  <span className="text-[12px] font-semibold text-black/45">
+                  <span className="text-caption font-semibold text-text/45">
                     {selected?.name}
                   </span>
                 </div>
@@ -317,7 +325,7 @@ export const Programmer = ({
               disabled={flashing}
             />
             {catalogueError && (
-              <p className="mt-2 text-sm font-semibold text-red">
+              <p className="mt-2 text-sm font-semibold text-bad">
                 Could not load firmware list: {catalogueError}
               </p>
             )}
@@ -332,14 +340,14 @@ export const Programmer = ({
             open={!s2 && !s3}
             headerRight={
               s2 ? (
-                <span className="text-[12px] font-bold text-green">
+                <span className="text-caption font-bold text-ok">
                   Connected ✓
                 </span>
               ) : undefined
             }
           >
             <div className="flex flex-col items-center gap-2.5">
-              <p className="text-sm leading-[1.6] text-black/[0.42]">
+              <p className="text-sm leading-[1.6] text-text/[0.42]">
                 Connect via data-transfer micro USB, then connect power supply.
               </p>
               <CbaButton
@@ -350,7 +358,7 @@ export const Programmer = ({
                 {connectStatus === "connecting" ? "Connecting…" : "Connect"}
               </CbaButton>
               {connectError && (
-                <p className="max-w-md text-sm font-semibold text-red">
+                <p className="max-w-md text-sm font-semibold text-bad">
                   {connectError}
                 </p>
               )}
@@ -364,7 +372,7 @@ export const Programmer = ({
             locked={!s2 && !s3}
             headerRight={
               s3 ? (
-                <span className="text-[12px] font-bold text-green">
+                <span className="text-caption font-bold text-ok">
                   Complete ✓
                 </span>
               ) : undefined
@@ -388,15 +396,15 @@ export const Programmer = ({
                     // w-96 + mx-auto matches PedalDropdown and the channel
                     // notice, so the consent block lines up with the rest of
                     // the stack instead of spanning the whole card.
-                    <label className="mx-auto flex w-96 max-w-full cursor-pointer select-none items-start gap-2.5 border-2 border-black/15 bg-black/[0.03] px-3.5 py-3 text-left transition-colors duration-200 hover:border-black/30">
+                    <label className="cba-panel mx-auto flex w-96 max-w-full cursor-pointer select-none items-start gap-2.5 border-2 border-border/15 bg-text/[0.03] px-3.5 py-3 text-left transition-colors duration-200 hover:border-border/30">
                       <input
                         type="checkbox"
                         checked={acknowledged}
                         disabled={!s1 || !s2}
                         onChange={(e) => setAcknowledged(e.target.checked)}
-                        className="mt-[2px] h-[15px] w-[15px] shrink-0 accent-black disabled:cursor-not-allowed"
+                        className="mt-[2px] h-[15px] w-[15px] shrink-0 accent-text disabled:cursor-not-allowed"
                       />
-                      <span className="text-[11px] leading-[1.5] text-black/60">
+                      <span className="text-caption leading-[1.5] text-text/60">
                         {disclaimer}
                       </span>
                     </label>
@@ -420,10 +428,10 @@ export const Programmer = ({
                   <progress
                     value={progressPct}
                     max={100}
-                    className="block h-[5px] w-96 max-w-full appearance-none border-none [&::-webkit-progress-bar]:bg-black/10"
+                    className="block h-[5px] w-96 max-w-full appearance-none border-none [&::-webkit-progress-bar]:bg-text/10"
                   />
                   <style>{`progress::-webkit-progress-value{background:${barColor};transition:width .4s ease;}progress::-moz-progress-bar{background:${barColor};}`}</style>
-                  <div className="animate-cba-pulse text-[14px] font-bold text-green">
+                  <div className="animate-cba-pulse text-body font-bold text-ok">
                     {flashStatus === "preparing"
                       ? (flashMessage ?? "Preparing…")
                       : `Uploading… ${progressPct}%`}
@@ -435,10 +443,10 @@ export const Programmer = ({
                   <progress
                     value={progressPct}
                     max={100}
-                    className="block h-[5px] w-96 max-w-full appearance-none border-none [&::-webkit-progress-bar]:bg-black/10"
+                    className="block h-[5px] w-96 max-w-full appearance-none border-none [&::-webkit-progress-bar]:bg-text/10"
                   />
-                  <style>{`progress::-webkit-progress-value{background:var(--color-red);transition:width .4s ease;}progress::-moz-progress-bar{background:var(--color-red);}`}</style>
-                  <p className="text-[14px] font-bold text-red">
+                  <style>{`progress::-webkit-progress-value{background:var(--bad);transition:width .4s ease;}progress::-moz-progress-bar{background:var(--bad);}`}</style>
+                  <p className="text-body font-bold text-bad">
                     {flashError ?? "Update failed"}
                   </p>
                   <CbaButton onClick={handleReset} style={{ width: 180 }}>
@@ -456,13 +464,16 @@ export const Programmer = ({
           </div>
         </div>
 
-        <div className="self-stretch bg-black/9" />
+        <div className="self-stretch bg-text/9" />
 
         <div
           className="pb-20 pl-9 pt-11"
           style={{ position: "sticky", top: 24 }}
         >
           <InstructionsPanel />
+          {selected && (
+            <ReleaseNotes firmware={selected} catalogue={catalogue} />
+          )}
         </div>
       </div>
     </div>

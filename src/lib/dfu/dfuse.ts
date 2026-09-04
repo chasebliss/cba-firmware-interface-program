@@ -236,6 +236,9 @@ export class DfuseDevice extends DfuDevice {
   override async do_download(
     xfer_size: number,
     data: ArrayBuffer,
+    // Part of the inherited do_download signature. DfuSe manifests via its
+    // own SET_ADDRESS + zero-length download, so it never reads this.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _manifestationTolerant: boolean,
   ): Promise<void> {
     if (!this.memoryInfo || !this.memoryInfo.segments) {
@@ -307,6 +310,9 @@ export class DfuseDevice extends DfuDevice {
   async do_download_multi(
     xfer_size: number,
     segments: FirmwareSegment[],
+    // Kept to mirror do_download's signature; manifestation is handled by
+    // the single SET_ADDRESS + zero-length download at the end.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _manifestationTolerant: boolean,
   ): Promise<void> {
     if (!this.memoryInfo || !this.memoryInfo.segments) {

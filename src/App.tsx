@@ -65,13 +65,14 @@ const App = () => {
             />
           }
         />
-        {/* data-nightly scopes the restyle — cold slate palette and rounded
-            corners — to this page only. See the [data-nightly] block in
-            index.css; no component code branches on it. */}
+        {/* data-theme scopes the nightly palette to this page. The block in
+            index.css rebinds semantic tokens only, so no component code
+            branches on it. Another channel wanting its own look adds a
+            data-theme value and a token block, nothing more. */}
         <Route
           path="/nightly"
           element={
-            <div data-nightly="">
+            <div data-theme="nightly">
               <Programmer
                 sources={NIGHTLY_SOURCES}
                 title="Nightly Programmer."
@@ -81,22 +82,22 @@ const App = () => {
                   // stack because it's page-level orientation, not an
                   // annotation on any one control — the step 3 tick is what
                   // actually gates flashing.
-                  <div className="mb-8 border-2 border-black/15 bg-black/[0.03] px-5 py-4 text-left">
-                    <h2 className="text-[15px] font-bold">
+                  <div className="cba-panel mb-8 border-2 border-border/15 bg-text/[0.03] px-5 py-4 text-left">
+                    <h2 className="text-body font-bold">
                       What is nightly firmware?
                     </h2>
-                    <p className="mt-2 text-[13px] leading-[1.65] text-black/60">
+                    <p className="mt-2 text-body-sm leading-[1.65] text-text/60">
                       On this page you will find firmware that has not completed
                       our internal testing process yet. It will not harm your
                       pedals, but it could include bugs. Use this code if you
                       want access to the latest bug fixes as quickly as
                       possible.
                     </p>
-                    <p className="mt-2.5 text-[13px] leading-[1.65] text-black/60">
+                    <p className="mt-2.5 text-body-sm leading-[1.65] text-text/60">
                       You can find official production code{" "}
                       <a
                         href="/"
-                        className="font-semibold text-black/80 underline underline-offset-2 hover:text-black"
+                        className="font-semibold text-text/80 underline underline-offset-2 hover:text-text"
                       >
                         here
                       </a>
@@ -108,7 +109,7 @@ const App = () => {
                   // Short on purpose: the intro above carries the explanation,
                   // so this only has to be the thing they affirm.
                   <>
-                    <span className="font-bold uppercase tracking-[0.08em] text-gold">
+                    <span className="font-bold uppercase tracking-[0.08em] text-accent">
                       I understand
                     </span>{" "}
                     this firmware has not completed internal testing and may

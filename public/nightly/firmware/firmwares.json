@@ -1,16 +1,5 @@
 [
   {
-    "id": 0,
-    "name": "BIG TIME 1.0.0",
-    "platform": "models",
-    "filepath": "./BIGTIME_Audio_1.0.0.hex",
-    "description": "Initial production release",
-    "bgColor": "#ba8e51",
-    "active": true,
-    "uploadedAt": "2026-08-06T17:21:41.176Z",
-    "updatedAt": "2026-08-06T17:21:41.176Z"
-  },
-  {
     "id": 1,
     "name": "LOST AND FOUND 2.0",
     "platform": "models",
@@ -19,6 +8,19 @@
     "bgColor": "#50b98c",
     "active": true,
     "uploadedAt": "2026-08-06T17:27:09.470Z",
-    "updatedAt": "2026-08-07T15:27:56.100Z"
+    "updatedAt": "2026-08-07T15:27:56.100Z",
+    "pedal": "LOST AND FOUND"
+  },
+  {
+    "id": 3,
+    "name": "BIGTIME 1.0.3",
+    "pedal": "BIGTIME",
+    "platform": "models",
+    "filepath": "./BIGTIME_Audio_1.0.3.hex",
+    "description": "# Bugs Fixed\n- Sliders sometimes fully unresponsive\n- Preset reset gesture can get confused if used while looper is first recording without the loop length being set\n- Tap subdivisions update live when adjusted via CC\n- Repeated CC28 messages no longer occasionally turn off display\n- LOOP will start in play going from LONG to LOOP over MIDI and from the button\n\t- LOOP still starts cleared when coming from SHORT or MOD\n- Bypass mute time much quicker\n- Looper maintains midi sync when outside the main menu\n- Looper attempts to undo footswitch commands that come in as part of changing menus\n\t- This works as advertised for PLAY, STOP, and CLEARED. The pedal will briefly change states and then go back once the menu change command is recognized\n\t- For RECORD the pedal returns to PLAY. This prevents loops from getting degraded while in less performance oriented menu.",
+    "bgColor": "#ba8e51",
+    "active": true,
+    "uploadedAt": "2026-09-02T16:34:55.505Z",
+    "updatedAt": "2026-09-02T16:34:55.505Z"
   }
 ]

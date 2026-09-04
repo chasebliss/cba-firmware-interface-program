@@ -36,12 +36,12 @@ export const FlashProgressBar = ({
       }`}
       aria-hidden={!visible}
     >
-      <div className="h-4 flex-1 bg-cream">
+      <div className="h-4 flex-1 bg-surface">
         <div
           className="h-full transition-[width] duration-300 ease-out"
           style={{
             width: `${ratio * 100}%`,
-            background: errored ? "var(--color-red)" : bgColor,
+            background: errored ? "var(--bad)" : bgColor,
           }}
         />
       </div>
@@ -100,15 +100,15 @@ export const FlashStatusPill = ({ status, message }: FlashStatusPillProps) => {
 
   const colorClasses =
     status === "complete"
-      ? "border-green text-green"
+      ? "border-ok text-ok"
       : status === "error"
-        ? "border-red text-red"
-        : "border-green text-green";
+        ? "border-bad text-bad"
+        : "border-ok text-ok";
 
   return (
     <p
       key={status}
-      className={`flex h-[50px] w-[240px] items-center justify-center border-2 bg-cream px-3 py-2 text-center text-base font-bold shadow-cba ${colorClasses} ${isPulsing ? "animate-cba-pulse" : ""} ${status === "error" ? "animate-cba-shake" : ""}`}
+      className={`flex h-[50px] w-[240px] items-center justify-center border-2 bg-surface px-3 py-2 text-center text-base font-bold shadow-cba ${colorClasses} ${isPulsing ? "animate-cba-pulse" : ""} ${status === "error" ? "animate-cba-shake" : ""}`}
     >
       {label}
     </p>

@@ -6,6 +6,7 @@ import type {
   DeployStatus,
   SaveTarget,
 } from "@/lib/admin-firmware";
+import { rowKey } from "@/lib/deploy-probe";
 
 export interface FirmwareSection {
   id: string;
@@ -19,6 +20,10 @@ export interface FirmwareSection {
 
 interface AdminFirmwareListProps {
   loading: boolean;
+  // A list with few rows stops pretending to be a column: it drops the
+  // viewport cap and the bottom gutter and simply ends. See LocalFlasher,
+  // which owns the threshold and also drops the divider at the same point.
+  short: boolean;
   error: string | null;
   showMockRow: boolean;
   catalogueEmpty: boolean;
@@ -35,6 +40,7 @@ interface AdminFirmwareListProps {
 
 export const AdminFirmwareList = ({
   loading,
+  short,
   error,
   showMockRow,
   catalogueEmpty,
@@ -49,7 +55,11 @@ export const AdminFirmwareList = ({
   onDelete,
 }: AdminFirmwareListProps) => {
   return (
-    <div className="pb-20 pt-0 md:pl-9 md:pt-9">
+    // Scrolls with the page. This was briefly sticky with its own scroll
+    // container, which put a second scrollbar on screen and a second scroll
+    // context under the wheel: scrolling the page while the pointer sat over
+    // the list moved the list instead. One page, one scrollbar.
+    <div className={`pt-0 md:pl-9 md:pt-9 ${short ? "pb-8" : "pb-20"}`}>
       <div className="mb-5">
         <SectionLabel className="mb-0">Saved firmwares</SectionLabel>
       </div>
@@ -57,17 +67,17 @@ export const AdminFirmwareList = ({
       <div data-no-trail className="flex flex-col gap-6">
         {loading && <AdminFirmwareListSkeleton cachedCounts={cachedCounts} />}
         {error && (
-          <p className="px-6 py-6 text-center text-sm font-semibold text-red">
+          <p className="px-6 py-6 text-center text-sm font-semibold text-bad">
             Could not load: {error}
           </p>
         )}
         {!loading && !error && catalogueEmpty && !showMockRow && (
-          <p className="px-6 py-6 text-center text-[14px] text-black/35">
+          <p className="px-6 py-6 text-center text-body text-text/35">
             Nothing uploaded yet.
           </p>
         )}
         {!loading && !error && catalogueEmpty && showMockRow && (
-          <p className="px-3.5 pt-1 text-[11px] text-black/35">
+          <p className="px-3.5 pt-1 text-caption text-text/35">
             No real firmwares uploaded yet — the mock below runs the flow
             without hardware.
           </p>
@@ -85,7 +95,7 @@ export const AdminFirmwareList = ({
                       target="_blank"
                       rel="noreferrer"
                       title={`Open ${section.route} in a new tab`}
-                      className="group flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest no-underline hover:underline"
+                      className="group flex items-center gap-1 text-micro font-bold uppercase tracking-widest no-underline hover:underline"
                       style={{ color: section.color }}
                     >
                       {section.label}
@@ -106,19 +116,19 @@ export const AdminFirmwareList = ({
                     </a>
                   ) : (
                     <span
-                      className="text-[9px] font-bold uppercase tracking-widest"
+                      className="text-micro font-bold uppercase tracking-widest"
                       style={{ color: section.color }}
                     >
                       {section.label}
                     </span>
                   )}
-                  <span className="text-[9px] font-bold tracking-widest text-black/35">
+                  <span className="text-micro font-bold tracking-widest text-text/35">
                     {section.rows.length}
                   </span>
                 </div>
                 <ul className="flex flex-col gap-px">
                   {section.rows.map((fw) => {
-                    const key = `${fw.target}:${fw.filename}`;
+                    const key = rowKey(fw);
                     return (
                       <AdminFirmwareRow
                         key={key}

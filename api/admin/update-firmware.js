@@ -3,7 +3,7 @@
 // rename, or change accent color without re-uploading the .bin/.hex.
 //
 // Required env vars (same as upload-firmware.js):
-//   ADMIN_PASSWORD, GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH (optional)
+//   ADMIN_PASSWORD, GITHUB_TOKEN, GITHUB_REPO (see store.js for the branch)
 
 import {
   archiveDirFor,
@@ -14,6 +14,7 @@ import {
   TARGET_ERROR,
   writeManifests,
 } from "./channels.js";
+import { storeOrRespond } from "./store.js";
 
 const COOKIE_NAME = "admin_auth";
 
@@ -31,16 +32,8 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: "not authenticated" }));
   }
 
-  const token = process.env.GITHUB_TOKEN;
-  const repo = process.env.GITHUB_REPO;
-  const branch = process.env.GITHUB_BRANCH || "main";
-  if (!token || !repo) {
-    res.statusCode = 500;
-    res.setHeader("Content-Type", "application/json");
-    return res.end(
-      JSON.stringify({ error: "GITHUB_TOKEN and GITHUB_REPO must be set" }),
-    );
-  }
+  const store = storeOrRespond(res);
+  if (!store) return;
 
   let body;
   try {
@@ -81,10 +74,7 @@ export default async function handler(req, res) {
   const entryFilepath = `./${filename}`;
 
   try {
-    const { file: existingManifest, entries, shas } = await readManifest(
-      (path) => githubGetFile(repo, path, branch, token),
-      target,
-    );
+    const { file: existingManifest, entries, shas } = await readManifest(store.get, target);
     if (!existingManifest) {
       res.statusCode = 404;
       res.setHeader("Content-Type", "application/json");
@@ -107,8 +97,14 @@ export default async function handler(req, res) {
     if (typeof patch.name === "string" && patch.name.trim()) {
       next.name = patch.name.trim();
     }
+    if (typeof patch.pedal === "string" && patch.pedal.trim()) {
+      next.pedal = patch.pedal.trim();
+    }
     if (typeof patch.description === "string") {
-      next.description = patch.description.trim() || next.name;
+      next.description = patch.description.trim();
+    }
+    if (typeof patch.internalNotes === "string") {
+      next.internalNotes = patch.internalNotes.trim();
     }
     if (typeof patch.bgColor === "string" && /^#[0-9a-fA-F]{6}$/.test(patch.bgColor)) {
       next.bgColor = patch.bgColor;
@@ -132,13 +128,7 @@ export default async function handler(req, res) {
     const moveVerb = patch.active === false ? "archive" : "restore";
     const moveMessage = `admin: ${moveVerb} ${target} firmware ${next.name}`;
 
-    const io = {
-      get: (path) => githubGetFile(repo, path, branch, token),
-      put: (path, content, message, sha) =>
-        githubPutFile(repo, path, content, branch, token, message, sha),
-      del: (path, sha, message) =>
-        githubDeleteFile(repo, path, sha, branch, token, message),
-    };
+    const io = { get: store.get, put: store.put, del: store.del };
     const servedPath = `${prefix}/${filename}`;
     const archivedPath = `${archiveDirFor(target)}/${filename}`;
 
@@ -192,7 +182,7 @@ export default async function handler(req, res) {
   } catch (e) {
     res.statusCode = 502;
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ error: `github: ${e.message}` }));
+    return res.end(JSON.stringify({ error: `${store.kind}: ${e.message}` }));
   }
 }
 
@@ -211,76 +201,6 @@ async function readJson(req) {
     });
     req.on("error", reject);
   });
-}
-
-async function githubGetFile(repo, path, branch, token) {
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${encodeURIPath(path)}?ref=${branch}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    },
-  );
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`GET ${path} -> ${res.status}: ${msg}`);
-  }
-  return await res.json();
-}
-
-async function githubPutFile(repo, path, contentBase64, branch, token, message, sha) {
-  const payload = { message, content: contentBase64, branch };
-  if (sha) payload.sha = sha;
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${encodeURIPath(path)}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    },
-  );
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`PUT ${path} -> ${res.status}: ${msg}`);
-  }
-  return await res.json();
-}
-
-async function githubDeleteFile(repo, path, sha, branch, token, message) {
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${encodeURIPath(path)}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message, sha, branch }),
-    },
-  );
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`DELETE ${path} -> ${res.status}: ${msg}`);
-  }
-  return await res.json();
-}
-
-function encodeURIPath(path) {
-  return path
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
 }
 
 async function verifyAuth(req) {

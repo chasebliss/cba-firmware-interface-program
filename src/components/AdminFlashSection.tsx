@@ -48,7 +48,7 @@ export const AdminFlashSection = ({
 
   return (
     <div
-      className="mb-7 border-b border-black/10 pb-7 transition-opacity duration-300"
+      className="mb-7 border-b border-border/10 pb-7 transition-opacity duration-300"
       style={{ opacity: hasFile ? 1 : 0.4 }}
     >
       <SectionLabel>2. Connect &amp; flash</SectionLabel>
@@ -94,7 +94,7 @@ export const AdminFlashSection = ({
               </CbaButton>
             </div>
             {connectError && (
-              <p className="mt-2.5 text-sm font-semibold text-red">
+              <p className="mt-2.5 text-sm font-semibold text-bad">
                 {connectError}
               </p>
             )}
@@ -105,10 +105,10 @@ export const AdminFlashSection = ({
             <progress
               value={progressPct}
               max={100}
-              className="block h-[6px] w-full appearance-none border-none [&::-webkit-progress-bar]:bg-black/10"
+              className="block h-[6px] w-full appearance-none border-none [&::-webkit-progress-bar]:bg-text/10"
             />
             <style>{`progress::-webkit-progress-value{background:${GOLD};transition:width .4s ease;}progress::-moz-progress-bar{background:${GOLD};}`}</style>
-            <div className="animate-cba-pulse text-[14px] font-bold text-green">
+            <div className="animate-cba-pulse text-body font-bold text-ok">
               {flashStatus === "preparing"
                 ? (flashMessage ?? "Preparing…")
                 : `Uploading… ${progressPct}%`}
@@ -120,10 +120,10 @@ export const AdminFlashSection = ({
             <progress
               value={progressPct}
               max={100}
-              className="block h-[6px] w-full appearance-none border-none [&::-webkit-progress-bar]:bg-black/10"
+              className="block h-[6px] w-full appearance-none border-none [&::-webkit-progress-bar]:bg-text/10"
             />
-            <style>{`progress::-webkit-progress-value{background:var(--color-red);transition:width .4s ease;}progress::-moz-progress-bar{background:var(--color-red);}`}</style>
-            <p className="text-[14px] font-bold text-red">
+            <style>{`progress::-webkit-progress-value{background:var(--bad);transition:width .4s ease;}progress::-moz-progress-bar{background:var(--bad);}`}</style>
+            <p className="text-body font-bold text-bad">
               {flashError ?? "Flash failed"}
             </p>
             <CbaButton size="sm" onClick={onFlashAgain} style={{ width: 160 }}>
@@ -133,7 +133,7 @@ export const AdminFlashSection = ({
         )}
         {flashDone && (
           <div className="flex flex-col items-center gap-2.5">
-            <p className="text-[14px] font-bold text-green">Flash complete.</p>
+            <p className="text-body font-bold text-ok">Flash complete.</p>
             <CbaButton size="sm" onClick={onFlashAgain} style={{ width: 160 }}>
               Flash again
             </CbaButton>

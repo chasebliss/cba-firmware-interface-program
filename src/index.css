@@ -1,24 +1,195 @@
 @import "tailwindcss";
 
+/* Design tokens, named to the jsf token standard
+ * (~/Code/jsf/docs/token-standard.md).
+ *
+ * The standard's rule is "repos share names, not values": a name means the
+ * same thing in every repo, while each repo keeps its own palette. That is why
+ * the semantic names below are the standard's exact vocabulary even though the
+ * values are Chase Bliss's.
+ *
+ * The standard also says "no Tailwind", and this repo is Tailwind v4 by an
+ * argued decision (see CLAUDE.md). The two are reconciled by splitting the
+ * layer in half:
+ *
+ *   :root         — standard-named tokens. The source of truth.
+ *   @theme inline — Tailwind aliases pointing at them, so utilities exist.
+ *
+ * `inline` is required, not cosmetic. It makes Tailwind emit
+ * `var(--text)` at the use site rather than resolving the value once at the
+ * token block, which is what lets a scoped override further down the tree
+ * (see [data-theme="nightly"]) actually reach the utility. The opacity
+ * variants keep working: they compile to
+ * `color-mix(in oklab, var(--text) 60%, transparent)`.
+ *
+ * Adding a color means adding it in BOTH blocks. That is the cost of the
+ * bridge, and it is the only duplication here. */
+
+:root {
+  /* Semantic color set. These eleven names are the standard's shared
+   * vocabulary — do not rename them, and do not introduce a second spelling
+   * for a concept that already has one here. */
+  --bg: #fefbf6;
+  --surface: #fefbf6;
+  --surface-2: #f5f2ec;
+  --text: #1a1a1a;
+  --text-muted: #7c746a;
+  --border: #1a1a1a;
+  --accent: #ba8e51;
+  --on-accent: #fefbf6;
+  --ok: #10b981;
+  --warn: #eab308;
+  --bad: #ef4444;
+
+  /* Local color extensions, declared per the standard's rule that additions
+   * are visible decisions rather than silent drift.
+   *
+   * --text-fixed is the one that matters. It is ink that must stay dark
+   * whatever the theme does, because it sits on a status ground (--bad, --ok)
+   * that does not change between themes. Naming it separately from --text is
+   * precisely what stops a dark theme from inverting it: the old sheet had to
+   * undo that inversion by hand for the red badges. */
+  --text-fixed: #000;
+  --hero-digit: var(--accent);
+
+  /* The Nav's dark variant. A fixed-contrast bar that reads the same on every
+   * page, so it is deliberately NOT --text/--surface: those swap under a
+   * theme and would flip the bar to light. The old sheet had exactly that bug
+   * and undid it with three `[data-nightly] nav ...` overrides. Naming the
+   * pair here is what removes them. */
+  --nav-dark-bg: #000;
+  --nav-dark-text: #fefbf6;
+
+  /* Per-pedal accents. Palette data, not theme colors — a pedal is the same
+   * colour on every page. */
+  --pedal-mood: #b48ecf;
+  --pedal-lossy: #e87fa0;
+  --pedal-blooper: #7ab8d4;
+  --pedal-thermae: #c4a35a;
+  --pedal-automatone: #5db88e;
+  --pedal-preamp: #d4845a;
+
+  /* Type scale. Role-named per the standard, never t-shirt or raw px.
+   *
+   * Every size is rem-based and multiplies --text-scale. rem keeps browser
+   * zoom and user font-size preferences working (WCAG 1.4.4); the hook is the
+   * seam a reading mode would plug into.
+   *
+   * The five core roles are the standard's. The three extensions carry the
+   * --text- prefix as required. They exist because the audit found nine raw px
+   * sizes collapsing onto roughly five roles, with 9/10 and 14/15 as
+   * near-duplicate pairs that were drift rather than design. */
+  --text-scale: 1;
+  --text-micro: calc(0.5625rem * var(--text-scale)); /* 9px  — dense eyebrows */
+  --text-meta: calc(0.625rem * var(--text-scale)); /* 10px — labels, eyebrows */
+  --text-caption: calc(0.6875rem * var(--text-scale)); /* 11px — nav, badges */
+  --text-body-sm: calc(0.8125rem * var(--text-scale)); /* 13px — dense rows */
+  --text-body: calc(0.9375rem * var(--text-scale)); /* 15px — default body */
+  --text-title: calc(1.125rem * var(--text-scale)); /* 18px — panel headings */
+  --text-display: calc(1.75rem * var(--text-scale)); /* 28px — biggest text */
+
+  /* Radius. Px-mnemonic per the standard: --radius-10 is 10px, always.
+   * The public pages are deliberately square and use none of these. */
+  --radius-5: 5px;
+  --radius-10: 10px;
+
+  /* Motion. Durations use the standard's core trio; --duration-settle is a
+   * declared extension for the one 300ms group that must stay in lockstep
+   * (see StepCard). */
+  --duration-fast: 200ms;
+  --duration-base: 220ms;
+  --duration-slow: 320ms;
+  --duration-settle: 300ms;
+  --ease-standard: ease-out;
+  --ease-entrance: cubic-bezier(0.4, 0, 0.6, 1);
+  --ease-shake: cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* The nightly theme.
+ *
+ * Semantic-layer rebind ONLY — the standard's dark-mode pattern. Every
+ * declaration in this block reassigns a token. None of them names a component,
+ * a utility class, or an element. That is the whole rule, and it is what the
+ * previous version of this file could not hold: it redefined --color-black to
+ * mean "light ink", which inverted every consumer including the ones that
+ * meant literal black, and then re-inverted them one at a time with four
+ * patches (nav in three rules, red badges forced back to #000, SVG fills by
+ * attribute selector).
+ *
+ * Those patches are gone. Ink that must stay dark is --text-fixed and was never
+ * part of the rebind, so nothing inverts it and nothing has to undo it. */
+[data-theme="nightly"] {
+  /* color-scheme tells form controls and scrollbars to render dark. It is part
+   * of the standard's dark-mode pattern.
+   *
+   * It also INHERITS into the <object> that loads binary.svg, and a standalone
+   * SVG document under color-scheme:dark gets an opaque white canvas backdrop
+   * from the UA — which paints a white slab behind the hero illustration. The
+   * object is opted back out below; do not remove that rule without checking
+   * the hero on this page. */
+  color-scheme: dark;
+
+  /* Cold slate: neutral blue-grey ground, light blue-tinted ink. */
+  --bg: #14171c;
+  --surface: #14171c;
+  --surface-2: #1b1f26;
+  --text: #e6ebf2;
+  --text-muted: #9aa4b2;
+  --border: #e6ebf2;
+
+  /* White reads as data in flight against the slate ground (17.9:1) where the
+   * gold outlines read as static illustration. On the cream pages white would
+   * be invisible (1.03:1), so those keep the accent. */
+  --hero-digit: #ffffff;
+
+  /* Ink on a --text ground, so it has to invert with --text. Left at the
+   * light value it was near-white on near-white: the completed step badge's
+   * tick vanished (1.06:1). Against #e6ebf2 the dark value gives 15.1:1. */
+  --on-accent: #14171c;
+
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Tailwind bridge. Every utility the components use resolves through here to
+ * a :root token above. `inline` keeps the var() reference at the use site so
+ * the [data-theme] rebind reaches it. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --color-text-fixed: var(--text-fixed);
+  --color-nav-dark-bg: var(--nav-dark-bg);
+  --color-nav-dark-text: var(--nav-dark-text);
+
+  --color-pedal-mood: var(--pedal-mood);
+  --color-pedal-lossy: var(--pedal-lossy);
+  --color-pedal-blooper: var(--pedal-blooper);
+  --color-pedal-thermae: var(--pedal-thermae);
+  --color-pedal-automatone: var(--pedal-automatone);
+  --color-pedal-preamp: var(--pedal-preamp);
+
+  --text-micro: var(--text-micro);
+  --text-meta: var(--text-meta);
+  --text-caption: var(--text-caption);
+  --text-body-sm: var(--text-body-sm);
+  --text-body: var(--text-body);
+  --text-title: var(--text-title);
+  --text-display: var(--text-display);
+}
+
 @theme {
-  --color-cream: #fefbf6;
-  --color-gold: #ba8e51;
-  --color-green: #10b981;
-  --color-red: #ef4444;
-  --color-yellow: #eab308;
-  --color-gray-50: #f5f2ec;
-  --color-gray-100: #f0ebe3;
-  --color-gray-500: #7c746a;
-
-  --color-pedal-mood: #b48ecf;
-  --color-pedal-lossy: #e87fa0;
-  --color-pedal-blooper: #7ab8d4;
-  --color-pedal-thermae: #c4a35a;
-  --color-pedal-automatone: #5db88e;
-  --color-pedal-preamp: #d4845a;
-
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
 
+  --size-focus-ring: 2px;
   --shadow-cba: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.08);
   --shadow-cba-xl: 0 25px 50px -12px rgb(0 0 0 / 0.18);
 
@@ -60,113 +231,77 @@
   }
 }
 
-/* Scoped restyle for /nightly. Not a theme and not switchable — one page that
- * looks different. Tailwind v4 compiles every black/cream utility (including
- * the /NN opacity variants, via color-mix) down to var(--color-black) and
- * var(--color-cream), so redefining those two inside the wrapper recolors the
- * whole subtree without touching a single component. / and /beta are
- * unaffected by construction.
- *
- * Overriding --color-black is deliberately literal: "black" here means "the
- * ink color", and on this page the ink is light. */
-
-[data-nightly] {
-  /* Cold slate: neutral blue-grey surface, light blue-tinted ink. */
-  --color-cream: #14171c;
-  --color-gray-50: #14171c;
-  --color-black: #e6ebf2;
+/* The nightly shadow needs the accent hue, so it rebinds after @theme has
+ * defined the utility. Still a token-only override. */
+[data-theme="nightly"] {
   --shadow-cba: 0 4px 14px -2px rgb(186 142 81 / 0.35);
   --shadow-cba-xl: 0 25px 50px -12px rgb(0 0 0 / 0.6);
-
-  /* Corner radius. The light pages are deliberately square — there is zero
-   * border-radius anywhere in the public UI — so this softens /nightly only.
-   * Two steps: the main one for cards and controls, a tighter one for the
-   * 28px step badge, which looks mushy at the larger value. */
-  --nightly-radius: 10px;
-  --nightly-radius-sm: 5px;
-
-  /* The streaming binary digits in the hero. White reads as data in flight
-   * against the slate surface (17.9:1) where the gold outlines read as the
-   * static illustration — the two carry different meanings, so they get
-   * different colours. Only set here: on the cream pages white would be
-   * invisible (1.03:1), so those keep the gold. */
-  --hero-digit: #ffffff;
-
-  background: var(--color-cream);
-  color: var(--color-black);
 }
 
-/* Nav ships its own dark variant (bg-black + text-cream), which our swapped
- * variables invert straight back to light. Pin those two utilities inside the
- * wrapper so the bar stays dark. Only reachable under [data-nightly] — the
- * /beta nav that uses the same variant is untouched. */
-[data-nightly] nav.bg-black {
-  background-color: var(--color-cream);
-}
-[data-nightly] nav .text-cream {
-  color: var(--color-black);
-}
-[data-nightly] nav .bg-cream {
-  background-color: var(--color-black);
+/* The <object> that loads binary.svg opts out of the inherited dark
+ * color-scheme. See the note in the theme block above: without this the
+ * embedded SVG document gets a UA-painted white canvas, which shows as a
+ * white slab behind the hero. `normal` keeps the document transparent; the
+ * artwork's own colours are injected by BinaryHero and are unaffected. */
+[data-theme] object {
+  color-scheme: normal;
 }
 
-/* The red callout badges (Note, NIGHTLY) set text-black for contrast against
- * red. Our override makes that light-on-red, which fails legibility — force
- * them back to actual black. */
-[data-nightly] .bg-red.text-black,
-[data-nightly] .bg-red .text-black {
-  color: #000;
-}
-
-/* BinaryHero's illustrations are white-filled shapes sized for a cream page.
- * Knock them back so they read as line art on dark instead of glowing slabs. */
-[data-nightly] svg [fill="#fff"],
-[data-nightly] svg [fill="#ffffff"],
-[data-nightly] svg [fill="white"] {
-  fill: var(--color-cream);
-}
-
-/* Rounding, scoped to [data-nightly] so / and /beta keep their hard edges.
+/* Rounding, scoped to the nightly theme so the other pages keep hard edges.
+ * --radius-10 is cards and controls; --radius-5 is the 28px step badge, which
+ * looks mushy at the larger value. The names are the px values, per the
+ * standard, so there is no role alias in between.
+ *
+ * These are the one structural exception to "semantic-layer rebind only", and
+ * they earn it: border-radius is geometry, not colour, and the shapes below
+ * are load-bearing rather than decorative. Each rule is explained where it
+ * would otherwise look arbitrary.
  *
  * StepCards stack with -mb-[2px] so their 2px borders overlap into a single
  * continuous seam down the group. Rounding each card would break that seam
- * into separate floating boxes, so the group is rounded at its ends only —
- * first card's top corners, last card's bottom corners, middles left square.
- * The seam survives and the stack reads as one rounded panel. */
-[data-nightly] .cba-step-stack > div:first-of-type {
-  border-top-left-radius: var(--nightly-radius);
-  border-top-right-radius: var(--nightly-radius);
+ * into separate floating boxes, so the group rounds at its ends only. The seam
+ * survives and the stack reads as one rounded panel. */
+[data-theme="nightly"] .cba-step-stack > div:first-of-type {
+  border-top-left-radius: var(--radius-10);
+  border-top-right-radius: var(--radius-10);
 }
-[data-nightly] .cba-step-stack > div:last-of-type {
-  border-bottom-left-radius: var(--nightly-radius);
-  border-bottom-right-radius: var(--nightly-radius);
+[data-theme="nightly"] .cba-step-stack > div:last-of-type {
+  border-bottom-left-radius: var(--radius-10);
+  border-bottom-right-radius: var(--radius-10);
+}
+
+/* Page-level panels: the nightly explainer, and anything else that is a
+ * standalone bordered box rather than part of the step stack. The class is a
+ * styling hook with no other job, same as .cba-step-stack above. */
+[data-theme="nightly"] .cba-panel {
+  border-radius: var(--radius-10);
 }
 
 /* Buttons and the dropdown trigger. */
-[data-nightly] button {
-  border-radius: var(--nightly-radius);
+[data-theme="nightly"] button {
+  border-radius: var(--radius-10);
 }
 
 /* Step number badge — 28px square, so it takes the tighter radius. */
-[data-nightly] .cba-step-badge {
-  border-radius: var(--nightly-radius-sm);
+[data-theme="nightly"] .cba-step-badge {
+  border-radius: var(--radius-5);
 }
 
 /* Dropdown menu portal. It renders into document.body and carries its own
- * data-nightly, so it IS the scoped element rather than a descendant of one —
+ * data-theme, so it IS the themed element rather than a descendant of one —
  * hence the attribute directly on the selector, not an ancestor combinator.
  *
  * Only the bottom rounds; the top butts against the trigger. The menu already
  * has overflow-y-auto for its max-height scroll, and that clips children to
  * the border radius on its own, so no overflow override is needed here. */
-ul[role="listbox"][data-nightly] {
-  border-bottom-left-radius: var(--nightly-radius);
-  border-bottom-right-radius: var(--nightly-radius);
+ul[role="listbox"][data-theme="nightly"] {
+  border-bottom-left-radius: var(--radius-10);
+  border-bottom-right-radius: var(--radius-10);
 }
 
-/* The trigger's bottom corners must go square while the menu is open, so the
- * two read as one connected shape. */
-[data-nightly] button[aria-expanded="true"] {
+/* The trigger's bottom corners go square while the menu is open, so the two
+ * read as one connected shape. */
+[data-theme="nightly"] button[aria-expanded="true"] {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -177,8 +312,24 @@ body {
 }
 
 body {
-  background: var(--color-cream);
-  color: #000;
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Text selection. The browser default is a blue that belongs to no palette
+ * and collides with the gold on the cream pages. Tinted from --accent so it
+ * re-tints per theme; --text on that tint keeps ink legible in both. */
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--text);
+}
+
+/* Keyboard focus. Only :focus-visible, so a mouse click never draws a ring
+ * but tabbing always does. The offset keeps the ring off the 2px borders
+ * that most controls here already carry. */
+:focus-visible {
+  outline: var(--size-focus-ring) solid var(--accent);
+  outline-offset: var(--size-focus-ring);
 }

@@ -137,10 +137,23 @@ export async function readManifest(get, target) {
   return { file, entries, shas };
 }
 
+// Fields that exist only in the admin manifest. The public copy is built by
+// stripping these, so anything listed here never reaches the served
+// firmwares.json — internal release notes ("just for us" lines) being the
+// point.
+export const ADMIN_ONLY_FIELDS = ["internalNotes"];
+
 // Entries the public manifest should contain. `active !== false` matches the
 // old client-side filter, so entries predating the field stay visible.
+// Admin-only fields are stripped from every entry on the way out.
 export function publicEntries(entries) {
-  return entries.filter((e) => e.active !== false);
+  return entries
+    .filter((e) => e.active !== false)
+    .map((e) => {
+      const copy = { ...e };
+      for (const field of ADMIN_ONLY_FIELDS) delete copy[field];
+      return copy;
+    });
 }
 
 // Writes both manifests for a channel.

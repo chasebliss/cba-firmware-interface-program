@@ -1,5 +1,8 @@
 import { useEffect, useRef } from "react";
 
+// Canvas 2D fillStyle cannot resolve var(), so the accent is duplicated here
+// as a literal. This is the standard's documented canvas exemption. Keep in
+// sync with --accent in index.css.
 const COLOR = "#ba8e51";
 const PARTICLES_PER_DIGIT = 3;
 const LIFETIME_MS = 1400;

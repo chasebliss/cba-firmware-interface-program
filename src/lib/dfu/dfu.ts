@@ -363,6 +363,9 @@ export class DfuDevice {
         if (langID === 0) {
           return u16_words;
         }
+        // Ported verbatim from the upstream DFU code. Spread would work
+        // here, but this file is a port and stays byte-faithful to it.
+        // eslint-disable-next-line prefer-spread
         return String.fromCharCode.apply(String, u16_words);
       }
     }
@@ -536,6 +539,9 @@ export class DfuDevice {
   }
 
   waitDisconnected(timeout: number): Promise<this> {
+    // `this` is captured for the disconnect listener below, which runs with
+    // its own `this`. Ported verbatim from the upstream DFU code.
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const device = this;
     const usbDevice = this.device_;
     return new Promise((resolve, reject) => {

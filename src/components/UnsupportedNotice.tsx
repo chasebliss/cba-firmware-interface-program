@@ -12,9 +12,9 @@ export const UnsupportedNotice = ({ reason }: UnsupportedNoticeProps) => {
 
   return (
     <div className="flex min-h-screen items-start justify-center px-6 py-10">
-      <div className="w-full max-w-md border-2 border-red bg-cream p-8 shadow-cba">
-        <h1 className="mb-4 text-2xl font-bold text-red">{heading}</h1>
-        <p className="text-sm leading-relaxed text-red">{body}</p>
+      <div className="w-full max-w-md border-2 border-bad bg-surface p-8 shadow-cba">
+        <h1 className="mb-4 text-2xl font-bold text-bad">{heading}</h1>
+        <p className="text-sm leading-relaxed text-bad">{body}</p>
       </div>
     </div>
   );

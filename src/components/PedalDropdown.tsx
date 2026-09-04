@@ -21,15 +21,30 @@ export const PedalDropdown = ({
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
   // False while the menu's rows are still doing their staggered entry.
-  const [hasEntered, setHasEntered] = useState(false);
   const [menuRect, setMenuRect] = useState<{
     top: number;
     left: number;
     width: number;
-    nightly: boolean;
+    theme: string | null;
   } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
+
+  // `settled` tracks only the timer; hasEntered derives it together with
+  // `open`, so closing resets it during render instead of via a synchronous
+  // setState in the layout effect below.
+  const [settled, setSettled] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    setSettled(false);
+    // Cleared on both edges. On close it drops the stale position and the
+    // last-hovered row, which would otherwise paint highlighted for a frame
+    // when the menu reopens.
+    setMenuRect(null);
+    setHovered(null);
+  }
+  const hasEntered = open && settled;
 
   useEffect(() => {
     if (!open) return;
@@ -52,21 +67,12 @@ export const PedalDropdown = ({
   useEffect(() => {
     if (!open) return;
     const settle = 220 + firmwares.length * 20;
-    const id = window.setTimeout(() => setHasEntered(true), settle);
+    const id = window.setTimeout(() => setSettled(true), settle);
     return () => window.clearTimeout(id);
   }, [open, firmwares.length]);
 
   useLayoutEffect(() => {
-    if (!open) {
-      setMenuRect(null);
-      // Clear the hovered row on close. Without this the last-hovered item
-      // keeps its accent background in state, so reopening paints that row
-      // highlighted for a frame before the pointer re-registers — reads as a
-      // flicker.
-      setHovered(null);
-      setHasEntered(false);
-      return;
-    }
+    if (!open) return;
     const update = () => {
       const el = triggerRef.current;
       if (!el) return;
@@ -80,7 +86,7 @@ export const PedalDropdown = ({
         // portal can re-flag itself and scoped CSS still reaches it. Captured
         // here, with the measurement, rather than read from the ref during
         // render.
-        nightly: el.closest("[data-nightly]") != null,
+        theme: el.closest("[data-theme]")?.getAttribute("data-theme") ?? null,
       });
     };
     update();
@@ -114,7 +120,7 @@ export const PedalDropdown = ({
         aria-expanded={open}
         aria-haspopup="listbox"
         disabled={isDisabled}
-        className={`flex w-full cursor-pointer items-center justify-between border-2 border-black bg-cream px-4 py-3 text-left text-[15px] font-bold transition-shadow duration-300 ease-in-out disabled:cursor-not-allowed disabled:opacity-50 ${triggerShadow}`}
+        className={`flex w-full cursor-pointer items-center justify-between border-2 border-border bg-surface px-4 py-3 text-left text-body font-bold transition-shadow duration-300 ease-in-out disabled:cursor-not-allowed disabled:opacity-50 ${triggerShadow}`}
       >
         <span>{triggerLabel}</span>
         <svg
@@ -126,7 +132,7 @@ export const PedalDropdown = ({
         >
           <path
             d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-4.293-1.707a1 1 0 00-1.414 0L10 10.586 7.707 8.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 000-1.414z"
-            fill="#ba8e51"
+            fill="var(--accent)"
           />
         </svg>
       </button>
@@ -137,17 +143,17 @@ export const PedalDropdown = ({
           <ul
             ref={menuRef}
             role="listbox"
-            data-nightly={menuRect.nightly ? "" : undefined}
+            data-theme={menuRect.theme ?? undefined}
             style={{
               position: "fixed",
               top: menuRect.top,
               left: menuRect.left,
               width: menuRect.width,
-              backgroundColor: "var(--color-cream)",
+              backgroundColor: "var(--surface)",
               boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
               zIndex: 1000,
             }}
-            className="max-h-80 overflow-y-auto border-2 border-t-0 border-black"
+            className="max-h-80 overflow-y-auto border-2 border-t-0 border-border"
           >
             {firmwares.map((fw, i) => (
               <li
@@ -172,23 +178,23 @@ export const PedalDropdown = ({
                   // row under the cursor cross-fade while it's still animating
                   // in, which reads as a flicker on open.
                   hasEntered ? "transition-colors duration-150" : ""
-                } ${i < firmwares.length - 1 ? "border-b border-black" : ""}`}
+                } ${i < firmwares.length - 1 ? "border-b border-border" : ""}`}
                 style={{
                   backgroundColor:
-                    hovered === fw.id ? fw.bgColor : "var(--color-cream)",
+                    hovered === fw.id ? fw.bgColor : "var(--surface)",
                   animationDelay: `${i * 20}ms`,
                 }}
               >
-                <span className="text-[15px] font-bold">{fw.name}</span>
+                <span className="text-body font-bold">{fw.name}</span>
                 {(fw.filename || fw.uploadedAt) && (
-                  <span className="flex items-baseline gap-2 text-[11px] font-medium text-black/55">
+                  <span className="flex items-baseline gap-2 text-caption font-medium text-text/55">
                     {fw.filename && (
                       <span className="truncate font-mono">{fw.filename}</span>
                     )}
                     {fw.uploadedAt && (
                       <span
                         title={new Date(fw.uploadedAt).toLocaleString()}
-                        className="shrink-0 text-[10px] text-black/45"
+                        className="shrink-0 text-meta text-text/45"
                       >
                         · {formatRelativeTime(fw.uploadedAt)}
                       </span>

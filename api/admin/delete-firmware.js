@@ -4,7 +4,7 @@
 // upload-firmware.js.
 //
 // Required env vars (same as upload-firmware.js):
-//   ADMIN_PASSWORD, GITHUB_TOKEN, GITHUB_REPO, GITHUB_BRANCH (optional)
+//   ADMIN_PASSWORD, GITHUB_TOKEN, GITHUB_REPO (see store.js for the branch)
 
 import {
   archiveDirFor,
@@ -14,6 +14,7 @@ import {
   TARGET_ERROR,
   writeManifests,
 } from "./channels.js";
+import { storeOrRespond } from "./store.js";
 
 const COOKIE_NAME = "admin_auth";
 
@@ -31,26 +32,8 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: "not authenticated" }));
   }
 
-  const token = process.env.GITHUB_TOKEN;
-  const repo = process.env.GITHUB_REPO;
-  const branch = process.env.GITHUB_BRANCH || "main";
-  if (!token || !repo) {
-    res.statusCode = 500;
-    res.setHeader("Content-Type", "application/json");
-    return res.end(
-      JSON.stringify({
-        error: "GITHUB_TOKEN and GITHUB_REPO must be set",
-        diagnostic: {
-          hasGITHUB_TOKEN: !!process.env.GITHUB_TOKEN,
-          hasGITHUB_REPO: !!process.env.GITHUB_REPO,
-          hasADMIN_PASSWORD: !!process.env.ADMIN_PASSWORD,
-          relatedKeys: Object.keys(process.env).filter((k) =>
-            /^(GITHUB_|ADMIN_|BETA_|VERCEL_)/.test(k),
-          ),
-        },
-      }),
-    );
-  }
+  const store = storeOrRespond(res);
+  if (!store) return;
 
   let body;
   try {
@@ -82,10 +65,7 @@ export default async function handler(req, res) {
     // Reads the admin manifest: deletion targets unlisted entries by design
     // (delete is only offered once unlisted), and those are absent from the
     // public copy.
-    const { file: existingManifest, entries, shas } = await readManifest(
-      (path) => githubGetFile(repo, path, branch, token),
-      target,
-    );
+    const { file: existingManifest, entries, shas } = await readManifest(store.get, target);
     const matches = entries.filter((e) => e.filepath === entryFilepath);
     if (matches.length > 1) {
       res.statusCode = 409;
@@ -104,14 +84,11 @@ export default async function handler(req, res) {
     // copy that the manifest no longer references.
     const archivedPath = `${archiveDirFor(target)}/${filename}`;
     for (const path of [filePath, archivedPath]) {
-      const existingFile = await githubGetFile(repo, path, branch, token);
+      const existingFile = await store.get(path);
       if (existingFile) {
-        await githubDeleteFile(
-          repo,
+        await store.del(
           path,
           existingFile.sha,
-          branch,
-          token,
           `admin: remove ${target} firmware ${filename}`,
         );
       }
@@ -121,9 +98,8 @@ export default async function handler(req, res) {
     if (existingManifest && matches.length === 1) {
       const filtered = entries.filter((e) => e.filepath !== entryFilepath);
       await writeManifests({
-        get: (path) => githubGetFile(repo, path, branch, token),
-        put: (path, content, message, sha) =>
-          githubPutFile(repo, path, content, branch, token, message, sha),
+        get: store.get,
+        put: store.put,
         target,
         entries: filtered,
         message: `admin: update ${target} manifest to remove ${filename}`,
@@ -137,7 +113,7 @@ export default async function handler(req, res) {
   } catch (e) {
     res.statusCode = 502;
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ error: `github: ${e.message}` }));
+    return res.end(JSON.stringify({ error: `${store.kind}: ${e.message}` }));
   }
 }
 
@@ -167,76 +143,6 @@ async function readJson(req) {
     });
     req.on("error", reject);
   });
-}
-
-async function githubGetFile(repo, path, branch, token) {
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${encodeURIPath(path)}?ref=${branch}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    },
-  );
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`GET ${path} -> ${res.status}: ${msg}`);
-  }
-  return await res.json();
-}
-
-async function githubPutFile(repo, path, contentBase64, branch, token, message, sha) {
-  const payload = { message, content: contentBase64, branch };
-  if (sha) payload.sha = sha;
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${encodeURIPath(path)}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    },
-  );
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`PUT ${path} -> ${res.status}: ${msg}`);
-  }
-  return await res.json();
-}
-
-async function githubDeleteFile(repo, path, sha, branch, token, message) {
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${encodeURIPath(path)}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message, sha, branch }),
-    },
-  );
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`DELETE ${path} -> ${res.status}: ${msg}`);
-  }
-  return await res.json();
-}
-
-function encodeURIPath(path) {
-  return path
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
 }
 
 async function verifyAuth(req) {
