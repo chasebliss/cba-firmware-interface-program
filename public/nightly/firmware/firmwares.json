@@ -1,17 +1,5 @@
 [
   {
-    "id": 0,
-    "name": "BIG TIME 1.0.0",
-    "platform": "models",
-    "filepath": "./BIGTIME_Audio_1.0.0.hex",
-    "description": "Initial production release",
-    "bgColor": "#ba8e51",
-    "active": true,
-    "uploadedAt": "2026-08-06T17:21:41.176Z",
-    "updatedAt": "2026-08-06T17:21:41.176Z",
-    "pedal": "BIGTIME"
-  },
-  {
     "id": 1,
     "name": "LOST AND FOUND 2.0",
     "platform": "models",
