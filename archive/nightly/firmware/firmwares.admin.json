@@ -6,9 +6,9 @@
     "filepath": "./BIGTIME_Audio_1.0.0.hex",
     "description": "Initial production release",
     "bgColor": "#ba8e51",
-    "active": true,
+    "active": false,
     "uploadedAt": "2026-08-06T17:21:41.176Z",
-    "updatedAt": "2026-08-06T17:21:41.176Z",
+    "updatedAt": "2026-09-04T14:43:18.242Z",
     "pedal": "BIGTIME"
   },
   {
