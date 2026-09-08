@@ -46,9 +46,9 @@ The port is done. What exists now:
 
 They are duplicated because Vercel's Node runtime has no TypeScript transpile step and cannot import from `src/`. **[`api/admin/channels.test.mjs`](api/admin/channels.test.mjs) asserts they stay in sync** — run `node api/admin/channels.test.mjs` after touching either.
 
-**Two manifests per channel.** `<dir>/firmwares.json` is public and lists only listed firmware. `<archiveDir>/firmwares.admin.json` is the full record and is **not served**. Unlisting removes the entry from the public manifest *and* moves the binary from `dir` (built into `dist/`) to `archiveDir` (outside `public/`, so no URL), which is what makes "unlisted" mean "not downloadable". Listing reverses it. Delete removes both copies.
+**Two manifests per channel.** `<dir>/firmwares.json` is public and lists only listed firmware. `<archiveDir>/firmwares.admin.json` is the full record and is **not served**. Unlisting removes the entry from the public manifest _and_ moves the binary from `dir` (built into `dist/`) to `archiveDir` (outside `public/`, so no URL), which is what makes "unlisted" mean "not downloadable". Listing reverses it. Delete removes both copies.
 
-**Ordering rules that must hold** — there is no transaction across GitHub commits, so the invariant is *if the manifest lists it, the file is there*:
+**Ordering rules that must hold** — there is no transaction across GitHub commits, so the invariant is _if the manifest lists it, the file is there_:
 
 - Unlist: write manifests, **then** archive the binary.
 - List: restore the binary, **then** write manifests.
@@ -121,11 +121,11 @@ The middleware.js / `api/*.js` file convention works on Vercel regardless of fra
 
 Three environments, each self-consistent: the admin and the public pages on a given site always describe the same branch.
 
-| Environment | Site | Branch | Admin writes to |
-| --- | --- | --- | --- |
-| Production | firmware.chasebliss.com | `main` | `main` on GitHub |
-| Staging | the `staging` branch preview on Vercel | `staging` | `staging` on GitHub |
-| Local | `npm run dev:full` (port 3999) | working tree | the working tree |
+| Environment | Site                                   | Branch       | Admin writes to     |
+| ----------- | -------------------------------------- | ------------ | ------------------- |
+| Production  | firmware.chasebliss.com                | `main`       | `main` on GitHub    |
+| Staging     | the `staging` branch preview on Vercel | `staging`    | `staging` on GitHub |
+| Local       | `npm run dev:full` (port 3999)         | working tree | the working tree    |
 
 The admin API takes its branch from `VERCEL_GIT_COMMIT_REF`, which Vercel sets on every deployment, so **every preview's admin writes to that preview's own branch** and Vercel redeploys it. No per-environment env var is needed. `GITHUB_BRANCH` is an override, `FIRMWARE_STORE=local|github` forces an adapter. The admin header shows where a save will land.
 

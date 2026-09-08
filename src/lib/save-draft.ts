@@ -27,14 +27,14 @@ export const DEFAULT_SAVE_TARGET: SaveTarget = "beta";
 // The one place the field list lives. upload-firmware.js accepts exactly
 // these (plus filename/content/overwrite, which belong to the file, not the
 // draft).
-export interface DraftFields {
+export type DraftFields = {
   name: string;
   pedal: string;
   description: string;
   internalNotes: string;
   bgColor: string;
   target: SaveTarget;
-}
+};
 
 export const emptyFields = (): DraftFields => ({
   name: "",

@@ -16,7 +16,7 @@
 const BETA_COOKIE = "beta_auth";
 const ADMIN_COOKIE = "admin_auth";
 
-export default async function handler(req, res) {
+const handler = async (req, res) => {
   if (req.method !== "POST") {
     res.statusCode = 405;
     res.setHeader("Allow", "POST");
@@ -59,9 +59,7 @@ export default async function handler(req, res) {
   }
 
   const cookieName = match === "admin" ? ADMIN_COOKIE : BETA_COOKIE;
-  const token = await signOk(
-    match === "admin" ? adminPassword : betaPassword,
-  );
+  const token = await signOk(match === "admin" ? adminPassword : betaPassword);
   const cookie = [
     `${cookieName}=${token}`,
     "Path=/",
@@ -74,9 +72,9 @@ export default async function handler(req, res) {
   res.setHeader("Set-Cookie", cookie);
   res.setHeader("Location", redirect);
   res.end();
-}
+};
 
-function matchPassword(submitted, { isAdmin, betaPassword, adminPassword }) {
+const matchPassword = (submitted, { isAdmin, betaPassword, adminPassword }) => {
   if (typeof submitted !== "string") return null;
   if (isAdmin) {
     return constantTimeEqual(submitted, adminPassword) ? "admin" : null;
@@ -86,14 +84,14 @@ function matchPassword(submitted, { isAdmin, betaPassword, adminPassword }) {
   }
   if (constantTimeEqual(submitted, betaPassword)) return "beta";
   return null;
-}
+};
 
-function safeRedirect(value) {
+const safeRedirect = (value) => {
   if (value === "/beta/" || value === "/admin/") return value;
   return "/beta/";
-}
+};
 
-async function signOk(password) {
+const signOk = async (password) => {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -107,19 +105,24 @@ async function signOk(password) {
     new TextEncoder().encode("ok"),
   );
   return base64UrlEncode(new Uint8Array(sig));
-}
+};
 
-function base64UrlEncode(bytes) {
+const base64UrlEncode = (bytes) => {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+};
 
-function constantTimeEqual(a, b) {
+const constantTimeEqual = (a, b) => {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
   return diff === 0;
-}
+};
+
+export default handler;

@@ -4,7 +4,7 @@ import { noteBlocks } from "@/lib/firmware-catalogue";
 
 const MARKDOWN_GUIDE = "https://commonmark.org/help/";
 
-interface NotesFieldProps {
+type NotesFieldProps = {
   // Names the field for assistive tech only. The visible name is the tab
   // above, so rendering it here too read as the label repeating itself.
   label: string;
@@ -18,7 +18,7 @@ interface NotesFieldProps {
   variant?: "public" | "internal";
   // Extra help under the syntax line, e.g. where the text will appear.
   children?: ReactNode;
-}
+};
 
 // A notes textarea that grows with what is typed, the syntax it understands
 // tucked behind a Syntax button, and a preview toggle that renders through
@@ -128,8 +128,14 @@ export const NotesField = ({
         </div>
       </div>
       {preview && blocks.length > 0 ? (
-        <div className={`min-h-[6em] border-2 ${border} bg-surface px-3.5 py-3`}>
-          <NoteList blocks={blocks} tone="text-text/80" subTone="text-text/60" />
+        <div
+          className={`min-h-[6em] border-2 ${border} bg-surface px-3.5 py-3`}
+        >
+          <NoteList
+            blocks={blocks}
+            tone="text-text/80"
+            subTone="text-text/60"
+          />
         </div>
       ) : (
         <textarea

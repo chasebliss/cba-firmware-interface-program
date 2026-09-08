@@ -43,9 +43,9 @@ describe("InlineMarkdown", () => {
       " and ",
       "<code>",
     ]);
-    expect(elements("**b** and *i* and `c`").map((e) => e.props.children)).toEqual(
-      ["b", "i", "c"],
-    );
+    expect(
+      elements("**b** and *i* and `c`").map((e) => e.props.children),
+    ).toEqual(["b", "i", "c"]);
   });
 
   test("bold wins over italic on the same run", () => {

@@ -3,11 +3,11 @@
 // (repo_url). Public production firmwares come from chasebliss/firmware. Beta
 // will add a separate source pointing at an internal repo (TBD).
 
-export interface FirmwareSource {
+export type FirmwareSource = {
   name: string;
   data_url: string;
   repo_url: string;
-}
+};
 
 // All production firmware lives in this repo under public/firmware/, managed
 // via the /admin upload form. The older external chasebliss/firmware source

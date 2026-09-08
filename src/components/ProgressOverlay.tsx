@@ -5,19 +5,15 @@ import { useEffect, useRef, useState } from "react";
 // takes the place of the Connect/Update buttons.
 
 export type FlashStatus =
-  | "idle"
-  | "preparing"
-  | "installing"
-  | "complete"
-  | "error";
+  "idle" | "preparing" | "installing" | "complete" | "error";
 
-interface FlashProgressBarProps {
+type FlashProgressBarProps = {
   done: number;
   total: number;
   bgColor: string;
   errored: boolean;
   visible?: boolean;
-}
+};
 
 export const FlashProgressBar = ({
   done,
@@ -77,10 +73,10 @@ const useSmoothPercent = (real: number) => {
   return display;
 };
 
-interface FlashStatusPillProps {
+type FlashStatusPillProps = {
   status: Exclude<FlashStatus, "idle">;
   message?: string;
-}
+};
 
 export const FlashStatusPill = ({ status, message }: FlashStatusPillProps) => {
   const isPulsing = status === "preparing" || status === "installing";

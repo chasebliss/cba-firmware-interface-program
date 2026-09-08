@@ -30,12 +30,12 @@ export const MouseTrail = () => {
     resize();
     window.addEventListener("resize", resize);
 
-    interface TrailPoint {
+    type TrailPoint = {
       x: number;
       y: number;
       birth: number;
       char: "0" | "1";
-    }
+    };
     let trail: TrailPoint[] = [];
 
     const handleMove = (e: MouseEvent) => {

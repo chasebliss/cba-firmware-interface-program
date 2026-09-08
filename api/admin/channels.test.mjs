@@ -82,10 +82,7 @@ CHANNELS.forEach((channel) => {
   );
 });
 
-check(
-  "no page fetches the admin manifest",
-  !sources.includes(ADMIN_MANIFEST),
-);
+check("no page fetches the admin manifest", !sources.includes(ADMIN_MANIFEST));
 
 // readManifest/writeManifests take a channel ID, not a directory. Both are
 // plain strings, so passing the wrong one type-checks fine and only fails at

@@ -21,7 +21,7 @@ import { storeOrRespond } from "./store.js";
 const COOKIE_NAME = "admin_auth";
 const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10MB hard cap
 
-export default async function handler(req, res) {
+const handler = async (req, res) => {
   if (req.method !== "POST") {
     res.statusCode = 405;
     res.setHeader("Allow", "POST");
@@ -51,7 +51,17 @@ export default async function handler(req, res) {
     );
   }
 
-  const { filename, contentBase64, target, name, pedal, description, internalNotes, bgColor, overwrite } = body;
+  const {
+    filename,
+    contentBase64,
+    target,
+    name,
+    pedal,
+    description,
+    internalNotes,
+    bgColor,
+    overwrite,
+  } = body;
   const err = validate({ filename, contentBase64, target, name, pedal });
   if (err) {
     res.statusCode = 400;
@@ -73,9 +83,7 @@ export default async function handler(req, res) {
     // entries, so checking against it would miss a collision with an unlisted
     // firmware and create exactly the duplicate this guard exists to stop.
     const { entries, shas } = await readManifest(store.get, target);
-    const existingIdx = entries.findIndex(
-      (e) => e.filepath === entryFilepath,
-    );
+    const existingIdx = entries.findIndex((e) => e.filepath === entryFilepath);
     if (existingIdx !== -1 && !overwrite) {
       res.statusCode = 409;
       res.setHeader("Content-Type", "application/json");
@@ -152,11 +160,10 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "application/json");
     return res.end(JSON.stringify({ error: `${store.kind}: ${e.message}` }));
   }
-}
+};
 
-function validate({ filename, contentBase64, target, name, pedal }) {
-  if (typeof filename !== "string" || !filename)
-    return "filename is required";
+const validate = ({ filename, contentBase64, target, name, pedal }) => {
+  if (typeof filename !== "string" || !filename) return "filename is required";
   if (!/^[A-Za-z0-9_.-]+$/.test(filename))
     return "filename contains illegal characters";
   if (!/\.(bin|hex)$/i.test(filename))
@@ -170,9 +177,9 @@ function validate({ filename, contentBase64, target, name, pedal }) {
   // which is the kind of gap nobody notices until a customer asks.
   if (typeof pedal !== "string" || !pedal.trim()) return "pedal is required";
   return null;
-}
+};
 
-async function readJson(req) {
+const readJson = async (req) => {
   return await new Promise((resolve, reject) => {
     let total = 0;
     let body = "";
@@ -196,9 +203,9 @@ async function readJson(req) {
     });
     req.on("error", reject);
   });
-}
+};
 
-async function verifyAuth(req) {
+const verifyAuth = async (req) => {
   const password = process.env.ADMIN_PASSWORD;
   if (!password) return false;
   const expected = await signOk(password);
@@ -210,9 +217,9 @@ async function verifyAuth(req) {
   if (!match) return false;
   const value = match.slice(COOKIE_NAME.length + 1);
   return constantTimeEqual(value, expected);
-}
+};
 
-async function signOk(password) {
+const signOk = async (password) => {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -226,19 +233,24 @@ async function signOk(password) {
     new TextEncoder().encode("ok"),
   );
   return base64UrlEncode(new Uint8Array(sig));
-}
+};
 
-function base64UrlEncode(bytes) {
+const base64UrlEncode = (bytes) => {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+};
 
-function constantTimeEqual(a, b) {
+const constantTimeEqual = (a, b) => {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
   return diff === 0;
-}
+};
+
+export default handler;

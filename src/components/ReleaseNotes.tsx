@@ -5,12 +5,12 @@ import {
   type FirmwareEntry,
 } from "@/lib/firmware-catalogue";
 
-interface ReleaseNotesProps {
+type ReleaseNotesProps = {
   firmware: FirmwareEntry;
   // The whole channel catalogue, so past versions of the same pedal can be
   // listed without refetching. Already scoped to one channel by the caller.
   catalogue: FirmwareEntry[];
-}
+};
 
 // Entries written before release notes existed stored the firmware name as
 // their description, so a description equal to the name carries no

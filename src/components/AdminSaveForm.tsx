@@ -8,7 +8,7 @@ import type { SaveDraft } from "@/lib/save-draft";
 // rather than storing anything.
 const NEW_PEDAL = "__new__";
 
-interface AdminSaveFormProps {
+type AdminSaveFormProps = {
   // The whole form edits this one draft; everything below is context the
   // draft can't know about (the loaded file, the catalogue, flash state).
   draft: SaveDraft;
@@ -18,7 +18,7 @@ interface AdminSaveFormProps {
   canSave: boolean;
   onSave: () => void;
   onCancelEdit: () => void;
-}
+};
 
 export const AdminSaveForm = ({
   draft,
@@ -34,7 +34,8 @@ export const AdminSaveForm = ({
   // A pedal not yet in any channel puts the field into free-text mode. The
   // select alone can't express "first firmware for a new product", and a
   // second control is clearer than an editable combobox.
-  const addingPedal = fields.pedal !== "" && !knownPedals.includes(fields.pedal);
+  const addingPedal =
+    fields.pedal !== "" && !knownPedals.includes(fields.pedal);
   const saveButtonLabel = isEditing
     ? targetChanged
       ? `Copy to ${fields.target}`

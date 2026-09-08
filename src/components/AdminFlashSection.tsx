@@ -6,7 +6,7 @@ import {
   type FlashStatus,
 } from "@/lib/admin-firmware";
 
-interface AdminFlashSectionProps {
+type AdminFlashSectionProps = {
   hasFile: boolean;
   connectStatus: ConnectStatus;
   connectError: string | null;
@@ -19,7 +19,7 @@ interface AdminFlashSectionProps {
   onConnect: () => void;
   onUpdate: () => void;
   onFlashAgain: () => void;
-}
+};
 
 export const AdminFlashSection = ({
   hasFile,

@@ -19,24 +19,24 @@ export const DFUSE_COMMAND = {
   ERASE_SECTOR: 0x41,
 } as const;
 
-export interface MemorySegment {
+export type MemorySegment = {
   start: number;
   end: number;
   sectorSize: number;
   readable: boolean;
   erasable: boolean;
   writable: boolean;
-}
+};
 
-export interface MemoryInfo {
+export type MemoryInfo = {
   name: string;
   segments: MemorySegment[];
-}
+};
 
-export interface FirmwareSegment {
+export type FirmwareSegment = {
   address: number;
   buffer: ArrayBuffer;
-}
+};
 
 export const parseMemoryDescriptor = (desc: string): MemoryInfo => {
   const nameEndIndex = desc.indexOf("/");
@@ -70,8 +70,7 @@ export const parseMemoryDescriptor = (desc: string): MemoryInfo => {
       const sectorSize =
         parseInt(segmentMatch[2]!, 10) *
         (sectorMultipliers[segmentMatch[3]!] ?? 1);
-      const properties =
-        segmentMatch[4]!.charCodeAt(0) - "a".charCodeAt(0) + 1;
+      const properties = segmentMatch[4]!.charCodeAt(0) - "a".charCodeAt(0) + 1;
       segments.push({
         start: startAddress,
         sectorSize,
@@ -128,9 +127,7 @@ export class DfuseDevice extends DfuDevice {
       (state) => state !== DFU_STATE.dfuDNBUSY,
     );
     if (status.status !== DFU_STATUS_OK) {
-      throw new Error(
-        `Special DfuSe command ${commandNames[command]} failed`,
-      );
+      throw new Error(`Special DfuSe command ${commandNames[command]} failed`);
     }
   }
 

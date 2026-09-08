@@ -69,11 +69,19 @@ describe("noteBlocks", () => {
   });
 
   test("a tab counts as an indent", () => {
-    expect(noteBlocks("- a\n\t- b")[1]).toEqual({ kind: "li", text: "b", depth: 1 });
+    expect(noteBlocks("- a\n\t- b")[1]).toEqual({
+      kind: "li",
+      text: "b",
+      depth: 1,
+    });
   });
 
   test("a single-space indent is a stray space, not nesting", () => {
-    expect(noteBlocks("- a\n - b")[1]).toEqual({ kind: "li", text: "b", depth: 0 });
+    expect(noteBlocks("- a\n - b")[1]).toEqual({
+      kind: "li",
+      text: "b",
+      depth: 0,
+    });
   });
 
   test("empty and undefined give no blocks", () => {

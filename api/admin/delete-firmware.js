@@ -18,7 +18,7 @@ import { storeOrRespond } from "./store.js";
 
 const COOKIE_NAME = "admin_auth";
 
-export default async function handler(req, res) {
+const handler = async (req, res) => {
   if (req.method !== "POST") {
     res.statusCode = 405;
     res.setHeader("Allow", "POST");
@@ -65,7 +65,11 @@ export default async function handler(req, res) {
     // Reads the admin manifest: deletion targets unlisted entries by design
     // (delete is only offered once unlisted), and those are absent from the
     // public copy.
-    const { file: existingManifest, entries, shas } = await readManifest(store.get, target);
+    const {
+      file: existingManifest,
+      entries,
+      shas,
+    } = await readManifest(store.get, target);
     const matches = entries.filter((e) => e.filepath === entryFilepath);
     if (matches.length > 1) {
       res.statusCode = 409;
@@ -115,20 +119,19 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "application/json");
     return res.end(JSON.stringify({ error: `${store.kind}: ${e.message}` }));
   }
-}
+};
 
-function validate({ filename, target }) {
-  if (typeof filename !== "string" || !filename)
-    return "filename is required";
+const validate = ({ filename, target }) => {
+  if (typeof filename !== "string" || !filename) return "filename is required";
   if (!/^[A-Za-z0-9_.-]+$/.test(filename))
     return "filename contains illegal characters";
   if (!/\.(bin|hex)$/i.test(filename))
     return "filename must end in .bin or .hex";
   if (!isValidTarget(target)) return TARGET_ERROR;
   return null;
-}
+};
 
-async function readJson(req) {
+const readJson = async (req) => {
   return await new Promise((resolve, reject) => {
     let body = "";
     req.on("data", (chunk) => {
@@ -143,9 +146,9 @@ async function readJson(req) {
     });
     req.on("error", reject);
   });
-}
+};
 
-async function verifyAuth(req) {
+const verifyAuth = async (req) => {
   const password = process.env.ADMIN_PASSWORD;
   if (!password) return false;
   const expected = await signOk(password);
@@ -157,9 +160,9 @@ async function verifyAuth(req) {
   if (!match) return false;
   const value = match.slice(COOKIE_NAME.length + 1);
   return constantTimeEqual(value, expected);
-}
+};
 
-async function signOk(password) {
+const signOk = async (password) => {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -173,19 +176,24 @@ async function signOk(password) {
     new TextEncoder().encode("ok"),
   );
   return base64UrlEncode(new Uint8Array(sig));
-}
+};
 
-function base64UrlEncode(bytes) {
+const base64UrlEncode = (bytes) => {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+};
 
-function constantTimeEqual(a, b) {
+const constantTimeEqual = (a, b) => {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
   return diff === 0;
-}
+};
+
+export default handler;

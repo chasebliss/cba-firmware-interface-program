@@ -1,12 +1,12 @@
 import { useState } from "react";
 
-interface AdminFirmwareDropZoneProps {
+type AdminFirmwareDropZoneProps = {
   file: File | null;
   parseError: string | null;
   disabled?: boolean;
   onPick: (file: File | null) => void;
   onRemove: () => void;
-}
+};
 
 export const AdminFirmwareDropZone = ({
   file,

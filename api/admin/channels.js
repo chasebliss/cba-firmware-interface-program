@@ -37,15 +37,15 @@ export const CHANNELS = [
 
 export const CHANNEL_IDS = CHANNELS.map((c) => c.id);
 
-export function isValidTarget(target) {
+export const isValidTarget = (target) => {
   return CHANNELS.some((c) => c.id === target);
-}
+};
 
 // Resolves a channel record. Throws on an unknown target rather than
 // defaulting — callers validate first, so reaching here with a bad target is a
 // bug, and silently resolving to public/firmware is the exact failure mode this
 // registry exists to prevent.
-export function channelFor(target) {
+export const channelFor = (target) => {
   const channel = CHANNELS.find((c) => c.id === target);
   if (channel) return channel;
 
@@ -64,7 +64,7 @@ export function channelFor(target) {
   throw new Error(
     `Unknown firmware target: ${target}. Expected one of: ${CHANNEL_IDS.join(", ")}.`,
   );
-}
+};
 
 /** Served directory — files here are built into dist/ and publicly fetchable. */
 export const dirFor = (target) => channelFor(target).dir;
@@ -118,7 +118,7 @@ export const ADMIN_MANIFEST = "firmwares.admin.json";
 // closes the window where another admin's write could land between the read
 // and the write and be silently clobbered. Passing a stale sha makes GitHub
 // reject with a 409 instead.
-export async function readManifest(get, target) {
+export const readManifest = async (get, target) => {
   const publicPath = `${dirFor(target)}/${PUBLIC_MANIFEST}`;
   const adminPath = `${archiveDirFor(target)}/${ADMIN_MANIFEST}`;
 
@@ -135,7 +135,7 @@ export async function readManifest(get, target) {
     Buffer.from(file.content, "base64").toString("utf8"),
   );
   return { file, entries, shas };
-}
+};
 
 // Fields that exist only in the admin manifest. The public copy is built by
 // stripping these, so anything listed here never reaches the served
@@ -146,7 +146,7 @@ export const ADMIN_ONLY_FIELDS = ["internalNotes"];
 // Entries the public manifest should contain. `active !== false` matches the
 // old client-side filter, so entries predating the field stay visible.
 // Admin-only fields are stripped from every entry on the way out.
-export function publicEntries(entries) {
+export const publicEntries = (entries) => {
   return entries
     .filter((e) => e.active !== false)
     .map((e) => {
@@ -154,7 +154,7 @@ export function publicEntries(entries) {
       for (const field of ADMIN_ONLY_FIELDS) delete copy[field];
       return copy;
     });
-}
+};
 
 // Writes both manifests for a channel.
 //
@@ -180,7 +180,13 @@ export function publicEntries(entries) {
 // being silently overwritten. An undefined sha is correct for a file that
 // doesn't exist yet (GitHub requires it omitted, not empty), which is the
 // normal case for a channel's first admin manifest.
-export async function writeManifests({ put, target, entries, message, shas = {} }) {
+export const writeManifests = async ({
+  put,
+  target,
+  entries,
+  message,
+  shas = {},
+}) => {
   const encode = (value) =>
     Buffer.from(JSON.stringify(value, null, 2) + "\n").toString("base64");
 
@@ -202,7 +208,7 @@ export async function writeManifests({ put, target, entries, message, shas = {} 
     entries,
     `${message} (admin manifest)`,
   );
-}
+};
 
 // Moves a firmware binary between the served directory and the archive.
 // GitHub's Contents API has no move, so this is copy-then-delete.
@@ -219,7 +225,7 @@ export async function writeManifests({ put, target, entries, message, shas = {} 
 //
 // Returns true if a move happened, false if there was nothing at `from`
 // (already moved, or a manifest entry whose binary is missing).
-export async function moveBinary({ get, put, del, from, to, message }) {
+export const moveBinary = async ({ get, put, del, from, to, message }) => {
   const source = await get(from);
   if (!source) return false;
 
@@ -269,4 +275,4 @@ export async function moveBinary({ get, put, del, from, to, message }) {
 
   await del(from, source.sha, `${message} (remove old copy)`);
   return true;
-}
+};

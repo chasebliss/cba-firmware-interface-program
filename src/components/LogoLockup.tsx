@@ -14,13 +14,13 @@ export type LockupAnimation =
   | "breathe"
   | "heartbeat";
 
-interface LogoLockupProps {
+type LogoLockupProps = {
   src: string;
   width?: number | string;
   animation?: LockupAnimation;
   replayKey?: number;
   className?: string;
-}
+};
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -121,8 +121,7 @@ export const LogoLockup = ({
           const off = minDim * 0.55;
           tl = gsap.timeline({ delay: 0.1, ...LOOP });
           elements.forEach((el, i) => {
-            const angle =
-              (i / Math.max(elements.length, 1)) * Math.PI * 2;
+            const angle = (i / Math.max(elements.length, 1)) * Math.PI * 2;
             tl!.fromTo(
               el,
               {
@@ -193,7 +192,8 @@ export const LogoLockup = ({
           defs.appendChild(cp);
 
           const targetGroup =
-            svg.querySelector<SVGGElement>("g") || (svg as unknown as SVGGElement);
+            svg.querySelector<SVGGElement>("g") ||
+            (svg as unknown as SVGGElement);
           const prevClip = targetGroup.getAttribute("clip-path");
           targetGroup.setAttribute("clip-path", `url(#${clipId})`);
 
@@ -262,8 +262,7 @@ export const LogoLockup = ({
           // Two-row aware cluster reveal.
           const boxed = elements.map((el) => ({ el, box: el.getBBox() }));
           const sortedY = [...boxed].sort((a, b) => a.box.y - b.box.y);
-          const medianY =
-            sortedY[Math.floor(sortedY.length / 2)]?.box.y ?? 0;
+          const medianY = sortedY[Math.floor(sortedY.length / 2)]?.box.y ?? 0;
           const topRow = boxed.filter((b) => b.box.y < medianY);
           const bottomRow = boxed.filter((b) => b.box.y >= medianY);
           topRow.sort((a, b) => a.box.x - b.box.x);
@@ -291,10 +290,7 @@ export const LogoLockup = ({
             return out;
           };
 
-          const groups = [
-            ...clusterByGap(topRow),
-            ...clusterByGap(bottomRow),
-          ];
+          const groups = [...clusterByGap(topRow), ...clusterByGap(bottomRow)];
 
           expandViewBox(0.1);
           tl = gsap.timeline({ delay: 0.1, ...LOOP });

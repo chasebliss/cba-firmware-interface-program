@@ -1,15 +1,15 @@
 import { Logo } from "@/components/Logo";
 
-interface NavBackLink {
+type NavBackLink = {
   href: string;
   label: string;
-}
+};
 
-export interface NavProps {
+export type NavProps = {
   variant?: "light" | "dark";
   rightLabel?: string;
   backLink?: NavBackLink;
-}
+};
 
 const DEFAULT_BACK_LINK: NavBackLink = {
   href: "https://chasebliss.com",
@@ -62,9 +62,7 @@ export const Nav = ({
                   not follow the theme either. It also drops the trailing
                   ${textColor}, which silently overrode the colour set earlier
                   in the same class list. */}
-              <span
-                className="bg-bad text-text-fixed px-2 py-1 font-mono text-caption font-bold uppercase tracking-widest"
-              >
+              <span className="bg-bad text-text-fixed px-2 py-1 font-mono text-caption font-bold uppercase tracking-widest">
                 {rightLabel}
               </span>
             </>

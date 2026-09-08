@@ -14,7 +14,7 @@ import { NoteList } from "@/components/NoteList";
 import { noteBlocks } from "@/lib/firmware-catalogue";
 import { formatRelativeTime } from "@/lib/format";
 
-interface AdminFirmwareRowProps {
+type AdminFirmwareRowProps = {
   firmware: AdminFirmware;
   status: DeployStatus | undefined;
   busy: boolean;
@@ -23,7 +23,7 @@ interface AdminFirmwareRowProps {
   onLoad: () => void;
   onToggleActive: () => void;
   onDelete: () => void;
-}
+};
 
 export const AdminFirmwareRow = ({
   firmware,

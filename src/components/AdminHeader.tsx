@@ -2,11 +2,11 @@ import { BinaryHero } from "@/components/BinaryHero";
 import { Nav } from "@/components/Nav";
 import type { StoreInfo } from "@/lib/admin-firmware";
 
-interface AdminHeaderProps {
+type AdminHeaderProps = {
   flashing?: boolean;
   // Where a save lands. Null until the first catalogue load answers.
   store?: StoreInfo | null;
-}
+};
 
 export const AdminHeader = ({
   flashing = false,

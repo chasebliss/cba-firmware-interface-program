@@ -19,7 +19,7 @@ import { storeOrRespond } from "./store.js";
 
 const COOKIE_NAME = "admin_auth";
 
-export default async function handler(req, res) {
+const handler = async (req, res) => {
   if (req.method !== "GET") {
     res.statusCode = 405;
     res.setHeader("Allow", "GET");
@@ -37,7 +37,6 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "application/json");
     return res.end(JSON.stringify({ error: "not authenticated" }));
   }
-
 
   try {
     // One manifest fetch per channel, then backfill uploadedAt for entries
@@ -60,9 +59,9 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "application/json");
     return res.end(JSON.stringify({ error: `${store.kind}: ${e.message}` }));
   }
-}
+};
 
-async function backfillUploadedAt(entries, prefix, store) {
+const backfillUploadedAt = async (entries, prefix, store) => {
   return Promise.all(
     entries.map(async (entry) => {
       if (entry.uploadedAt) return entry;
@@ -72,14 +71,14 @@ async function backfillUploadedAt(entries, prefix, store) {
       return date ? { ...entry, uploadedAt: date } : entry;
     }),
   );
-}
+};
 
 // Returns the raw Contents API record, or null on 404 — the same shape the
 // other admin functions use, so readManifest() can tell "file is absent" from
 // "file exists and is empty". Distinguishing those is the whole point: an
 // empty admin manifest is a legitimate state (every entry unlisted) and must
 // not fall back to the stale public copy.
-async function verifyAuth(req) {
+const verifyAuth = async (req) => {
   const password = process.env.ADMIN_PASSWORD;
   if (!password) return false;
   const expected = await signOk(password);
@@ -91,9 +90,9 @@ async function verifyAuth(req) {
   if (!match) return false;
   const value = match.slice(COOKIE_NAME.length + 1);
   return constantTimeEqual(value, expected);
-}
+};
 
-async function signOk(password) {
+const signOk = async (password) => {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -107,19 +106,24 @@ async function signOk(password) {
     new TextEncoder().encode("ok"),
   );
   return base64UrlEncode(new Uint8Array(sig));
-}
+};
 
-function base64UrlEncode(bytes) {
+const base64UrlEncode = (bytes) => {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+};
 
-function constantTimeEqual(a, b) {
+const constantTimeEqual = (a, b) => {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
   return diff === 0;
-}
+};
+
+export default handler;

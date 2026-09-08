@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
-interface SectionLabelProps {
+type SectionLabelProps = {
   children: ReactNode;
   className?: string;
-}
+};
 
 export const SectionLabel = ({
   children,

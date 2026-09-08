@@ -76,7 +76,9 @@ export const storeOrRespond = (res, env = process.env) => {
         error: e.message,
         diagnostic: {
           relatedKeys: Object.keys(env).filter((k) =>
-            /^(GITHUB_|ADMIN_|BETA_|FIRMWARE_|VERCEL_ENV|VERCEL_GIT_COMMIT_REF)/.test(k),
+            /^(GITHUB_|ADMIN_|BETA_|FIRMWARE_|VERCEL_ENV|VERCEL_GIT_COMMIT_REF)/.test(
+              k,
+            ),
           ),
         },
       }),
@@ -185,9 +187,12 @@ export const githubStore = (env = process.env) => {
   // Raw Contents API record, or null on 404, so readManifest() can tell "file
   // is absent" from "file exists and is empty".
   const get = async (rel) => {
-    const res = await fetch(`${contentsUrl(rel)}?ref=${encodeURIComponent(branch)}`, {
-      headers,
-    });
+    const res = await fetch(
+      `${contentsUrl(rel)}?ref=${encodeURIComponent(branch)}`,
+      {
+        headers,
+      },
+    );
     if (res.status === 404) return null;
     if (!res.ok) {
       const msg = await res.text().catch(() => "");
@@ -253,4 +258,7 @@ export const githubStore = (env = process.env) => {
 };
 
 const encodeURIPath = (rel) =>
-  rel.split("/").map((segment) => encodeURIComponent(segment)).join("/");
+  rel
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");

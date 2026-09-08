@@ -5,10 +5,10 @@ import type { FirmwareSegment } from "./dfuse";
 // regions that sit far apart (e.g. STM32H7 bank 1 at 0x08000000 and bank 2
 // at 0x08100000). Truly adjacent records still merge into one segment.
 export const parseIntelHex = (text: string): FirmwareSegment[] => {
-  interface Record {
+  type Record = {
     address: number;
     bytes: Uint8Array;
-  }
+  };
 
   const records: Record[] = [];
   let upperAddr = 0;
@@ -58,11 +58,11 @@ export const parseIntelHex = (text: string): FirmwareSegment[] => {
 
   records.sort((a, b) => a.address - b.address);
 
-  interface Group {
+  type Group = {
     start: number;
     end: number;
     records: Record[];
-  }
+  };
 
   const groups: Group[] = [];
   let group: Group | null = null;

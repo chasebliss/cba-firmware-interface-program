@@ -1,15 +1,12 @@
 import { useState } from "react";
-import {
-  LogoLockup,
-  type LockupAnimation,
-} from "@/components/LogoLockup";
+import { LogoLockup, type LockupAnimation } from "@/components/LogoLockup";
 
-interface LogoDef {
+type LogoDef = {
   id: string;
   label: string;
   src: string;
   width: number;
-}
+};
 
 const LOGOS: LogoDef[] = [
   { id: "mark", label: "Logomark", src: "/logos/mark.svg", width: 220 },
@@ -39,11 +36,11 @@ const LOGOS: LogoDef[] = [
   },
 ];
 
-interface AnimationDef {
+type AnimationDef = {
   id: LockupAnimation;
   label: string;
   continuous?: boolean;
-}
+};
 
 const ANIMATIONS: AnimationDef[] = [
   { id: "typewriter", label: "Typewriter" },
@@ -116,10 +113,7 @@ export const LogoDemo = () => {
                       )}
                     </div>
                     <div className="flex min-h-[100px] flex-1 items-center justify-center">
-                      <div
-                        className="w-full"
-                        style={{ maxWidth: logo.width }}
-                      >
+                      <div className="w-full" style={{ maxWidth: logo.width }}>
                         <LogoLockup
                           src={logo.src}
                           width="100%"

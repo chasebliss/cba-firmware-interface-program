@@ -1,6 +1,6 @@
-interface UnsupportedNoticeProps {
+type UnsupportedNoticeProps = {
   reason: "mobile" | "browser";
-}
+};
 
 export const UnsupportedNotice = ({ reason }: UnsupportedNoticeProps) => {
   const heading =

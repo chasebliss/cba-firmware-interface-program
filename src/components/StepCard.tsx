@@ -8,10 +8,10 @@ const BODY_TRANSITION_MS = 300;
 // a flicker rather than a single settling motion. All three are 300ms now —
 // keep them aligned if you change one.
 
-interface StepBadgeProps {
+type StepBadgeProps = {
   n: number;
   done: boolean;
-}
+};
 
 export const StepBadge = ({ n, done }: StepBadgeProps) => {
   return (
@@ -25,7 +25,7 @@ export const StepBadge = ({ n, done }: StepBadgeProps) => {
   );
 };
 
-interface StepCardProps {
+type StepCardProps = {
   n: number;
   label: string;
   done: boolean;
@@ -34,7 +34,7 @@ interface StepCardProps {
   headerRight?: ReactNode;
   children?: ReactNode;
   style?: React.CSSProperties;
-}
+};
 
 export const StepCard = ({
   n,
@@ -81,7 +81,9 @@ export const StepCard = ({
     >
       <div
         className={`flex items-center justify-between px-5 py-[15px] transition-[border-color] duration-200 ${
-          isOpen ? "border-b border-border/[0.08]" : "border-b border-transparent"
+          isOpen
+            ? "border-b border-border/[0.08]"
+            : "border-b border-transparent"
         }`}
       >
         <div className="flex items-center gap-3">
@@ -95,7 +97,9 @@ export const StepCard = ({
         style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
         aria-hidden={!isOpen}
       >
-        <div className={overflowVisible ? "overflow-visible" : "overflow-hidden"}>
+        <div
+          className={overflowVisible ? "overflow-visible" : "overflow-hidden"}
+        >
           {/* Body contents are centred: the controls inside a step (the
               picker, the Connect/Update buttons) are fixed-width and would
               otherwise hang against the left edge of a much wider card. Done

@@ -32,21 +32,21 @@ export type DfuState = (typeof DFU_STATE)[keyof typeof DFU_STATE];
 
 export const DFU_STATUS_OK = 0x00;
 
-export interface DfuStatus {
+export type DfuStatus = {
   status: number;
   pollTimeout: number;
   state: number;
-}
+};
 
-export interface DfuLogger {
+export type DfuLogger = {
   debug?: (msg: string) => void;
   info?: (msg: string) => void;
   warning?: (msg: string) => void;
   error?: (msg: string) => void;
   progress?: (done: number, total?: number) => void;
-}
+};
 
-export interface InterfaceDescriptor {
+export type InterfaceDescriptor = {
   bLength: number;
   bDescriptorType: number;
   bInterfaceNumber: number;
@@ -57,29 +57,27 @@ export interface InterfaceDescriptor {
   bInterfaceProtocol: number;
   iInterface: number;
   descriptors: SubDescriptor[];
-}
+};
 
-export interface DfuFunctionalDescriptor {
+export type DfuFunctionalDescriptor = {
   bLength: number;
   bDescriptorType: number;
   bmAttributes: number;
   wDetachTimeOut: number;
   wTransferSize: number;
   bcdDFUVersion: number;
-}
+};
 
-export interface GenericDescriptor {
+export type GenericDescriptor = {
   bLength: number;
   bDescriptorType: number;
   data: DataView;
-}
+};
 
 export type SubDescriptor =
-  | InterfaceDescriptor
-  | DfuFunctionalDescriptor
-  | GenericDescriptor;
+  InterfaceDescriptor | DfuFunctionalDescriptor | GenericDescriptor;
 
-export interface ConfigurationDescriptor {
+export type ConfigurationDescriptor = {
   bLength: number;
   bDescriptorType: number;
   wTotalLength: number;
@@ -89,16 +87,16 @@ export interface ConfigurationDescriptor {
   bmAttributes: number;
   bMaxPower: number;
   descriptors: SubDescriptor[];
-}
+};
 
-export interface DfuInterfaceSettings {
+export type DfuInterfaceSettings = {
   configuration: USBConfiguration;
   interface: USBInterface;
   alternate: USBAlternateInterface;
   name: string | null;
-}
+};
 
-export interface DfuDeviceProperties {
+export type DfuDeviceProperties = {
   WillDetach: boolean;
   ManifestationTolerant: boolean;
   CanUpload: boolean;
@@ -106,7 +104,7 @@ export interface DfuDeviceProperties {
   TransferSize: number;
   DetachTimeOut: number;
   DFUVersion: number;
-}
+};
 
 export const findDeviceDfuInterfaces = (
   device: USBDevice,
@@ -370,7 +368,9 @@ export class DfuDevice {
       }
     }
 
-    throw new Error(`Failed to read string descriptor ${index}: ${result.status}`);
+    throw new Error(
+      `Failed to read string descriptor ${index}: ${result.status}`,
+    );
   }
 
   async readInterfaceNames(): Promise<
@@ -401,8 +401,9 @@ export class DfuDevice {
           if (!(desc.bInterfaceNumber in configs[configValue]!)) {
             configs[configValue]![desc.bInterfaceNumber] = {};
           }
-          configs[configValue]![desc.bInterfaceNumber]![desc.bAlternateSetting] =
-            desc.iInterface;
+          configs[configValue]![desc.bInterfaceNumber]![
+            desc.bAlternateSetting
+          ] = desc.iInterface;
           if (desc.iInterface > 0) {
             allStringIndices.add(desc.iInterface);
           }
@@ -547,7 +548,7 @@ export class DfuDevice {
     return new Promise((resolve, reject) => {
       let timeoutID: ReturnType<typeof setTimeout> | undefined;
 
-      function onDisconnect(event: USBConnectionEvent): void {
+      const onDisconnect = (event: USBConnectionEvent): void => {
         if (event.device === usbDevice) {
           if (timeoutID !== undefined) clearTimeout(timeoutID);
           device.disconnected = true;
@@ -555,7 +556,7 @@ export class DfuDevice {
           event.stopPropagation();
           resolve(device);
         }
-      }
+      };
 
       if (timeout > 0) {
         timeoutID = setTimeout(() => {
@@ -618,7 +619,9 @@ export class DfuDevice {
       state = await this.getState();
     }
     if (state !== DFU_STATE.dfuIDLE) {
-      throw new Error(`Failed to return to idle state after abort: state ${state}`);
+      throw new Error(
+        `Failed to return to idle state after abort: state ${state}`,
+      );
     }
   }
 

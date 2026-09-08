@@ -4,11 +4,11 @@ import { noteBlocks } from "@/lib/firmware-catalogue";
 
 type Tab = "public" | "internal";
 
-interface NotesTabsProps {
+type NotesTabsProps = {
   description: string;
   internalNotes: string;
   onChange: (field: "description" | "internalNotes", value: string) => void;
-}
+};
 
 // Release notes and internal notes as two tabs over one panel. They were
 // stacked, which made the form tall enough that the channel picker and the
@@ -55,10 +55,7 @@ export const NotesTabs = ({
     // as the next input down. Everything above is one-line metadata; this is
     // where the writing happens.
     <div className="mt-6">
-      <div
-        role="tablist"
-        className="mb-4 flex gap-7 border-b border-border/10"
-      >
+      <div role="tablist" className="mb-4 flex gap-7 border-b border-border/10">
         {tabs.map((t) => {
           const selected = t.id === tab;
           return (

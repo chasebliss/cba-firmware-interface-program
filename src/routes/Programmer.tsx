@@ -27,7 +27,7 @@ type ConnectedDevice = Awaited<
   ReturnType<typeof requestAndConnectDevice>
 >["device"];
 
-interface ProgrammerProps {
+type ProgrammerProps = {
   sources: FirmwareSource[];
   showInactive?: boolean;
   banner?: ReactNode;
@@ -48,7 +48,7 @@ interface ProgrammerProps {
   // irreversible action, not two steps upstream where it gets scrolled past.
   // Resets on "Flash again" — one acknowledgement per flash.
   disclaimer?: ReactNode;
-}
+};
 
 export const Programmer = ({
   sources,
@@ -297,170 +297,171 @@ export const Programmer = ({
               seam intact. Layout-neutral everywhere else. Width comes from the
               column above. */}
           <div className="cba-step-stack">
-          <StepCard
-            n={1}
-            label="Select firmware"
-            done={s1}
-            open={!s2}
-            style={{ background: card1Background }}
-            headerRight={
-              s1 ? (
-                <div className="flex items-center gap-2">
-                  <div
-                    className="h-[9px] w-[9px] shrink-0"
-                    style={{ background: selected?.bgColor }}
-                  />
-                  <span className="text-caption font-semibold text-text/45">
-                    {selected?.name}
-                  </span>
-                </div>
-              ) : undefined
-            }
-          >
-            <PedalDropdown
-              firmwares={catalogue}
-              selected={selected}
-              onSelect={setSelected}
-              loading={catalogueLoading}
-              disabled={flashing}
-            />
-            {catalogueError && (
-              <p className="mt-2 text-sm font-semibold text-bad">
-                Could not load firmware list: {catalogueError}
-              </p>
-            )}
-            {channelNotice}
-          </StepCard>
-
-          <StepCard
-            n={2}
-            label="Connect pedal"
-            done={s2}
-            locked={!s1}
-            open={!s2 && !s3}
-            headerRight={
-              s2 ? (
-                <span className="text-caption font-bold text-ok">
-                  Connected ✓
-                </span>
-              ) : undefined
-            }
-          >
-            <div className="flex flex-col items-center gap-2.5">
-              <p className="text-sm leading-[1.6] text-text/[0.42]">
-                Connect via data-transfer micro USB, then connect power supply.
-              </p>
-              <CbaButton
-                disabled={!s1 || connectStatus === "connecting"}
-                onClick={handleConnect}
-                style={{ width: 180 }}
-              >
-                {connectStatus === "connecting" ? "Connecting…" : "Connect"}
-              </CbaButton>
-              {connectError && (
-                <p className="max-w-md text-sm font-semibold text-bad">
-                  {connectError}
+            <StepCard
+              n={1}
+              label="Select firmware"
+              done={s1}
+              open={!s2}
+              style={{ background: card1Background }}
+              headerRight={
+                s1 ? (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-[9px] w-[9px] shrink-0"
+                      style={{ background: selected?.bgColor }}
+                    />
+                    <span className="text-caption font-semibold text-text/45">
+                      {selected?.name}
+                    </span>
+                  </div>
+                ) : undefined
+              }
+            >
+              <PedalDropdown
+                firmwares={catalogue}
+                selected={selected}
+                onSelect={setSelected}
+                loading={catalogueLoading}
+                disabled={flashing}
+              />
+              {catalogueError && (
+                <p className="mt-2 text-sm font-semibold text-bad">
+                  Could not load firmware list: {catalogueError}
                 </p>
               )}
-            </div>
-          </StepCard>
+              {channelNotice}
+            </StepCard>
 
-          <StepCard
-            n={3}
-            label="Update firmware"
-            done={s3}
-            locked={!s2 && !s3}
-            headerRight={
-              s3 ? (
-                <span className="text-caption font-bold text-ok">
-                  Complete ✓
-                </span>
-              ) : undefined
-            }
-          >
-            <div
-              key={
-                flashing
-                  ? "flashing"
-                  : errored
-                    ? "error"
-                    : s3
-                      ? "complete"
-                      : "idle"
+            <StepCard
+              n={2}
+              label="Connect pedal"
+              done={s2}
+              locked={!s1}
+              open={!s2 && !s3}
+              headerRight={
+                s2 ? (
+                  <span className="text-caption font-bold text-ok">
+                    Connected ✓
+                  </span>
+                ) : undefined
               }
-              className="animate-tab-fade"
             >
-              {!flashing && !s3 && !errored && (
-                <div className="flex flex-col items-center gap-3.5">
-                  {disclaimer && (
-                    // w-96 + mx-auto matches PedalDropdown and the channel
-                    // notice, so the consent block lines up with the rest of
-                    // the stack instead of spanning the whole card.
-                    <label className="cba-panel mx-auto flex w-96 max-w-full cursor-pointer select-none items-start gap-2.5 border-2 border-border/15 bg-text/[0.03] px-3.5 py-3 text-left transition-colors duration-200 hover:border-border/30">
-                      <input
-                        type="checkbox"
-                        checked={acknowledged}
-                        disabled={!s1 || !s2}
-                        onChange={(e) => setAcknowledged(e.target.checked)}
-                        className="mt-[2px] h-[15px] w-[15px] shrink-0 accent-text disabled:cursor-not-allowed"
-                      />
-                      <span className="text-caption leading-[1.5] text-text/60">
-                        {disclaimer}
-                      </span>
-                    </label>
-                  )}
-                  <CbaButton
-                    disabled={!s1 || !s2 || (!!disclaimer && !acknowledged)}
-                    variant={
-                      s1 && s2 && (!disclaimer || acknowledged)
-                        ? "success"
-                        : "default"
-                    }
-                    onClick={handleUpdate}
-                    style={{ width: 180 }}
-                  >
-                    Update
-                  </CbaButton>
-                </div>
-              )}
-              {flashing && (
-                <div className="flex flex-col items-center gap-2.5">
-                  <progress
-                    value={progressPct}
-                    max={100}
-                    className="block h-[5px] w-96 max-w-full appearance-none border-none [&::-webkit-progress-bar]:bg-text/10"
-                  />
-                  <style>{`progress::-webkit-progress-value{background:${barColor};transition:width .4s ease;}progress::-moz-progress-bar{background:${barColor};}`}</style>
-                  <div className="animate-cba-pulse text-body font-bold text-ok">
-                    {flashStatus === "preparing"
-                      ? (flashMessage ?? "Preparing…")
-                      : `Uploading… ${progressPct}%`}
-                  </div>
-                </div>
-              )}
-              {errored && (
-                <div className="flex flex-col items-center gap-2.5">
-                  <progress
-                    value={progressPct}
-                    max={100}
-                    className="block h-[5px] w-96 max-w-full appearance-none border-none [&::-webkit-progress-bar]:bg-text/10"
-                  />
-                  <style>{`progress::-webkit-progress-value{background:var(--bad);transition:width .4s ease;}progress::-moz-progress-bar{background:var(--bad);}`}</style>
-                  <p className="text-body font-bold text-bad">
-                    {flashError ?? "Update failed"}
-                  </p>
-                  <CbaButton onClick={handleReset} style={{ width: 180 }}>
-                    Try again
-                  </CbaButton>
-                </div>
-              )}
-              {s3 && (
-                <CbaButton onClick={handleReset} style={{ width: 180 }}>
-                  Flash again
+              <div className="flex flex-col items-center gap-2.5">
+                <p className="text-sm leading-[1.6] text-text/[0.42]">
+                  Connect via data-transfer micro USB, then connect power
+                  supply.
+                </p>
+                <CbaButton
+                  disabled={!s1 || connectStatus === "connecting"}
+                  onClick={handleConnect}
+                  style={{ width: 180 }}
+                >
+                  {connectStatus === "connecting" ? "Connecting…" : "Connect"}
                 </CbaButton>
-              )}
-            </div>
-          </StepCard>
+                {connectError && (
+                  <p className="max-w-md text-sm font-semibold text-bad">
+                    {connectError}
+                  </p>
+                )}
+              </div>
+            </StepCard>
+
+            <StepCard
+              n={3}
+              label="Update firmware"
+              done={s3}
+              locked={!s2 && !s3}
+              headerRight={
+                s3 ? (
+                  <span className="text-caption font-bold text-ok">
+                    Complete ✓
+                  </span>
+                ) : undefined
+              }
+            >
+              <div
+                key={
+                  flashing
+                    ? "flashing"
+                    : errored
+                      ? "error"
+                      : s3
+                        ? "complete"
+                        : "idle"
+                }
+                className="animate-tab-fade"
+              >
+                {!flashing && !s3 && !errored && (
+                  <div className="flex flex-col items-center gap-3.5">
+                    {disclaimer && (
+                      // w-96 + mx-auto matches PedalDropdown and the channel
+                      // notice, so the consent block lines up with the rest of
+                      // the stack instead of spanning the whole card.
+                      <label className="cba-panel mx-auto flex w-96 max-w-full cursor-pointer select-none items-start gap-2.5 border-2 border-border/15 bg-text/[0.03] px-3.5 py-3 text-left transition-colors duration-200 hover:border-border/30">
+                        <input
+                          type="checkbox"
+                          checked={acknowledged}
+                          disabled={!s1 || !s2}
+                          onChange={(e) => setAcknowledged(e.target.checked)}
+                          className="mt-[2px] h-[15px] w-[15px] shrink-0 accent-text disabled:cursor-not-allowed"
+                        />
+                        <span className="text-caption leading-[1.5] text-text/60">
+                          {disclaimer}
+                        </span>
+                      </label>
+                    )}
+                    <CbaButton
+                      disabled={!s1 || !s2 || (!!disclaimer && !acknowledged)}
+                      variant={
+                        s1 && s2 && (!disclaimer || acknowledged)
+                          ? "success"
+                          : "default"
+                      }
+                      onClick={handleUpdate}
+                      style={{ width: 180 }}
+                    >
+                      Update
+                    </CbaButton>
+                  </div>
+                )}
+                {flashing && (
+                  <div className="flex flex-col items-center gap-2.5">
+                    <progress
+                      value={progressPct}
+                      max={100}
+                      className="block h-[5px] w-96 max-w-full appearance-none border-none [&::-webkit-progress-bar]:bg-text/10"
+                    />
+                    <style>{`progress::-webkit-progress-value{background:${barColor};transition:width .4s ease;}progress::-moz-progress-bar{background:${barColor};}`}</style>
+                    <div className="animate-cba-pulse text-body font-bold text-ok">
+                      {flashStatus === "preparing"
+                        ? (flashMessage ?? "Preparing…")
+                        : `Uploading… ${progressPct}%`}
+                    </div>
+                  </div>
+                )}
+                {errored && (
+                  <div className="flex flex-col items-center gap-2.5">
+                    <progress
+                      value={progressPct}
+                      max={100}
+                      className="block h-[5px] w-96 max-w-full appearance-none border-none [&::-webkit-progress-bar]:bg-text/10"
+                    />
+                    <style>{`progress::-webkit-progress-value{background:var(--bad);transition:width .4s ease;}progress::-moz-progress-bar{background:var(--bad);}`}</style>
+                    <p className="text-body font-bold text-bad">
+                      {flashError ?? "Update failed"}
+                    </p>
+                    <CbaButton onClick={handleReset} style={{ width: 180 }}>
+                      Try again
+                    </CbaButton>
+                  </div>
+                )}
+                {s3 && (
+                  <CbaButton onClick={handleReset} style={{ width: 180 }}>
+                    Flash again
+                  </CbaButton>
+                )}
+              </div>
+            </StepCard>
           </div>
         </div>
 

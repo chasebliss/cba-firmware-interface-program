@@ -3,13 +3,13 @@ import { createPortal } from "react-dom";
 import type { FirmwareEntry } from "@/lib/firmware-catalogue";
 import { formatRelativeTime } from "@/lib/format";
 
-interface PedalDropdownProps {
+type PedalDropdownProps = {
   firmwares: FirmwareEntry[];
   selected: FirmwareEntry | null;
   onSelect: (firmware: FirmwareEntry) => void;
   loading?: boolean;
   disabled?: boolean;
-}
+};
 
 export const PedalDropdown = ({
   firmwares,
@@ -50,10 +50,7 @@ export const PedalDropdown = ({
     if (!open) return;
     const onDocClick = (event: MouseEvent) => {
       const t = event.target as Node;
-      if (
-        triggerRef.current?.contains(t) ||
-        menuRef.current?.contains(t)
-      ) {
+      if (triggerRef.current?.contains(t) || menuRef.current?.contains(t)) {
         return;
       }
       setOpen(false);

@@ -5,11 +5,7 @@
 import { byName, filenameOf } from "@/lib/firmware-catalogue";
 
 export type FlashStatus =
-  | "idle"
-  | "preparing"
-  | "installing"
-  | "complete"
-  | "error";
+  "idle" | "preparing" | "installing" | "complete" | "error";
 
 const GOLD_HEX = "#ba8e51";
 
@@ -101,7 +97,7 @@ export const DEPLOY_STATUS_HELP: Record<DeployStatus, string> = {
   live: "The file is on the site and can be downloaded.",
 };
 
-export interface ManifestEntry {
+export type ManifestEntry = {
   name: string;
   pedal?: string;
   filepath: string;
@@ -113,14 +109,14 @@ export interface ManifestEntry {
   uploadedAt?: string;
   updatedAt?: string;
   active?: boolean;
-}
+};
 
 // Where the admin API is reading and writing, reported by list-firmwares in
 // its X-Firmware-Store / X-Firmware-Branch headers. See api/admin/store.js.
-export interface StoreInfo {
+export type StoreInfo = {
   kind: "github" | "local";
   branch: string;
-}
+};
 
 // The mock pedal row isn't real firmware and doesn't live in any channel, so
 // it carries this sentinel instead of squatting in one. Rows tagged with it
@@ -130,7 +126,7 @@ export const MOCK_TARGET = "__mock__";
 
 export type RowTarget = SaveTarget | typeof MOCK_TARGET;
 
-export interface AdminFirmware {
+export type AdminFirmware = {
   name: string;
   pedal: string;
   filename: string;
@@ -145,7 +141,7 @@ export interface AdminFirmware {
   // in the manifest (unchanged on disk — renaming the field would break every
   // existing entry), but presented as listed/unlisted throughout the UI.
   active: boolean;
-}
+};
 
 // The listing axis: is this firmware offered to users on its channel's page?
 // Independent of DeployStatus — a firmware can be published-but-unlisted (file
@@ -187,20 +183,18 @@ export const adminCatalogueFrom = (
   data: Partial<Record<SaveTarget, ManifestEntry[]>>,
 ): AdminFirmware[] =>
   CHANNELS.flatMap((channel) =>
-    (data[channel.id] ?? []).map(
-      (e): AdminFirmware => ({
-        name: e.name,
-        pedal: e.pedal ?? "",
-        filename: filenameOf(e.filepath),
-        target: channel.id,
-        bgColor: e.bgColor ?? GOLD_HEX,
-        description: e.description ?? "",
-        internalNotes: e.internalNotes ?? "",
-        uploadedAt: e.uploadedAt ?? null,
-        updatedAt: e.updatedAt ?? null,
-        active: e.active !== false,
-      }),
-    ),
+    (data[channel.id] ?? []).map((e): AdminFirmware => ({
+      name: e.name,
+      pedal: e.pedal ?? "",
+      filename: filenameOf(e.filepath),
+      target: channel.id,
+      bgColor: e.bgColor ?? GOLD_HEX,
+      description: e.description ?? "",
+      internalNotes: e.internalNotes ?? "",
+      uploadedAt: e.uploadedAt ?? null,
+      updatedAt: e.updatedAt ?? null,
+      active: e.active !== false,
+    })),
   ).sort(byName);
 
 export const DEFAULT_TRANSFER_SIZE = 1024;
@@ -220,7 +214,8 @@ export const FAKE_ENTRY: AdminFirmware = {
   filename: FAKE_FILENAME,
   target: MOCK_TARGET,
   bgColor: FAKE_BG_COLOR,
-  description: "In-memory fake — runs the full flash flow without a real pedal.",
+  description:
+    "In-memory fake — runs the full flash flow without a real pedal.",
   internalNotes: "",
   uploadedAt: null,
   updatedAt: null,

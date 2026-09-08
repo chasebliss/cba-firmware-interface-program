@@ -15,7 +15,7 @@ import {
 import { DFUSE_COMMAND, DfuseDevice } from "./dfuse";
 import type { UsbTransport } from "./transport";
 
-interface FakeOptions {
+type FakeOptions = {
   // Memory descriptor string. Defaults to a 1MB STM32 main flash region with
   // 128KB sectors, which exercises the full DfuSe download path (erase per
   // sector → set address → program → manifest). Override for bank-2 nudge
@@ -26,7 +26,7 @@ interface FakeOptions {
   // Force the first writable segment used as start address. If omitted, the
   // DfuseDevice picks getFirstWritableSegment() (with the 0x90000000 nudge).
   startAddress?: number;
-}
+};
 
 const DEFAULT_MEMORY = "@Internal Flash /0x08000000/8*128Kg";
 const DEFAULT_SPEED = 4;
@@ -323,10 +323,10 @@ const makeFakeSettings = (memoryDescriptor: string): DfuInterfaceSettings => {
   };
 };
 
-export interface FakeConnectResult {
+export type FakeConnectResult = {
   device: DfuseDevice;
   properties: Partial<DfuDeviceProperties>;
-}
+};
 
 export const connectToFakeDevice = async (
   options: FakeOptions = {},

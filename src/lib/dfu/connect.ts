@@ -40,7 +40,7 @@ export const fixInterfaceNames = async (
       intf.name = mapping[configIndex]?.[intfNumber]?.[alt] ?? null;
     }
   }
-}
+};
 
 export const getDFUDescriptorProperties = async (
   device: DfuDevice,
@@ -66,7 +66,7 @@ export const getDFUDescriptorProperties = async (
   } catch {
     return {};
   }
-}
+};
 
 const findFunctionalDescriptor = (
   descriptors: SubDescriptor[],
@@ -79,17 +79,15 @@ const findFunctionalDescriptor = (
   return null;
 };
 
-export interface ConnectResult {
+export type ConnectResult = {
   device: DfuDevice | DfuseDevice;
   properties: Partial<DfuDeviceProperties>;
-}
+};
 
 // Open the device, read its DFU functional descriptor, and upgrade to a
 // DfuseDevice if the interface advertises DfuSe 1.1a with a parseable memory
 // map. Mirrors the old app's connect() flow without the DOM side effects.
-export const openDevice = async (
-  device: DfuDevice,
-): Promise<ConnectResult> => {
+export const openDevice = async (device: DfuDevice): Promise<ConnectResult> => {
   await device.open();
   const properties = await getDFUDescriptorProperties(device);
 
@@ -138,7 +136,9 @@ export const connectToSelected = async (
 ): Promise<ConnectResult> => {
   const interfaces = findDeviceDfuInterfaces(selectedDevice);
   if (interfaces.length === 0) {
-    throw new Error("The selected device does not have any USB DFU interfaces.");
+    throw new Error(
+      "The selected device does not have any USB DFU interfaces.",
+    );
   }
 
   await fixInterfaceNames(selectedDevice, interfaces);

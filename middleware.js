@@ -20,7 +20,7 @@ export const config = {
   matcher: ["/beta", "/beta/:path*", "/admin", "/admin/:path*"],
 };
 
-export default async function middleware(request) {
+const middleware = async (request) => {
   const url = new URL(request.url);
   const isAdmin = url.pathname.startsWith("/admin");
 
@@ -66,9 +66,9 @@ export default async function middleware(request) {
     status: showError ? 401 : 200,
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });
-}
+};
 
-function parseCookies(header) {
+const parseCookies = (header) => {
   const out = {};
   for (const part of header.split(";")) {
     const trimmed = part.trim();
@@ -78,9 +78,9 @@ function parseCookies(header) {
     out[trimmed.slice(0, eq)] = trimmed.slice(eq + 1);
   }
   return out;
-}
+};
 
-async function signOk(password) {
+const signOk = async (password) => {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -94,24 +94,27 @@ async function signOk(password) {
     new TextEncoder().encode("ok"),
   );
   return base64UrlEncode(new Uint8Array(sig));
-}
+};
 
-function base64UrlEncode(bytes) {
+const base64UrlEncode = (bytes) => {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+};
 
-function constantTimeEqual(a, b) {
+const constantTimeEqual = (a, b) => {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
   return diff === 0;
-}
+};
 
-function loginHtml(error = "", redirect = "/beta/") {
+const loginHtml = (error = "", redirect = "/beta/") => {
   const isAdmin = redirect === "/admin/";
   const heading = isAdmin ? "Chase Bliss Admin" : "Chase Bliss Beta";
   const pageTitle = isAdmin ? "Admin Access" : "Beta Access";
@@ -301,13 +304,15 @@ function loginHtml(error = "", redirect = "/beta/") {
 </script>
 </body>
 </html>`;
-}
+};
 
-function escapeHtml(s) {
+const escapeHtml = (s) => {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
+};
+
+export default middleware;

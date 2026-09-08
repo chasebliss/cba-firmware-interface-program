@@ -8,7 +8,7 @@ import type {
 } from "@/lib/admin-firmware";
 import { rowKey } from "@/lib/deploy-probe";
 
-export interface FirmwareSection {
+export type FirmwareSection = {
   id: string;
   label: string;
   color: string;
@@ -16,9 +16,9 @@ export interface FirmwareSection {
   // Page that serves this channel. Undefined for the mock section, which has
   // no public page — that header stays plain text.
   route?: string;
-}
+};
 
-interface AdminFirmwareListProps {
+type AdminFirmwareListProps = {
   loading: boolean;
   // A list with few rows stops pretending to be a column: it drops the
   // viewport cap and the bottom gutter and simply ends. See LocalFlasher,
@@ -36,7 +36,7 @@ interface AdminFirmwareListProps {
   onLoad: (entry: AdminFirmware) => void;
   onToggleActive: (entry: AdminFirmware) => void;
   onDelete: (entry: AdminFirmware) => void;
-}
+};
 
 export const AdminFirmwareList = ({
   loading,
@@ -147,7 +147,6 @@ export const AdminFirmwareList = ({
               </section>
             ))}
       </div>
-
     </div>
   );
 };

@@ -1,10 +1,10 @@
 import type { ButtonHTMLAttributes } from "react";
 
-interface CbaButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+type CbaButtonProps = {
   variant?: "default" | "success" | "danger";
   size?: "md" | "sm";
   fullWidth?: boolean;
-}
+} & ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const CbaButton = ({
   variant = "default",

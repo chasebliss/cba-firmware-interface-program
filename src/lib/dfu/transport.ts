@@ -2,7 +2,7 @@
 // A real navigator.usb USBDevice satisfies this structurally; the in-repo
 // FakeDfuseTransport implements it for hardware-free dev/testing.
 
-export interface UsbTransport {
+export type UsbTransport = {
   configurations: ReadonlyArray<USBConfiguration>;
   configuration: USBConfiguration | null;
 
@@ -23,4 +23,4 @@ export interface UsbTransport {
     data?: BufferSource,
   ): Promise<USBOutTransferResult>;
   reset(): Promise<void>;
-}
+};

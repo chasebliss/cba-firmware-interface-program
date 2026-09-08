@@ -565,9 +565,7 @@ export const LocalFlasher = () => {
       label: channel.label,
       color: channel.color,
       route: channel.route,
-      rows: catalogue
-        .filter((f) => f.target === channel.id)
-        .sort(byName),
+      rows: catalogue.filter((f) => f.target === channel.id).sort(byName),
     })),
     ...(showMockRow
       ? [

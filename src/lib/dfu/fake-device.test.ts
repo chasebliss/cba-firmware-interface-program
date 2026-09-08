@@ -23,10 +23,10 @@ const firmware = (bytes: number): ArrayBuffer => {
   return buf;
 };
 
-interface DfuseCall {
+type DfuseCall = {
   command: number;
   param: number;
-}
+};
 
 // Record every DfuSe sub-command the device issues. SET_ADDRESS and
 // ERASE_SECTOR carry the address as their param, which is all the assertions
@@ -71,7 +71,9 @@ describe("single-image flash (do_download)", () => {
     );
 
     // Progress reached exactly the image size.
-    const installDone = progress.filter(([, total]) => total === image.byteLength);
+    const installDone = progress.filter(
+      ([, total]) => total === image.byteLength,
+    );
     expect(installDone.at(-1)?.[0]).toBe(image.byteLength);
   });
 

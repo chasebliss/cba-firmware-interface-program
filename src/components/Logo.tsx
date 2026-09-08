@@ -2,16 +2,11 @@ import { useId, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 
 export type LogoTextAnimation =
-  | "typewriter"
-  | "scanline"
-  | "draw"
-  | "glitch"
-  | "blur"
-  | "flicker";
+  "typewriter" | "scanline" | "draw" | "glitch" | "blur" | "flicker";
 
 let hasPlayed = false;
 
-interface LogoProps {
+type LogoProps = {
   className?: string;
   width?: number | string;
   animate?: boolean;
@@ -20,7 +15,7 @@ interface LogoProps {
   // Loop the text animation (draw in → pause → draw out → pause → ...).
   // Only wired for the "draw" animation today; other variants stay one-shot.
   loop?: boolean;
-}
+};
 
 const VIEWBOX_W = 776.71;
 const VIEWBOX_H = 102.88;
@@ -131,23 +126,11 @@ export const Logo = ({
       // 3) DOMINO WAVE — scoop hops, shield hops, diamond hops in quick
       //    sequence. Stadium-wave feel.
       markLoopTl
-        .to(
-          scoop,
-          { y: -14, duration: 0.18, ease: "power2.out" },
-          "+=0.3",
-        )
+        .to(scoop, { y: -14, duration: 0.18, ease: "power2.out" }, "+=0.3")
         .to(scoop, { y: 0, duration: 0.28, ease: "bounce.out" })
-        .to(
-          shield,
-          { y: -14, duration: 0.18, ease: "power2.out" },
-          "-=0.35",
-        )
+        .to(shield, { y: -14, duration: 0.18, ease: "power2.out" }, "-=0.35")
         .to(shield, { y: 0, duration: 0.28, ease: "bounce.out" })
-        .to(
-          diamond,
-          { y: -14, duration: 0.18, ease: "power2.out" },
-          "-=0.35",
-        )
+        .to(diamond, { y: -14, duration: 0.18, ease: "power2.out" }, "-=0.35")
         .to(diamond, { y: 0, duration: 0.28, ease: "bounce.out" });
 
       // 3.5) PARADE — all three pop to the right one by one with a mini
@@ -388,11 +371,7 @@ export const Logo = ({
         // Linear rotation so the spin reads at constant speed through the
         // whole arc — no slow-in/slow-out that makes the rotation feel
         // compressed at the end.
-        .to(
-          el,
-          { rotation: spin, duration: TRAVEL, ease: "none" },
-          startAt,
-        )
+        .to(el, { rotation: spin, duration: TRAVEL, ease: "none" }, startAt)
         .to(
           el,
           {
@@ -535,9 +514,7 @@ export const Logo = ({
         break;
       }
       case "scanline": {
-        const scanRect = svg.querySelector<SVGRectElement>(
-          `#${clipId} rect`,
-        );
+        const scanRect = svg.querySelector<SVGRectElement>(`#${clipId} rect`);
         gsap.set(glyphs, { autoAlpha: 1 });
         if (scanRect) {
           gsap.set(scanRect, { attr: { width: 0 } });
@@ -647,12 +624,7 @@ export const Logo = ({
       {textAnimation === "scanline" && (
         <defs>
           <clipPath id={clipId}>
-            <rect
-              x="0"
-              y="0"
-              width={VIEWBOX_W}
-              height={VIEWBOX_H}
-            />
+            <rect x="0" y="0" width={VIEWBOX_W} height={VIEWBOX_H} />
           </clipPath>
         </defs>
       )}

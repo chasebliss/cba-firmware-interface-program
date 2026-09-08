@@ -12,7 +12,11 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node api/admin/channels.test.mjs && vitest run"
+    "test": "node api/admin/channels.test.mjs && vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check:tokens": "node ../check-tokens.mjs .",
+    "check": "npm run format:check && npm run lint && npm run check:tokens && npm run test"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
@@ -33,9 +37,11 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "prettier": "^3.9.6",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.9",
     "vitest": "^4.1.11"
-  }
+  },
+  "prettier": "../prettier.config.mjs"
 }

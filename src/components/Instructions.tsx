@@ -24,9 +24,9 @@ const DRIVER_STEPS = [
   "Click Upgrade Driver.",
 ];
 
-interface InstructionsProps {
+type InstructionsProps = {
   os: "mac" | "win";
-}
+};
 
 export const Instructions = ({ os }: InstructionsProps) => {
   const steps = os === "mac" ? MAC_STEPS : WIN_STEPS;
@@ -85,10 +85,10 @@ export const Instructions = ({ os }: InstructionsProps) => {
   );
 };
 
-interface OSTabsProps {
+type OSTabsProps = {
   os: "mac" | "win";
   onChange: (os: "mac" | "win") => void;
-}
+};
 
 export const OSTabs = ({ os, onChange }: OSTabsProps) => {
   return (

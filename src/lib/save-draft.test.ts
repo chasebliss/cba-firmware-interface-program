@@ -61,9 +61,9 @@ describe("isDraftDirty", () => {
     const baseline = fieldsFrom(entry());
     const padded = { ...baseline, name: `  ${baseline.name} ` };
     expect(isDraftDirty(padded, baseline)).toBe(false);
-    expect(isDraftDirty({ ...emptyFields(), pedal: "   " }, emptyFields())).toBe(
-      false,
-    );
+    expect(
+      isDraftDirty({ ...emptyFields(), pedal: "   " }, emptyFields()),
+    ).toBe(false);
   });
 
   test("editing baseline round-trips: fieldsFrom(entry) is clean against itself", () => {
@@ -83,9 +83,9 @@ describe("draftComplete", () => {
   });
 
   test("whitespace-only values do not count", () => {
-    expect(
-      draftComplete({ ...emptyFields(), name: "  ", pedal: "MOOD" }),
-    ).toBe(false);
+    expect(draftComplete({ ...emptyFields(), name: "  ", pedal: "MOOD" })).toBe(
+      false,
+    );
   });
 });
 

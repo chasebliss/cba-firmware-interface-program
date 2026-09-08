@@ -1,13 +1,13 @@
 import { InlineMarkdown } from "@/components/InlineMarkdown";
 import type { NoteBlock } from "@/lib/firmware-catalogue";
 
-interface NoteListProps {
+type NoteListProps = {
   blocks: NoteBlock[];
   // Tailwind text colour class for top-level lines and paragraphs. Nested
   // bullets derive their own quieter tone, so callers pass one value.
   tone?: string;
   subTone?: string;
-}
+};
 
 // The rendered form of a notes field: bullets with one level of nesting,
 // and paragraphs of prose between them. Shared by the public release-notes

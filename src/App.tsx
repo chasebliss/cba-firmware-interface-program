@@ -42,7 +42,7 @@ const TrailOnNonDemoRoutes = () => {
   return <MouseTrail />;
 };
 
-const App = () => {
+export const App = () => {
   if (!HAS_WEB_USB) {
     return <UnsupportedNotice reason="browser" />;
   }
@@ -126,5 +126,3 @@ const App = () => {
     </>
   );
 };
-
-export default App;

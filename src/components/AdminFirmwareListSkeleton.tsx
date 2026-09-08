@@ -1,8 +1,8 @@
 import { CHANNELS, type SaveTarget } from "@/lib/admin-firmware";
 
-interface AdminFirmwareListSkeletonProps {
+type AdminFirmwareListSkeletonProps = {
   cachedCounts: Partial<Record<SaveTarget, number>>;
-}
+};
 
 export const AdminFirmwareListSkeleton = ({
   cachedCounts,

@@ -2,13 +2,13 @@ import { useState } from "react";
 import { NoteList } from "@/components/NoteList";
 import { noteBlocks, type FirmwareEntry } from "@/lib/firmware-catalogue";
 
-interface ReleaseNotesVersionProps {
+type ReleaseNotesVersionProps = {
   firmware: FirmwareEntry;
   // The version the user has selected in the picker. Its notes are open on
   // arrival; every older version starts collapsed.
   selected: boolean;
   index: number;
-}
+};
 
 const formatDate = (iso: string | null): string => {
   if (!iso) return "";

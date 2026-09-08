@@ -1,7 +1,7 @@
 import type { FirmwareSource } from "@/data/sources";
 import { isHexPath, parseIntelHex, type FirmwareSegment } from "./dfu";
 
-interface RawFirmware {
+type RawFirmware = {
   id: number;
   name: string;
   pedal?: string;
@@ -11,9 +11,9 @@ interface RawFirmware {
   bgColor: string;
   active: boolean;
   uploadedAt?: string;
-}
+};
 
-export interface FirmwareEntry {
+export type FirmwareEntry = {
   id: number;
   name: string;
   // The product this firmware is for, e.g. "MOOD MKII". Groups versions on
@@ -29,7 +29,7 @@ export interface FirmwareEntry {
   url: string; // resolved absolute URL to the .bin or .hex file
   uploadedAt: string | null;
   source: FirmwareSource;
-}
+};
 
 export type FirmwarePayload =
   | { kind: "bin"; buffer: ArrayBuffer }
@@ -55,8 +55,7 @@ export const byName = (a: { name: string }, b: { name: string }): number => {
 // column has no room for a third level, and pasted text arrives with all
 // sorts of leading whitespace.
 export type NoteBlock =
-  | { kind: "li"; text: string; depth: 0 | 1 }
-  | { kind: "p"; text: string };
+  { kind: "li"; text: string; depth: 0 | 1 } | { kind: "p"; text: string };
 
 // Structured form of a notes field, a small subset of markdown:
 //

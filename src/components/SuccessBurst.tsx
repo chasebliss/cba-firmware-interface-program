@@ -9,14 +9,14 @@ const LIFETIME_MS = 1400;
 const FONT_SIZE = 20;
 const GRAVITY = 900;
 
-interface Particle {
+type Particle = {
   x: number;
   y: number;
   vx: number;
   vy: number;
   char: "0" | "1";
   birth: number;
-}
+};
 
 // Reads the current on-screen position of each floating digit in the
 // BinaryHero SVG so particles launch from where the user last saw them.
@@ -27,9 +27,7 @@ const collectOrigins = (): { x: number; y: number; char: "0" | "1" }[] => {
   );
   const doc = obj?.contentDocument;
   if (!obj || !doc) {
-    return [
-      { x: window.innerWidth / 2, y: window.innerHeight / 2, char: "1" },
-    ];
+    return [{ x: window.innerWidth / 2, y: window.innerHeight / 2, char: "1" }];
   }
   const objRect = obj.getBoundingClientRect();
   const groups = Array.from(
@@ -47,9 +45,7 @@ const collectOrigins = (): { x: number; y: number; char: "0" | "1" }[] => {
     });
   }
   if (origins.length === 0) {
-    return [
-      { x: window.innerWidth / 2, y: window.innerHeight / 2, char: "1" },
-    ];
+    return [{ x: window.innerWidth / 2, y: window.innerHeight / 2, char: "1" }];
   }
   return origins;
 };

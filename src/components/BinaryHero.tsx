@@ -11,16 +11,16 @@ const TARGET_Y = 75;
 const ENTRY_X = 118;
 const FLASH_RATE = 4;
 
-interface DigitConfig {
+type DigitConfig = {
   group: SVGGElement;
   startX: number;
   endX: number;
   endY: number;
   baseDuration: number;
   baseDelay: number;
-}
+};
 
-interface BinaryHeroProps {
+type BinaryHeroProps = {
   flashing?: boolean;
   width?: number | string;
   opacity?: number;
@@ -29,7 +29,7 @@ interface BinaryHeroProps {
   // theme wrapper. Optional: left unset, it is read from --accent alongside
   // the surface colour, so the palette stays in index.css.
   ink?: string;
-}
+};
 
 export const BinaryHero = ({
   flashing = false,

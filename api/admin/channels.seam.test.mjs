@@ -303,7 +303,9 @@ describe("moveBinary", () => {
     store.seed(FROM, "firmware bytes");
     store.seed(TO, "some other file");
 
-    await expect(move()).rejects.toThrow("already exists with different content");
+    await expect(move()).rejects.toThrow(
+      "already exists with different content",
+    );
     // Neither file was touched: the source survives, the foreign file too.
     expect(store.files.has(FROM)).toBe(true);
     expect(decodeText(store, TO)).toBe("some other file");
