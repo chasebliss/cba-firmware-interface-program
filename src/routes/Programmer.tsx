@@ -272,10 +272,10 @@ export const Programmer = ({
       {banner}
       <Nav {...navProps} />
       <div
-        className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-[7vw] md:grid-cols-[1fr_1px_300px] md:gap-0"
+        className="mx-auto grid max-w-[1200px] grid-cols-1 content-start items-start gap-8 px-[7vw] lg:grid-cols-[1fr_1px_300px] lg:content-normal lg:gap-0"
         style={{ minHeight: "calc(100vh - 80px)" }}
       >
-        <div className="pb-8 pt-11 md:pb-20 md:pr-[52px]">
+        <div className="pt-11 lg:pb-20 lg:pr-[52px]">
           <div className="mb-8 items-center flex flex-col gap-3">
             <h1
               className="font-bold tracking-[-0.02em]"
@@ -465,10 +465,10 @@ export const Programmer = ({
           </div>
         </div>
 
-        <div className="self-stretch bg-text/9" />
+        <div className="hidden self-stretch bg-text/9 lg:block" />
 
         <div
-          className="pb-20 pl-9 pt-11"
+          className="max-w-prose pb-8 lg:max-w-none lg:pb-20 lg:pl-9 lg:pt-11"
           style={{ position: "sticky", top: 24 }}
         >
           <InstructionsPanel />

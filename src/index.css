@@ -316,8 +316,10 @@
   border-radius: var(--radius-10);
 }
 
-/* Buttons and the dropdown trigger. */
-[data-theme="nightly"] button {
+/* Buttons and the dropdown trigger. Tabs opt out: their active state is a
+ * 2px bottom rule, and a 10px radius curls both of its ends upward into a
+ * bracket instead of a straight underline. */
+[data-theme="nightly"] button:not([role="tab"]) {
   border-radius: var(--radius-10);
 }
 
