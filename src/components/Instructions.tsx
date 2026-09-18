@@ -32,7 +32,7 @@ const DRIVER_STEPS = [
 ];
 
 const AUTOMATONE_NOTE =
-  "To access the USB port on Automatone pedals, remove the left side panel using a 2.0mm hex screwdriver.";
+  "You will need to remove the left side panel to access the USB port on Automatone pedals. To release the panel, remove the two Philips screws on the edge of the backplate, and the 2mm hex screws from both the top and bottom of the pedal.";
 
 const TABS = [
   { id: "mac", label: "macOS" },
